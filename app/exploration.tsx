@@ -14,7 +14,7 @@ const Exploration = () => {
 
     if (!game) return null;
 
-    const { resources, updateResources } = game;
+    const { updateResources } = game;
 
     const handleExplore = (system: any) => {
         updateResources('fuel', { current: game.resources.fuel.current - 10 });
@@ -22,8 +22,6 @@ const Exploration = () => {
         if (system.event === "win") {
             alert("Congratulations! You've found a habitable planet!");
         }
-
-        console.log(resources);
     };
 
     return (<>

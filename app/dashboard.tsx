@@ -1,90 +1,199 @@
 import { Collapsible } from "@/components/Collapsible";
 import ShipStatus from "@/components/ShipStatus";
+import ResourceButton from "@/components/ui/ResourceButton";
 import ResourceIcon, { ResourceType } from "@/components/ui/ResourceIcon";
+import ResourcePanel from "@/components/ui/ResourcePanel";
+import { useAchievements } from "@/context/AchievementsContext";
 import { GameContext } from "@/context/GameContext";
-import React, { useContext } from "react";
-import { Button, StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { useUpgrades } from "@/context/UpgradesContext";
+import upgrades, { UpgradeCost } from "@/data/upgrades";
 import { Ionicons } from "@expo/vector-icons";
+import React, { useContext, useEffect, useMemo, useState } from "react";
+import { Button, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 
 const UpgradeModule = ({
     title,
-    cost,
-    resourceType,
+    costs,
     onUpgrade,
     onRemove,
     description,
+    locked,
+    resources,
 }: {
     title: string;
-    cost: number;
-    resourceType: ResourceType;
+    costs: UpgradeCost[];
     onUpgrade: () => void;
     onRemove: () => void;
     description: string;
+    locked: boolean;
+    resources: { [key in ResourceType]: { current: number } };
 }) => (
-    <Collapsible title={`${title}`}>
-        <View style={styles.upgradeContainer}>
-            <View style={styles.costContainer}>
-                <Text style={styles.costText}>Cost:</Text>
-                <View style={styles.resourceContainer}>
-                    <ResourceIcon type={resourceType} size={20} />
-                    <Text style={styles.costText}>{cost}</Text>
-                </View>
-            </View>
-            <View style={styles.buttonsContainer}>
-                <Button title={`Upgrade ${title}`} onPress={onUpgrade} color="#3A506B" />
-                <TouchableOpacity onPress={onRemove} style={styles.deleteButton}>
-                    <Ionicons name="trash" size={20} color="#fff" />
-                </TouchableOpacity>
-            </View>
-            <Text style={styles.description}>{description}</Text>
+    <Collapsible title={title}>
+        <View style={locked ? styles.lockedContainer : styles.upgradeContainer}>
+            {locked ? (
+                <Text style={styles.lockedText}>Locked</Text>
+            ) : (
+                <>
+                    <View style={styles.costContainer}>
+                        <Text style={styles.costText}>Cost:</Text>
+                        {costs.map((cost, index) => (
+                            <View key={index} style={styles.resourceContainer}>
+                                <ResourceIcon type={cost.resourceType} size={20} />
+                                <Text style={styles.costText}>{cost.amount}</Text>
+                            </View>
+                        ))}
+                    </View>
+                    <View style={styles.buttonsContainer}>
+                        <Button
+                            title={`Upgrade ${title}`}
+                            onPress={onUpgrade}
+                            color="#3A506B"
+                            disabled={!costs.every(
+                                (cost) => resources[cost.resourceType]?.current >= cost.amount
+                            )}
+                        />
+                        <TouchableOpacity onPress={onRemove} style={styles.deleteButton}>
+                            <Ionicons name="trash" size={20} color="#fff" />
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={styles.description}>{description}</Text>
+                </>
+            )}
         </View>
     </Collapsible>
+
 );
+
 
 const Dashboard = () => {
     const game = useContext(GameContext);
+    const { upgradesState, purchaseUpgrade, downgradeUpgrade } = useUpgrades();
+    const { achievements, isUpgradeUnlocked } = useAchievements();
 
     if (!game) return null;
 
-    const {
-        resources,
-        updateResources,
-        autoEnergyGeneration,
-        energyGeneratorUpgradeCost,
-        upgradeEnergyGenerator,
-        downgradeEnergyGenerator, // New function to reverse the upgrade
-    } = game;
+    const { resources, updateResources, generateResource } = game;
+
+    // Memoized check for unlocked upgrades
+    const anyUpgradeUnlocked = useMemo(() => {
+        return upgrades.some((upgrade) => isUpgradeUnlocked(upgrade.id));
+    }, [achievements]);
+
+    const gatherEnergyAchievementComplete = useMemo(() => {
+        const achievement = achievements.find((ach) => ach.id === "gather_100_energy");
+        return achievement?.completed ?? false;
+    }, [achievements]);
+
+
 
     // Handler for generating energy
     const handleGenerateEnergy = () => {
-        updateResources("energy", { current: resources.energy.current + 1 });
+        const newEnergy = resources.energy.current + 1.18;
+        updateResources("energy", { current: newEnergy });
     };
 
+
     return (
-        <View style={styles.container}>
+        <>
             <ShipStatus />
+            <ScrollView style={styles.container}>
+                {/* Actions Section */}
+                <Collapsible title="Actions">
+                    <View style={styles.cardContent}>
+                        <Button title="Generate Energy" color="#3A506B" onPress={handleGenerateEnergy} />
+                    </View>
+                </Collapsible>
 
-            {/* Actions Section */}
-            <Collapsible title="Actions">
-                <View style={styles.cardContent}>
-                    <Button title="Generate Energy" color="#3A506B" onPress={handleGenerateEnergy} />
-                </View>
-            </Collapsible>
 
-            {/* Upgrades Section */}
-            <Collapsible title="Module Upgrades">
-                <UpgradeModule
-                    title="Reactor Optimization"
-                    cost={energyGeneratorUpgradeCost}
-                    resourceType="energy"
-                    onUpgrade={upgradeEnergyGenerator}
-                    onRemove={downgradeEnergyGenerator}
-                    description={`Automatically generates ${autoEnergyGeneration} energy/sec.`}
-                />
 
-                {/* Additional modules can be added here */}
-            </Collapsible>
-        </View>
+                {/* Core operations Section */}
+                {gatherEnergyAchievementComplete && (
+                    <Collapsible title="Core Operations">
+                        <View style={styles.cardContent}>
+                            <ResourceButton
+                                title={`Refine Fuel`}
+                                resourceType="energy"
+                                cost={10}
+                                currentAmount={resources.energy.current}
+                                onPress={() => generateResource("fuel", 10, 18, 0)}
+                            />
+                            <Text style={styles.description}>
+                                Use energy to refine trace materials into Fuel, generating{" "}
+                                <Text style={styles.highlight}>
+                                    +{Math.round(18 * resources.fuel.efficiency)}{" "}
+                                </Text>
+                                <ResourceIcon type="fuel" size={14} />.
+                            </Text>
+
+                            <ResourceButton
+                                title={`Harvest Dark Matter`}
+                                resourceType="energy"
+                                cost={10}
+                                currentAmount={resources.energy.current}
+                                onPress={() => generateResource("darkMatter", 10, 16, 2)}
+                            />
+                            <Text style={styles.description}>
+                                Activate stabilizers to collect Dark Matter, generating{" "}
+                                <Text style={styles.highlight}>
+                                    +{Math.round(16 * resources.darkMatter.efficiency)}{" "}
+                                </Text>
+                                <ResourceIcon type="darkMatter" size={14} />.
+                            </Text>
+
+                            <ResourceButton
+                                title={`Condense Solar Plasma`}
+                                resourceType="energy"
+                                cost={10}
+                                currentAmount={resources.energy.current}
+                                onPress={() => generateResource("solarPlasma", 10, 12, 0)}
+                            />
+                            <Text style={styles.description}>
+                                Compress solar energy into plasma, generating{" "}
+                                <Text style={styles.highlight}>
+                                    +{Math.round(12 * resources.solarPlasma.efficiency)}{" "}
+                                </Text>
+                                <ResourceIcon type="solarPlasma" size={14} />.
+                            </Text>
+
+                            <ResourceButton
+                                title={`Cryogenically Store Hydrogen`}
+                                resourceType="energy"
+                                cost={10}
+                                currentAmount={resources.energy.current}
+                                onPress={() => generateResource("frozenHydrogen", 10, 9, 0)}
+                            />
+                            <Text style={styles.description}>
+                                Use cryogenic systems to harvest Frozen Hydrogen, generating{" "}
+                                <Text style={styles.highlight}>
+                                    +{Math.round(9 * resources.frozenHydrogen.efficiency)}{" "}
+                                </Text>
+                                <ResourceIcon type="frozenHydrogen" size={14} />.
+                            </Text>
+                        </View>
+                    </Collapsible>
+                )}
+
+
+                {/* Upgrades Section */}
+                {anyUpgradeUnlocked && (
+                    <Collapsible title="Module Upgrades">
+                        {upgrades.map((upgrade) => (
+                            <UpgradeModule
+                                key={upgrade.id}
+                                title={upgrade.title}
+                                costs={upgradesState[upgrade.id]?.costs || upgrade.costs}
+                                onUpgrade={() => purchaseUpgrade(upgrade.id)}
+                                onRemove={() => downgradeUpgrade(upgrade.id)}
+                                description={upgrade.description(upgradesState[upgrade.id]?.level || 0)}
+                                locked={!isUpgradeUnlocked(upgrade.id)}
+                                resources={resources}
+                            />
+                        ))}
+                    </Collapsible>
+                )}
+            </ScrollView>
+        </>
     );
 };
 
@@ -92,6 +201,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#1E1E1E",
+        marginBottom: '15%',
     },
     upgradeContainer: {
         padding: 16,
@@ -99,7 +209,18 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
-        elevation: 5, // For Android shadow
+        elevation: 5,
+    },
+    lockedContainer: {
+        padding: 16,
+        backgroundColor: "#444",
+        borderRadius: 10,
+        marginBottom: 10,
+    },
+    lockedText: {
+        color: "red",
+        fontSize: 14,
+        textAlign: "center",
     },
     costContainer: {
         flexDirection: "row",
@@ -115,7 +236,7 @@ const styles = StyleSheet.create({
     },
     costText: {
         fontSize: 14,
-        color: "#FFD700", // Gold color for the cost
+        color: "white", // Gold color for the cost
         fontWeight: "bold",
         marginLeft: 5,
     },
@@ -126,8 +247,8 @@ const styles = StyleSheet.create({
         marginTop: 6,
     },
     deleteButton: {
-        width: 36, // Fixed width for the button
-        height: 36, // Fixed height for the button
+        width: 36,
+        height: 36,
         backgroundColor: "#3A506B",
         alignItems: "center",
         justifyContent: "center",
@@ -138,6 +259,13 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: "gray",
         marginTop: 10,
+        marginBottom: 10,
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    highlight: {
+        color: "white", // Gold color for emphasis
+        fontWeight: "bold",
     },
     cardContent: {
         padding: 15,

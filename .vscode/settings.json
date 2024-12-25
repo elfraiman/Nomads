@@ -3,5 +3,8 @@
         "activityBar.background": "#5D0F0C",
         "titleBar.activeBackground": "#821510",
         "titleBar.activeForeground": "#FFFBFB"
-    }
+    },
+    "cSpell.words": [
+        "cooldown"
+    ]
 }

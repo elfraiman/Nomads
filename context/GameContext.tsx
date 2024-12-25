@@ -1,115 +1,165 @@
-import React, { createContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, ReactNode, useEffect } from "react";
+import { useAchievements } from "./AchievementsContext";
+
+
+
 
 interface Resource {
     current: number;
     max: number;
+    efficiency: number; // New field for efficiency multiplier
 }
 
 interface Resources {
+    energy: Resource;
     fuel: Resource;
     solarPlasma: Resource;
     darkMatter: Resource;
     frozenHydrogen: Resource;
     alloys: Resource;
-    energy: Resource;
     tokens: Resource;
 }
 
 interface GameContextType {
     resources: Resources;
-    autoEnergyGeneration: number;
     updateResources: (type: keyof Resources, changes: Partial<Resource>) => void;
-    upgradeEnergyGenerator: () => void;
-    downgradeEnergyGenerator: () => void;
     repairShip: () => void;
-    energyGeneratorUpgradeCost: number;
+    resetResources: () => void;
+    autoEnergyGenerationRate: number; // New property for tracking auto-generation
+    setAutoEnergyGenerationRate: React.Dispatch<React.SetStateAction<number>>;
+    upgradeReactorStorage: () => void;
+    generateResource: (type: keyof Resources, energyCost: number, output: number, cooldown: number) => void;
+    upgradeResourceEfficiency: (type: keyof Resources, increment: number) => void;
 }
 
 const initialResources: Resources = {
-    fuel: { current: 0, max: 100 },
-    solarPlasma: { current: 0, max: 100 },
-    darkMatter: { current: 0, max: 100 },
-    frozenHydrogen: { current: 0, max: 100 },
-    alloys: { current: 0, max: 100 },
-    energy: { current: 10, max: 100 },
-    tokens: { current: 0, max: 100 },
+    energy: { current: 99, max: 100, efficiency: 1 },
+    fuel: { current: 0, max: 100, efficiency: 1 },
+    solarPlasma: { current: 0, max: 100, efficiency: 1 },
+    darkMatter: { current: 0, max: 100, efficiency: 1 },
+    frozenHydrogen: { current: 0, max: 100, efficiency: 1 },
+    alloys: { current: 0, max: 100, efficiency: 1 },
+    tokens: { current: 0, max: 100, efficiency: 1 },
 };
+
 
 export const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider = ({ children }: { children: ReactNode }) => {
     const [resources, setResources] = useState<Resources>(initialResources);
-    const [autoEnergyGeneration, setAutoEnergyGeneration] = useState(0); // Base energy/sec
-    const [energyGeneratorUpgradeCost, setEnergyGeneratorUpgradeCost] = useState(20); // Initial cost
+    const [autoEnergyGenerationRate, setAutoEnergyGenerationRate] = useState(0); // Tracks energy/sec
+    const { updateProgressFromResources } = useAchievements();
 
-    // Updates resources globally
+
+
+    // Core operations resource generation
+    //
+    const generateResource = (
+        type: keyof Resources,
+        energyCost: number,
+        baseOutput: number,
+        cooldown: number
+    ) => {
+        if (resources.energy.current < energyCost) {
+            alert("Not enough energy!");
+            return;
+        }
+
+        // Deduct energy
+        updateResources("energy", { current: resources.energy.current - energyCost });
+
+        // Calculate actual output using efficiency multiplier
+        const actualOutput = Math.round(baseOutput * resources[type].efficiency);
+
+        // Add resource after cooldown
+        setTimeout(() => {
+            updateResources(type, {
+                current: Math.min(resources[type].max, resources[type].current + actualOutput),
+            });
+        }, cooldown * 1000); // Cooldown in seconds
+    };
+
+    //  `updateResources` to track achievement progress
+    // and update resources.
+    // Function to update resource properties, including efficiency
     const updateResources = (type: keyof Resources, changes: Partial<Resource>) => {
+        setResources((prev) => {
+            const updated = {
+                ...prev,
+                [type]: {
+                    ...prev[type],
+                    ...changes,
+                    current: Math.min(
+                        changes.current ?? prev[type].current,
+                        changes.max ?? prev[type].max
+                    ),
+                    max: changes.max ?? prev[type].max,
+                    efficiency: changes.efficiency ?? prev[type].efficiency, // Update efficiency
+                },
+            };
+
+            // Notify the achievements system
+            updateProgressFromResources(updated);
+
+            return updated;
+        });
+    };
+
+    // Repairs the ship (basic example)
+    const repairShip = () => {
+        if (resources.energy.current >= 20) {
+            updateResources("energy", { current: resources.energy.current - 20 });
+            updateResources("fuel", { current: resources.fuel.current + 10 });
+        } else {
+            alert("Not enough energy to repair the ship!");
+        }
+    };
+
+    // Reset all resources
+    const resetResources = () => {
+        setResources(initialResources);
+    };
+
+    const upgradeReactorStorage = () => {
+        updateResources("energy", { max: Math.round((resources.energy.max + 100)) });
+    }
+    // Function to upgrade efficiency for a resource
+    const upgradeResourceEfficiency = (type: keyof Resources, increment: number) => {
         setResources((prev) => ({
             ...prev,
             [type]: {
                 ...prev[type],
-                ...changes,
-                current: Math.min(
-                    prev[type].max,
-                    Math.max(0, changes.current !== undefined ? changes.current : prev[type].current)
-                ),
-                max: changes.max !== undefined ? changes.max : prev[type].max,
+                efficiency: prev[type].efficiency + increment, // Increment efficiency
             },
         }));
     };
 
-    // Automatic energy generation every second
+
+    // Auto-generate energy based on rate
     useEffect(() => {
         const interval = setInterval(() => {
-            if (autoEnergyGeneration > 0) {
-                updateResources('energy', { current: resources.energy.current + autoEnergyGeneration });
+            if (autoEnergyGenerationRate > 0) {
+                updateResources("energy", {
+                    current: resources.energy.current + autoEnergyGenerationRate,
+                });
             }
-        }, 1000);
+        }, 1000); // Generate energy every second
 
-        return () => clearInterval(interval);
-    }, [autoEnergyGeneration, resources.energy.current]);
-
-    // Upgrade the energy generator
-    const upgradeEnergyGenerator = () => {
-        if (resources.energy.current >= energyGeneratorUpgradeCost) {
-            updateResources('energy', { current: resources.energy.current - energyGeneratorUpgradeCost });
-            setAutoEnergyGeneration((prev) => prev + 1); // Increase energy/sec
-            setEnergyGeneratorUpgradeCost((prev) => Math.floor(prev * 1.5)); // Exponential cost
-        } else {
-            alert('Not enough energy to upgrade the generator!');
-        }
-    };
-
-    // Downgrade the energy generator
-    const downgradeEnergyGenerator = () => {
-        if (autoEnergyGeneration > 0) {
-            setAutoEnergyGeneration((prev) => prev - 1); // Reduce energy/sec
-            setEnergyGeneratorUpgradeCost((prev) => Math.floor(prev / 1.5)); // Reduce the cost exponentially
-            updateResources("energy", { current: resources.energy.current + Math.floor(energyGeneratorUpgradeCost / 2) }); // Refund half the cost
-        }
-    };
-
-
-    // Repairs the ship, consuming energy
-    const repairShip = () => {
-        if (resources.energy.current >= 20) {
-            updateResources('energy', { current: resources.energy.current - 20 });
-            updateResources('fuel', { current: resources.fuel.current + 10 });
-        } else {
-            alert('Not enough Energy to perform repairs!');
-        }
-    };
+        return () => clearInterval(interval); // Cleanup on unmount
+    }, [autoEnergyGenerationRate, resources.energy.current]);
 
     return (
         <GameContext.Provider
             value={{
                 resources,
-                autoEnergyGeneration,
                 updateResources,
-                upgradeEnergyGenerator,
                 repairShip,
-                energyGeneratorUpgradeCost,
-                downgradeEnergyGenerator,
+                resetResources,
+                autoEnergyGenerationRate,
+                setAutoEnergyGenerationRate,
+                upgradeReactorStorage,
+                generateResource,
+                upgradeResourceEfficiency,
             }}
         >
             {children}
