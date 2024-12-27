@@ -1,5 +1,7 @@
 import React, { createContext, useState, ReactNode, useEffect } from "react";
 import { useAchievements } from "./AchievementsContext";
+import { GameState, loadGameState, saveGameState } from "@/data/asyncStorage";
+import { useUpgrades } from "./UpgradesContext";
 
 
 
@@ -10,7 +12,7 @@ interface Resource {
     efficiency: number; // New field for efficiency multiplier
 }
 
-interface Resources {
+export interface Resources {
     energy: Resource;
     fuel: Resource;
     solarPlasma: Resource;
@@ -27,18 +29,18 @@ interface GameContextType {
     resetResources: () => void;
     autoEnergyGenerationRate: number; // New property for tracking auto-generation
     setAutoEnergyGenerationRate: React.Dispatch<React.SetStateAction<number>>;
-    upgradeReactorStorage: () => void;
+    upgradeReactorStorage: (level: number) => void;
     generateResource: (type: keyof Resources, energyCost: number, output: number, cooldown: number) => void;
     upgradeResourceEfficiency: (type: keyof Resources, increment: number) => void;
 }
 
 const initialResources: Resources = {
     energy: { current: 99, max: 100, efficiency: 1 },
-    fuel: { current: 0, max: 100, efficiency: 1 },
-    solarPlasma: { current: 0, max: 100, efficiency: 1 },
-    darkMatter: { current: 0, max: 100, efficiency: 1 },
-    frozenHydrogen: { current: 0, max: 100, efficiency: 1 },
-    alloys: { current: 0, max: 100, efficiency: 1 },
+    fuel: { current: 0, max: 100, efficiency: 1.8 },
+    solarPlasma: { current: 0, max: 100, efficiency: 1.6 },
+    darkMatter: { current: 0, max: 100, efficiency: 1.2 },
+    frozenHydrogen: { current: 0, max: 100, efficiency: 0.9 },
+    alloys: { current: 0, max: 100, efficiency: 0.3 },
     tokens: { current: 0, max: 100, efficiency: 1 },
 };
 
@@ -48,8 +50,37 @@ export const GameContext = createContext<GameContextType | undefined>(undefined)
 export const GameProvider = ({ children }: { children: ReactNode }) => {
     const [resources, setResources] = useState<Resources>(initialResources);
     const [autoEnergyGenerationRate, setAutoEnergyGenerationRate] = useState(0); // Tracks energy/sec
-    const { updateProgressFromResources } = useAchievements();
+    const { updateProgressFromResources, updateProgressForUpgrade } = useAchievements();
+    const { setAchievementsState, achievementsState } = useAchievements(); // New method to set achievements
 
+    // Load game state on mount
+    // I need to refine this to work better with UpgradesContext
+    // since theres a circular dependency atm
+    //
+    useEffect(() => {
+        const loadState = async () => {
+            const savedState = await loadGameState();
+            if (savedState) {
+                setResources(savedState.resources);
+                setAchievementsState(savedState.achievements);
+            }
+        };
+        loadState();
+    }, []);
+
+    // Save game state whenever resources or achievements change
+    useEffect(() => {
+        const saveState = async () => {
+            const savedState = await loadGameState();
+            const gameState: GameState = {
+                ...savedState,
+                resources,
+                achievements: achievementsState, // Add achievements from context
+            };
+            await saveGameState(gameState);
+        };
+        saveState();
+    }, [resources, achievementsState]); // Add dependencies for achievements and upgrades
 
 
     // Core operations resource generation
@@ -119,10 +150,16 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const resetResources = () => {
         setResources(initialResources);
     };
+    const upgradeReactorStorage = (level: number) => {
+        const additionalStoragePerLevel = 100; // Amount of storage increase per level
+        const newMaxStorage = resources.energy.max + additionalStoragePerLevel;
 
-    const upgradeReactorStorage = () => {
-        updateResources("energy", { max: Math.round((resources.energy.max + 100)) });
-    }
+        updateResources("energy", { max: Math.round(newMaxStorage) });
+
+        // Track the progress of the reactor storage upgrade
+        updateProgressForUpgrade("reactor_storage", level);
+    };
+
     // Function to upgrade efficiency for a resource
     const upgradeResourceEfficiency = (type: keyof Resources, increment: number) => {
         setResources((prev) => ({

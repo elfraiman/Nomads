@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Nomads",
-    "slug": "Nomads",
+    "slug": "nomads",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -36,6 +36,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "c597ed06-e918-4fcd-b4cc-8c62061ae11c"
+      }
+    },
+    "owner": "elfraiman"
   }
 }

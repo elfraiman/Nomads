@@ -7,7 +7,7 @@ import ResourceIcon from "./ui/ResourceIcon";
 
 const ShipStatus = () => {
     const game = useContext(GameContext);
-    const { achievements } = useAchievements();
+    const { achievementsState } = useAchievements();
 
     if (!game) return null;
 
@@ -17,12 +17,20 @@ const ShipStatus = () => {
         ? (resources.energy.current / resources.energy.max) * 100
         : 0;
 
-    // Find the first incomplete achievement with multiple resources
-    const currentGoal = achievements.find((achievement) =>
-        Object.entries(achievement.resourceGoals).some(
-            ([resource, goal]) => (resources[resource as keyof typeof resources]?.current || 0) < goal && !achievement.completed
-        )
-    );
+    // Find the first incomplete achievement with either resource or upgrade goals
+    const currentGoal = achievementsState.find((achievement) => {
+        if (achievement.completed) return false;
+
+        const hasIncompleteResourceGoals = Object.entries(achievement.resourceGoals || {}).some(
+            ([resource, goal]) => (resources[resource as keyof typeof resources]?.current || 0) < goal
+        );
+
+        const hasIncompleteUpgradeGoals = Object.entries(achievement.upgradeGoals || {}).some(
+            ([upgrade, goal]) => (achievement.progress.upgrades?.[upgrade] || 0) < goal
+        );
+
+        return hasIncompleteResourceGoals || hasIncompleteUpgradeGoals;
+    });
 
     // Animation for the goal container
     const goalOpacity = useRef(new Animated.Value(0)).current;
@@ -73,11 +81,20 @@ const ShipStatus = () => {
             {currentGoal && (
                 <Animated.View style={[styles.goalContainer, { opacity: goalOpacity }]}>
                     <Text style={styles.goalText}>{currentGoal.description}</Text>
-                    {Object.entries(currentGoal.resourceGoals).map(([resource, goal]) => (
+                    {/* Display Resource Goals */}
+                    {Object.entries(currentGoal.resourceGoals || {}).map(([resource, goal]) => (
                         <View key={resource} style={styles.resourceGoal}>
                             <ResourceIcon type={resource as keyof typeof resources} />
                             <Text style={styles.goalText}>
                                 {resources[resource as keyof typeof resources]?.current || 0}/{goal}
+                            </Text>
+                        </View>
+                    ))}
+                    {/* Display Upgrade Goals */}
+                    {Object.entries(currentGoal.upgradeGoals || {}).map(([upgrade, goal]) => (
+                        <View key={upgrade} style={styles.upgradeGoal}>
+                            <Text style={styles.goalText}>
+                                {upgrade}: {currentGoal.progress.upgrades?.[upgrade] || 0}/{goal}
                             </Text>
                         </View>
                     ))}
@@ -152,6 +169,11 @@ const styles = StyleSheet.create({
         borderRadius: 5,
     },
     resourceGoal: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 5,
+    },
+    upgradeGoal: {
         flexDirection: "row",
         alignItems: "center",
         marginTop: 5,

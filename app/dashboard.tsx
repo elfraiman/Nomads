@@ -1,5 +1,6 @@
 import { Collapsible } from "@/components/Collapsible";
 import ShipStatus from "@/components/ShipStatus";
+import TestStorage from "@/components/TestStorage";
 import ResourceButton from "@/components/ui/ResourceButton";
 import ResourceIcon, { ResourceType } from "@/components/ui/ResourceIcon";
 import ResourcePanel from "@/components/ui/ResourcePanel";
@@ -29,47 +30,50 @@ const UpgradeModule = ({
     locked: boolean;
     resources: { [key in ResourceType]: { current: number } };
 }) => (
-    <Collapsible title={title}>
-        <View style={locked ? styles.lockedContainer : styles.upgradeContainer}>
-            {locked ? (
-                <Text style={styles.lockedText}>Locked</Text>
-            ) : (
-                <>
-                    <View style={styles.costContainer}>
-                        <Text style={styles.costText}>Cost:</Text>
-                        {costs.map((cost, index) => (
-                            <View key={index} style={styles.resourceContainer}>
-                                <ResourceIcon type={cost.resourceType} size={20} />
-                                <Text style={styles.costText}>{cost.amount}</Text>
+    <>
+        {!locked && (
+            <Collapsible title={title}>
+                <View style={locked ? styles.lockedContainer : styles.upgradeContainer}>
+                    {locked ? (
+                        <Text style={styles.lockedText}>Locked</Text>
+                    ) : (
+                        <>
+                            <View style={styles.costContainer}>
+                                <Text style={styles.costText}>Cost:</Text>
+                                {costs.map((cost, index) => (
+                                    <View key={index} style={styles.resourceContainer}>
+                                        <ResourceIcon type={cost.resourceType} size={20} />
+                                        <Text style={styles.costText}>{cost.amount}</Text>
+                                    </View>
+                                ))}
                             </View>
-                        ))}
-                    </View>
-                    <View style={styles.buttonsContainer}>
-                        <Button
-                            title={`Upgrade ${title}`}
-                            onPress={onUpgrade}
-                            color="#3A506B"
-                            disabled={!costs.every(
-                                (cost) => resources[cost.resourceType]?.current >= cost.amount
-                            )}
-                        />
-                        <TouchableOpacity onPress={onRemove} style={styles.deleteButton}>
-                            <Ionicons name="trash" size={20} color="#fff" />
-                        </TouchableOpacity>
-                    </View>
-                    <Text style={styles.description}>{description}</Text>
-                </>
-            )}
-        </View>
-    </Collapsible>
-
+                            <View style={styles.buttonsContainer}>
+                                <Button
+                                    title={`Upgrade ${title}`}
+                                    onPress={onUpgrade}
+                                    color="#3A506B"
+                                    disabled={!costs.every(
+                                        (cost) => resources[cost.resourceType]?.current >= cost.amount
+                                    )}
+                                />
+                                <TouchableOpacity onPress={onRemove} style={styles.deleteButton}>
+                                    <Ionicons name="trash" size={20} color="#fff" />
+                                </TouchableOpacity>
+                            </View>
+                            <Text style={styles.description}>{description}</Text>
+                        </>
+                    )}
+                </View>
+            </Collapsible>
+        )}
+    </>
 );
 
 
 const Dashboard = () => {
     const game = useContext(GameContext);
     const { upgradesState, purchaseUpgrade, downgradeUpgrade } = useUpgrades();
-    const { achievements, isUpgradeUnlocked } = useAchievements();
+    const { achievementsState, isUpgradeUnlocked } = useAchievements();
 
     if (!game) return null;
 
@@ -78,19 +82,27 @@ const Dashboard = () => {
     // Memoized check for unlocked upgrades
     const anyUpgradeUnlocked = useMemo(() => {
         return upgrades.some((upgrade) => isUpgradeUnlocked(upgrade.id));
-    }, [achievements]);
+    }, [achievementsState]);
 
     const gatherEnergyAchievementComplete = useMemo(() => {
-        const achievement = achievements.find((ach) => ach.id === "gather_100_energy");
+        const achievement = achievementsState.find((ach) => ach.id === "gather_100_energy");
         return achievement?.completed ?? false;
-    }, [achievements]);
+    }, [achievementsState]);
 
 
 
     // Handler for generating energy
     const handleGenerateEnergy = () => {
-        const newEnergy = resources.energy.current + 1.18;
+        const newEnergy = Math.round(resources.energy.current + 1.18);
         updateResources("energy", { current: newEnergy });
+    };
+
+    const defaultResourceGenerationValue = {
+        fuel: 10,            // Critical for early operations.
+        solarPlasma: 8,      // Slightly less useful early on.
+        darkMatter: 6,       // Rare resource, mid-game use.
+        frozenHydrogen: 5,   // Advanced or late-game resource.
+        alloys: 7            // Early to mid-game use.
     };
 
 
@@ -106,7 +118,6 @@ const Dashboard = () => {
                 </Collapsible>
 
 
-
                 {/* Core operations Section */}
                 {gatherEnergyAchievementComplete && (
                     <Collapsible title="Core Operations">
@@ -116,29 +127,14 @@ const Dashboard = () => {
                                 resourceType="energy"
                                 cost={10}
                                 currentAmount={resources.energy.current}
-                                onPress={() => generateResource("fuel", 10, 18, 0)}
+                                onPress={() => generateResource("fuel", 10, defaultResourceGenerationValue.fuel, 0)}
                             />
                             <Text style={styles.description}>
                                 Use energy to refine trace materials into Fuel, generating{" "}
                                 <Text style={styles.highlight}>
-                                    +{Math.round(18 * resources.fuel.efficiency)}{" "}
+                                    +{Math.round(defaultResourceGenerationValue.fuel * resources.fuel.efficiency)}{" "}
                                 </Text>
                                 <ResourceIcon type="fuel" size={14} />.
-                            </Text>
-
-                            <ResourceButton
-                                title={`Harvest Dark Matter`}
-                                resourceType="energy"
-                                cost={10}
-                                currentAmount={resources.energy.current}
-                                onPress={() => generateResource("darkMatter", 10, 16, 2)}
-                            />
-                            <Text style={styles.description}>
-                                Activate stabilizers to collect Dark Matter, generating{" "}
-                                <Text style={styles.highlight}>
-                                    +{Math.round(16 * resources.darkMatter.efficiency)}{" "}
-                                </Text>
-                                <ResourceIcon type="darkMatter" size={14} />.
                             </Text>
 
                             <ResourceButton
@@ -146,27 +142,44 @@ const Dashboard = () => {
                                 resourceType="energy"
                                 cost={10}
                                 currentAmount={resources.energy.current}
-                                onPress={() => generateResource("solarPlasma", 10, 12, 0)}
+                                onPress={() => generateResource("solarPlasma", 10, defaultResourceGenerationValue.solarPlasma, 0)}
                             />
                             <Text style={styles.description}>
                                 Compress solar energy into plasma, generating{" "}
                                 <Text style={styles.highlight}>
-                                    +{Math.round(12 * resources.solarPlasma.efficiency)}{" "}
+                                    +{Math.round(defaultResourceGenerationValue.solarPlasma * resources.solarPlasma.efficiency)}{" "}
                                 </Text>
                                 <ResourceIcon type="solarPlasma" size={14} />.
                             </Text>
+
+
+                            <ResourceButton
+                                title={`Harvest Dark Matter`}
+                                resourceType="energy"
+                                cost={10}
+                                currentAmount={resources.energy.current}
+                                onPress={() => generateResource("darkMatter", 10, defaultResourceGenerationValue.darkMatter, 0)}
+                            />
+                            <Text style={styles.description}>
+                                Activate stabilizers to collect Dark Matter, generating{" "}
+                                <Text style={styles.highlight}>
+                                    +{Math.round(defaultResourceGenerationValue.darkMatter * resources.darkMatter.efficiency)}{" "}
+                                </Text>
+                                <ResourceIcon type="darkMatter" size={14} />.
+                            </Text>
+
 
                             <ResourceButton
                                 title={`Cryogenically Store Hydrogen`}
                                 resourceType="energy"
                                 cost={10}
                                 currentAmount={resources.energy.current}
-                                onPress={() => generateResource("frozenHydrogen", 10, 9, 0)}
+                                onPress={() => generateResource("frozenHydrogen", 10, defaultResourceGenerationValue.frozenHydrogen, 0)}
                             />
                             <Text style={styles.description}>
                                 Use cryogenic systems to harvest Frozen Hydrogen, generating{" "}
                                 <Text style={styles.highlight}>
-                                    +{Math.round(9 * resources.frozenHydrogen.efficiency)}{" "}
+                                    +{Math.round(defaultResourceGenerationValue.frozenHydrogen * resources.frozenHydrogen.efficiency)}{" "}
                                 </Text>
                                 <ResourceIcon type="frozenHydrogen" size={14} />.
                             </Text>
@@ -192,6 +205,7 @@ const Dashboard = () => {
                         ))}
                     </Collapsible>
                 )}
+
             </ScrollView>
         </>
     );
