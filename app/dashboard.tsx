@@ -1,15 +1,11 @@
 import { Collapsible } from "@/components/Collapsible";
 import ShipStatus from "@/components/ShipStatus";
-import TestStorage from "@/components/TestStorage";
 import ResourceButton from "@/components/ui/ResourceButton";
 import ResourceIcon, { ResourceType } from "@/components/ui/ResourceIcon";
-import ResourcePanel from "@/components/ui/ResourcePanel";
-import { useAchievements } from "@/context/AchievementsContext";
-import { GameContext } from "@/context/GameContext";
-import { useUpgrades } from "@/context/UpgradesContext";
-import upgrades, { UpgradeCost } from "@/data/upgrades";
+import { useGame } from "@/context/GameContext";
+import defaultUpgradeList, { UpgradeCost } from "@/data/upgrades";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Button, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 
@@ -71,24 +67,21 @@ const UpgradeModule = ({
 
 
 const Dashboard = () => {
-    const game = useContext(GameContext);
-    const { upgradesState, purchaseUpgrade, downgradeUpgrade } = useUpgrades();
-    const { achievementsState, isUpgradeUnlocked } = useAchievements();
+    const game = useGame();
 
     if (!game) return null;
 
-    const { resources, updateResources, generateResource } = game;
+    const { resources, upgrades, updateResources, generateResource, isUpgradeUnlocked, purchaseUpgrade, downgradeUpgrade, achievements } = game;
 
     // Memoized check for unlocked upgrades
     const anyUpgradeUnlocked = useMemo(() => {
         return upgrades.some((upgrade) => isUpgradeUnlocked(upgrade.id));
-    }, [achievementsState]);
+    }, [achievements]);
 
     const gatherEnergyAchievementComplete = useMemo(() => {
-        const achievement = achievementsState.find((ach) => ach.id === "gather_100_energy");
+        const achievement = achievements.find((ach) => ach.id === "gather_100_energy");
         return achievement?.completed ?? false;
-    }, [achievementsState]);
-
+    }, [achievements]);
 
 
     // Handler for generating energy
@@ -104,7 +97,11 @@ const Dashboard = () => {
         frozenHydrogen: 5,   // Advanced or late-game resource.
         alloys: 7            // Early to mid-game use.
     };
-
+    useEffect(() => {
+        if (gatherEnergyAchievementComplete) {
+            console.log("Gather 100 Energy achievement completed!");
+        }
+    }, [gatherEnergyAchievementComplete]);
 
     return (
         <>
@@ -191,17 +188,18 @@ const Dashboard = () => {
                 {/* Upgrades Section */}
                 {anyUpgradeUnlocked && (
                     <Collapsible title="Module Upgrades">
-                        {upgrades.map((upgrade) => (
+                        {upgrades?.map((upgrade) => (
                             <UpgradeModule
                                 key={upgrade.id}
                                 title={upgrade.title}
-                                costs={upgradesState[upgrade.id]?.costs || upgrade.costs}
+                                costs={upgrades.find((u) => u.id === upgrade.id)?.costs || upgrade.costs}
                                 onUpgrade={() => purchaseUpgrade(upgrade.id)}
                                 onRemove={() => downgradeUpgrade(upgrade.id)}
-                                description={upgrade.description(upgradesState[upgrade.id]?.level || 0)}
+                                description={upgrade.description(upgrades.find((u) => u.id === upgrade.id)?.level || 0)}
                                 locked={!isUpgradeUnlocked(upgrade.id)}
                                 resources={resources}
                             />
+
                         ))}
                     </Collapsible>
                 )}

@@ -32,7 +32,7 @@ const achievements: Achievement[] = [
         story: "As you gather the first 100 units of energy, the ship's reactor begins to hum steadily. New possibilities emerge as the ship's systems stabilize.",
         unlocks: [""],
         completed: false,
-        onComplete: () => { },
+        onComplete: () => { console.log("Energy Pioneer achievement completed!"); },
     },
     {
         id: "gather_dark_matter_and_fuel",
@@ -50,8 +50,10 @@ const achievements: Achievement[] = [
         },
         story: "You've successfully collected critical resources to stabilize your operations.",
         completed: false,
-        unlocks: ["reactor_storage"], // Example upgrade
-        onComplete: () => { },
+        unlocks: ["reactor_storage"],
+        onComplete: () => {
+            console.log("Reactor Storage upgrade unlocked!");
+        },
     },
     {
         id: "upgrade_reactor_storage",

@@ -1,24 +1,21 @@
-import { Animated, View, StyleSheet, Text } from "react-native";
-import { useContext, useEffect, useRef } from "react";
-import { useAchievements } from "@/context/AchievementsContext";
-import { GameContext } from "@/context/GameContext";
+import { useGame } from "@/context/GameContext";
 import { LinearGradient } from "expo-linear-gradient";
+import { useEffect, useRef } from "react";
+import { Animated, StyleSheet, Text, View } from "react-native";
 import ResourceIcon from "./ui/ResourceIcon";
 
 const ShipStatus = () => {
-    const game = useContext(GameContext);
-    const { achievementsState } = useAchievements();
-
+    const game = useGame();
     if (!game) return null;
 
-    const { resources, autoEnergyGenerationRate } = game;
+    const { resources, autoEnergyGenerationRate, achievements } = game;
 
     const energyPercentage = resources?.energy
         ? (resources.energy.current / resources.energy.max) * 100
         : 0;
 
     // Find the first incomplete achievement with either resource or upgrade goals
-    const currentGoal = achievementsState.find((achievement) => {
+    const currentGoal = achievements.find((achievement) => {
         if (achievement.completed) return false;
 
         const hasIncompleteResourceGoals = Object.entries(achievement.resourceGoals || {}).some(
@@ -90,6 +87,7 @@ const ShipStatus = () => {
                             </Text>
                         </View>
                     ))}
+
                     {/* Display Upgrade Goals */}
                     {Object.entries(currentGoal.upgradeGoals || {}).map(([upgrade, goal]) => (
                         <View key={upgrade} style={styles.upgradeGoal}>

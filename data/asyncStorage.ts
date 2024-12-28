@@ -1,14 +1,15 @@
 // src/data/gameState.ts
 
+
+import { Resources } from "@/utils/defaults";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Resources } from "@/context/GameContext";
-import { UpgradeState } from "@/context/UpgradesContext";
 import { Achievement } from "./achievements";
+import { Upgrade } from "./upgrades";
 
 export interface GameState {
     resources: Resources;
     achievements: Achievement[];
-    upgrades?: Record<string, UpgradeState>;
+    upgrades: Upgrade[];
 }
 
 const GAME_STATE_KEY = "GAME_STATE";

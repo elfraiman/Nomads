@@ -13,9 +13,10 @@ export interface Upgrade {
     description: (level: number) => string; // Function to generate a description
     costs: UpgradeCost[]; // Array of resource costs
     baseCostMultiplier: number; // Cost multiplier for all resources
+    level: number;
 }
 
-const upgrades: Upgrade[] = [
+const defaultUpgradeList: Upgrade[] = [
     {
         id: "reactor_optimization",
         title: "Reactor Optimization",
@@ -25,6 +26,7 @@ const upgrades: Upgrade[] = [
             { resourceType: "energy", amount: 35 }
         ],
         baseCostMultiplier: 1.5,
+        level: 0,
     },
     {
         id: "reactor_storage",
@@ -35,6 +37,7 @@ const upgrades: Upgrade[] = [
             { resourceType: "energy", amount: 40 }
         ],
         baseCostMultiplier: 1.25,
+        level: 0,
     },
     {
         id: "core_operations_efficiency",
@@ -46,9 +49,10 @@ const upgrades: Upgrade[] = [
             { resourceType: "fuel", amount: 20 },
         ],
         baseCostMultiplier: 1.5,
+        level: 0,
     },
 
     // Add more upgrades here
 ];
 
-export default upgrades;
+export default defaultUpgradeList;

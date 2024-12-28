@@ -7,10 +7,8 @@ import { useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
-import { UpgradesProvider } from '../context/UpgradesContext';
 import Dashboard from './dashboard';
 import Exploration from './exploration';
-import { AchievementsProvider } from '@/context/AchievementsContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -37,57 +35,52 @@ export default function RootLayout() {
   }
 
   return (
-
-    <AchievementsProvider>
-      <GameProvider>
-        <UpgradesProvider>
-          <ThemeProvider value={DarkTheme}>
-            <Drawer.Navigator
-              screenOptions={({ navigation }) => ({
-                drawerStyle: {
-                  backgroundColor: '#222',
-                  width: 240,
-                },
-                drawerActiveTintColor: '#fff',
-                drawerInactiveTintColor: '#ccc',
-                headerLeft: () => (
-                  <Ionicons
-                    name="menu-outline"
-                    size={24}
-                    color="#fff"
-                    style={{ marginLeft: 10 }}
-                    onPress={() => navigation.toggleDrawer()}
-                  />
-                ),
-                headerStyle: {
-                  backgroundColor: '#222',
-                },
-                headerTintColor: '#fff',
-                headerTitleAlign: 'center',
-                headerTitleStyle: styles.headerTitle,
-              })}
-            >
-              <Drawer.Screen
-                name="dashboard"
-                component={Dashboard}
-                options={{
-                  title: 'Dashboard',
-                  drawerIcon: ({ color }) => <Ionicons name="bar-chart-outline" size={24} color={color} />,
-                }}
+    <GameProvider>
+      <ThemeProvider value={DarkTheme}>
+        <Drawer.Navigator
+          screenOptions={({ navigation }) => ({
+            drawerStyle: {
+              backgroundColor: '#222',
+              width: 240,
+            },
+            drawerActiveTintColor: '#fff',
+            drawerInactiveTintColor: '#ccc',
+            headerLeft: () => (
+              <Ionicons
+                name="menu-outline"
+                size={24}
+                color="#fff"
+                style={{ marginLeft: 10 }}
+                onPress={() => navigation.toggleDrawer()}
               />
-              <Drawer.Screen
-                name="exploration"
-                component={Exploration}
-                options={{
-                  title: 'Exploration',
-                  drawerIcon: ({ color }) => <Ionicons name="planet-outline" size={24} color={color} />,
-                }}
-              />
-            </Drawer.Navigator>
-          </ThemeProvider>
-        </UpgradesProvider>
-      </GameProvider>
-    </AchievementsProvider>
+            ),
+            headerStyle: {
+              backgroundColor: '#222',
+            },
+            headerTintColor: '#fff',
+            headerTitleAlign: 'center',
+            headerTitleStyle: styles.headerTitle,
+          })}
+        >
+          <Drawer.Screen
+            name="dashboard"
+            component={Dashboard}
+            options={{
+              title: 'Dashboard',
+              drawerIcon: ({ color }) => <Ionicons name="bar-chart-outline" size={24} color={color} />,
+            }}
+          />
+          <Drawer.Screen
+            name="exploration"
+            component={Exploration}
+            options={{
+              title: 'Exploration',
+              drawerIcon: ({ color }) => <Ionicons name="planet-outline" size={24} color={color} />,
+            }}
+          />
+        </Drawer.Navigator>
+      </ThemeProvider>
+    </GameProvider>
   );
 }
 
