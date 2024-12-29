@@ -1,15 +1,16 @@
 import { useGame } from "@/context/GameContext";
+import { Upgrade } from "@/data/upgrades";
+import { isUpgradeCoreOperationsEfficiencyCompleted } from "@/utils/gameUtils";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 import ResourceIcon from "./ui/ResourceIcon";
-import { Upgrade } from "@/data/upgrades";
 
 const ShipStatus = () => {
     const game = useGame();
     if (!game) return null;
 
-    const { resources, autoEnergyGenerationRate, achievements, upgrades } = game;
+    const { resources, achievements, upgrades } = game;
 
     const energyPercentage = resources?.energy
         ? (resources.energy.current / resources.energy.max) * 100
@@ -32,6 +33,7 @@ const ShipStatus = () => {
 
     // Animation for the goal container
     const goalOpacity = useRef(new Animated.Value(0)).current;
+
     const getGenerationRate = () => {
         const rate = upgrades.find((upgrade: Upgrade) => upgrade.id === "reactor_optimization")?.level;
         return rate ?? 0;
@@ -45,6 +47,8 @@ const ShipStatus = () => {
                 useNativeDriver: true,
             }).start();
         }
+
+        console.log("Current Goal: ", currentGoal, achievements);
     }, [currentGoal]);
 
     return (
@@ -57,6 +61,7 @@ const ShipStatus = () => {
                     end={[1, 0]}
                     style={[styles.energyBarFill, { width: `${energyPercentage}%` }]}
                 />
+
                 <View style={styles.energyBarTextContainer}>
                     <ResourceIcon type="energy" size={20} />
                     <Text style={styles.energyBarText}>
@@ -68,6 +73,7 @@ const ShipStatus = () => {
             {/* Other Resources */}
             {Object.entries(resources).map(([key, resource]) => {
                 if (key === "energy") return null;
+                if (!isUpgradeCoreOperationsEfficiencyCompleted(achievements) && key === "solarPlasma") return null;
 
                 return (
                     <View style={styles.resource} key={key}>

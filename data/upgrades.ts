@@ -25,7 +25,7 @@ const defaultUpgradeList: Upgrade[] = [
         costs: [
             { resourceType: "energy", amount: 35 }
         ],
-        baseCostMultiplier: 1.5,
+        baseCostMultiplier: 1.25,
         level: 0,
     },
     {
@@ -34,7 +34,8 @@ const defaultUpgradeList: Upgrade[] = [
         description: () =>
             "Enhance reactor containment systems to safely store an additional +100 units of energy. Improved insulation and reinforced capacitors ensure stability under increased loads.",
         costs: [
-            { resourceType: "energy", amount: 40 }
+            { resourceType: "energy", amount: 50 },
+            { resourceType: "fuel", amount: 50 }
         ],
         baseCostMultiplier: 1.25,
         level: 1,
@@ -46,9 +47,9 @@ const defaultUpgradeList: Upgrade[] = [
             `Refine and streamline the ship's core operational subsystems, increasing their output efficiency by ${(level + 1) * 5}%. Precision fuel allocation and advanced diagnostics minimize energy waste.`,
         costs: [
             { resourceType: "energy", amount: 50 },
-            { resourceType: "fuel", amount: 20 },
+            { resourceType: "fuel", amount: 100 },
         ],
-        baseCostMultiplier: 1.5,
+        baseCostMultiplier: 1.8,
         level: 0,
     },
 

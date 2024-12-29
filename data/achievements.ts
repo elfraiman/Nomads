@@ -35,16 +35,14 @@ const achievements: Achievement[] = [
         onComplete: () => { console.log("Energy Pioneer achievement completed!"); },
     },
     {
-        id: "gather_dark_matter_and_fuel",
+        id: "gather_50_fuel",
         title: "Resource Collector",
-        description: "Gather 10 Dark Matter and 10 Fuel.",
+        description: "Gather 50 Fuel.",
         resourceGoals: {
-            darkMatter: 10,
-            fuel: 10,
+            fuel: 50,
         },
         progress: {
             resources: {
-                darkMatter: 0,
                 fuel: 0,
             },
         },
@@ -92,6 +90,26 @@ const achievements: Achievement[] = [
         completed: false,
         onComplete: () => {
             console.log("Reactor optimization upgrade achievement completed!");
+        },
+    },
+    {
+        id: "upgrade_core_operations_efficiency",
+        title: "Increase Core Operations Efficiency",
+        description: "Upgrade your core operations to increase resource generation.",
+        upgradeGoals: {
+            core_operations_efficiency: 2, // Requires at least 3 level of reactor storage upgrade
+        },
+        progress: {
+            upgrades: {
+                core_operations_efficiency: 0,
+            },
+        },
+        story: `Your core operations have been optimized to increase resource generation. You are now able to generate more resources.
+        You ship has detected a Sun and you decide to explore it, detecting a new star system and the ability to harvest Solar Plasma`,
+        unlocks: [""],
+        completed: false,
+        onComplete: () => {
+            console.log("Core Operations Efficiency upgrade achievement completed!");
         },
     },
     // Additional achievements

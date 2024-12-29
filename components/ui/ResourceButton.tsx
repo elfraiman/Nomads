@@ -5,16 +5,20 @@ const ResourceButton = ({
     title,
     resourceType,
     cost,
-    currentAmount,
+    playerEnergy,
     onPress,
+    currentAmount,
+    maxAmount,
 }: {
     title: string;
     resourceType: ResourceType;
     cost: number;
+    playerEnergy: number;
     currentAmount: number;
+    maxAmount: number;
     onPress: () => void;
 }) => {
-    const isDisabled = currentAmount < cost;
+    const isDisabled = playerEnergy < cost || currentAmount >= maxAmount;
 
     return (
         <TouchableOpacity

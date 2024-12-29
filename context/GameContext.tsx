@@ -3,15 +3,12 @@ import { loadGameState, saveGameState } from "@/data/asyncStorage";
 import defaultUpgradeList, { Upgrade, UpgradeCost } from "@/data/upgrades";
 import { initialResources, Resource, Resources } from "@/utils/defaults";
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { useRef } from "react";
+import { AppState, AppStateStatus, Platform } from "react-native";
+
 interface GameContextType {
     resources: Resources; // Tracks resource states like energy, fuel, etc.
     achievements: Achievement[]; // Tracks all achievements and their states
     upgrades: Upgrade[]; // Tracks upgrades including their levels and costs
-    autoEnergyGenerationRate: number; // Tracks the current energy generation rate per second
-
-    // State setters
-    setAutoEnergyGenerationRate: React.Dispatch<React.SetStateAction<number>>;
 
     // Resource management functions
     updateResources: (type: keyof Resources, changes: Partial<Resource>) => void;
@@ -42,7 +39,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const [resources, setResources] = useState<Resources>(initialResources);
     const [achievements, setAchievements] = useState<Achievement[]>(achievementsData);
     const [upgrades, setUpgrades] = useState<Upgrade[]>(defaultUpgradeList);
-    const [autoEnergyGenerationRate, setAutoEnergyGenerationRate] = useState(0);
 
     // Load and save state
     //
@@ -89,7 +85,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
 
     useEffect(() => {
-        const saveState = async () => {
+        const handleSaveGameState = async () => {
             const serializableUpgrades = upgrades.map((upgrade) => ({
                 id: upgrade.id,
                 level: upgrade.level,
@@ -99,9 +95,36 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 baseCostMultiplier: upgrade.baseCostMultiplier,
             }));
             await saveGameState({ resources, achievements, upgrades: serializableUpgrades });
+            console.log("Game state saved.");
         };
-        saveState();
+
+        const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+            if (nextAppState === "background" || nextAppState === "inactive") {
+                await handleSaveGameState();
+            }
+        };
+
+        if (Platform.OS === "web") {
+            // For browser refresh or close
+            const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+                handleSaveGameState();
+                event.preventDefault();
+                event.returnValue = ""; // Ensures the confirmation dialog shows on some browsers
+            };
+
+            window.addEventListener("beforeunload", handleBeforeUnload);
+            return () => {
+                window.removeEventListener("beforeunload", handleBeforeUnload);
+            };
+        } else {
+            // For React Native AppState
+            const subscription = AppState.addEventListener("change", handleAppStateChange);
+            return () => {
+                subscription.remove();
+            };
+        }
     }, [resources, achievements, upgrades]);
+
 
 
     // Resource updates
@@ -261,17 +284,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             )
         );
 
-
         // Apply special effects for this upgrade
         if (id === "reactor_storage") {
             setResources((prev) => ({
                 ...prev,
                 energy: { ...prev.energy, max: prev.energy.max + 100 },
             }));
-
-            //  upgradeResourceEfficiency("energy", newLevel * 0.1); // Example effect
-        } else if (id === "reactor_optimization") {
-            setAutoEnergyGenerationRate((prev) => prev + 1); // Example effect
         }
 
         // Update achievements for upgrades
@@ -312,9 +330,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
             // Revert any special effects caused by the upgrade
             if (id === "reactor_storage") {
-                upgradeResourceEfficiency("energy", -0.1); // Example effect
-            } else if (id === "reactor_optimization") {
-                setAutoEnergyGenerationRate((prev) => prev - 1); // Example effect
+                setResources((prev) => ({
+                    ...prev,
+                    energy: { ...prev.energy, max: prev.energy.max - 100 },
+                }));
             }
         } else {
             alert("No upgrades to downgrade!");
@@ -414,8 +433,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 resources,
                 achievements,
                 upgrades,
-                autoEnergyGenerationRate,
-                setAutoEnergyGenerationRate,
                 updateResources,
                 upgradeResourceEfficiency,
                 purchaseUpgrade,

@@ -3,9 +3,10 @@ import ShipStatus from "@/components/ShipStatus";
 import ResourceButton from "@/components/ui/ResourceButton";
 import ResourceIcon, { ResourceType } from "@/components/ui/ResourceIcon";
 import { useGame } from "@/context/GameContext";
-import defaultUpgradeList, { UpgradeCost } from "@/data/upgrades";
+import { UpgradeCost } from "@/data/upgrades";
+import { isGatherEnergyAchievementComplete, isUpgradeCoreOperationsEfficiencyCompleted } from '@/utils/gameUtils';
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { Button, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 
@@ -78,11 +79,6 @@ const Dashboard = () => {
         return upgrades.some((upgrade) => isUpgradeUnlocked(upgrade.id));
     }, [achievements]);
 
-    const gatherEnergyAchievementComplete = useMemo(() => {
-        const achievement = achievements.find((ach) => ach.id === "gather_100_energy");
-        return achievement?.completed ?? false;
-    }, [achievements]);
-
 
     // Handler for generating energy
     const handleGenerateEnergy = () => {
@@ -97,11 +93,6 @@ const Dashboard = () => {
         frozenHydrogen: 5,   // Advanced or late-game resource.
         alloys: 7            // Early to mid-game use.
     };
-    useEffect(() => {
-        if (gatherEnergyAchievementComplete) {
-            console.log("Gather 100 Energy achievement completed!");
-        }
-    }, [gatherEnergyAchievementComplete]);
 
     return (
         <>
@@ -116,14 +107,16 @@ const Dashboard = () => {
 
 
                 {/* Core operations Section */}
-                {gatherEnergyAchievementComplete && (
+                {isGatherEnergyAchievementComplete(achievements) && (
                     <Collapsible title="Core Operations">
                         <View style={styles.cardContent}>
                             <ResourceButton
                                 title={`Refine Fuel`}
                                 resourceType="energy"
                                 cost={10}
-                                currentAmount={resources.energy.current}
+                                playerEnergy={resources.energy.current}
+                                currentAmount={resources.fuel.current}
+                                maxAmount={resources.fuel.max}
                                 onPress={() => generateResource("fuel", 10, defaultResourceGenerationValue.fuel, 0)}
                             />
                             <Text style={styles.description}>
@@ -134,52 +127,66 @@ const Dashboard = () => {
                                 <ResourceIcon type="fuel" size={14} />.
                             </Text>
 
-                            <ResourceButton
-                                title={`Condense Solar Plasma`}
-                                resourceType="energy"
-                                cost={10}
-                                currentAmount={resources.energy.current}
-                                onPress={() => generateResource("solarPlasma", 10, defaultResourceGenerationValue.solarPlasma, 0)}
-                            />
-                            <Text style={styles.description}>
-                                Compress solar energy into plasma, generating{" "}
-                                <Text style={styles.highlight}>
-                                    +{Math.round(defaultResourceGenerationValue.solarPlasma * resources.solarPlasma.efficiency)}{" "}
+                            {isUpgradeCoreOperationsEfficiencyCompleted(achievements) && (
+                                <>
+                                    <ResourceButton
+                                        title={`Condense Solar Plasma`}
+                                        resourceType="energy"
+                                        cost={10}
+                                        playerEnergy={resources.energy.current}
+                                        currentAmount={resources.solarPlasma.current}
+                                        maxAmount={resources.solarPlasma.max}
+                                        onPress={() => generateResource("solarPlasma", 10, defaultResourceGenerationValue.solarPlasma, 0)}
+                                    />
+                                    <Text style={styles.description}>
+                                        Compress solar energy into plasma, generating{" "}
+                                        <Text style={styles.highlight}>
+                                            +{Math.round(defaultResourceGenerationValue.solarPlasma * resources.solarPlasma.efficiency)}{" "}
+                                        </Text>
+                                        <ResourceIcon type="solarPlasma" size={14} />.
+                                    </Text>
+                                </>
+
+                            )}
+
+                            {/* 
+                             <>
+                                <ResourceButton
+                                    title={`Harvest Dark Matter`}
+                                    resourceType="energy"
+                                    cost={10}
+                                    playerEnergy={resources.energy.current}
+                                    currentAmount={resources.darkMatter.current}
+                                    maxAmount={resources.darkMatter.max}
+                                    onPress={() => generateResource("darkMatter", 10, defaultResourceGenerationValue.darkMatter, 0)}
+                                />
+                                <Text style={styles.description}>
+                                    Activate stabilizers to collect Dark Matter, generating{" "}
+                                    <Text style={styles.highlight}>
+                                        +{Math.round(defaultResourceGenerationValue.darkMatter * resources.darkMatter.efficiency)}{" "}
+                                    </Text>
+                                    <ResourceIcon type="darkMatter" size={14} />.
                                 </Text>
-                                <ResourceIcon type="solarPlasma" size={14} />.
-                            </Text>
+                            </>
 
-
-                            <ResourceButton
-                                title={`Harvest Dark Matter`}
-                                resourceType="energy"
-                                cost={10}
-                                currentAmount={resources.energy.current}
-                                onPress={() => generateResource("darkMatter", 10, defaultResourceGenerationValue.darkMatter, 0)}
-                            />
-                            <Text style={styles.description}>
-                                Activate stabilizers to collect Dark Matter, generating{" "}
-                                <Text style={styles.highlight}>
-                                    +{Math.round(defaultResourceGenerationValue.darkMatter * resources.darkMatter.efficiency)}{" "}
+                            <>
+                                <ResourceButton
+                                    title={`Cryogenically Store Hydrogen`}
+                                    resourceType="energy"
+                                    cost={10}
+                                    playerEnergy={resources.energy.current}
+                                    currentAmount={resources.frozenHydrogen.current}
+                                    maxAmount={resources.frozenHydrogen.max}
+                                    onPress={() => generateResource("frozenHydrogen", 10, defaultResourceGenerationValue.frozenHydrogen, 0)}
+                                />
+                                <Text style={styles.description}>
+                                    Use cryogenic systems to harvest Frozen Hydrogen, generating{" "}
+                                    <Text style={styles.highlight}>
+                                        +{Math.round(defaultResourceGenerationValue.frozenHydrogen * resources.frozenHydrogen.efficiency)}{" "}
+                                    </Text>
+                                    <ResourceIcon type="frozenHydrogen" size={14} />.
                                 </Text>
-                                <ResourceIcon type="darkMatter" size={14} />.
-                            </Text>
-
-
-                            <ResourceButton
-                                title={`Cryogenically Store Hydrogen`}
-                                resourceType="energy"
-                                cost={10}
-                                currentAmount={resources.energy.current}
-                                onPress={() => generateResource("frozenHydrogen", 10, defaultResourceGenerationValue.frozenHydrogen, 0)}
-                            />
-                            <Text style={styles.description}>
-                                Use cryogenic systems to harvest Frozen Hydrogen, generating{" "}
-                                <Text style={styles.highlight}>
-                                    +{Math.round(defaultResourceGenerationValue.frozenHydrogen * resources.frozenHydrogen.efficiency)}{" "}
-                                </Text>
-                                <ResourceIcon type="frozenHydrogen" size={14} />.
-                            </Text>
+                            </> */}
                         </View>
                     </Collapsible>
                 )}
@@ -203,7 +210,6 @@ const Dashboard = () => {
                         ))}
                     </Collapsible>
                 )}
-
             </ScrollView>
         </>
     );
