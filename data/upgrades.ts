@@ -37,7 +37,7 @@ const defaultUpgradeList: Upgrade[] = [
             { resourceType: "energy", amount: 40 }
         ],
         baseCostMultiplier: 1.25,
-        level: 0,
+        level: 1,
     },
     {
         id: "core_operations_efficiency",

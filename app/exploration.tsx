@@ -1,7 +1,7 @@
 import ShipStatus from "@/components/ShipStatus";
-import { GameContext } from "@/context/GameContext";
-import React, { useContext } from "react";
-import { View, Text, Button, StyleSheet, FlatList } from "react-native";
+import { useGame } from "@/context/GameContext";
+import React from "react";
+import { Button, FlatList, StyleSheet, Text, View } from "react-native";
 
 const starSystems = [
     { id: 1, name: "Alpha Centauri", resources: { fuel: 50, oxygen: 10 } },
@@ -10,7 +10,7 @@ const starSystems = [
 ];
 
 const Exploration = () => {
-    const game = useContext(GameContext);
+    const game = useGame();
 
     if (!game) return null;
 

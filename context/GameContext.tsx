@@ -1,15 +1,9 @@
-import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import achievementsData, { Achievement } from "@/data/achievements";
 import { loadGameState, saveGameState } from "@/data/asyncStorage";
 import defaultUpgradeList, { Upgrade, UpgradeCost } from "@/data/upgrades";
-import achievementsData, { Achievement } from "@/data/achievements";
-import { Resources, Resource, initialResources } from "@/utils/defaults";
-
-interface GameState {
-    resources: Resources;
-    achievements: Achievement[];
-    upgrades: Upgrade[];
-}
-
+import { initialResources, Resource, Resources } from "@/utils/defaults";
+import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { useRef } from "react";
 interface GameContextType {
     resources: Resources; // Tracks resource states like energy, fuel, etc.
     achievements: Achievement[]; // Tracks all achievements and their states
@@ -51,43 +45,49 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const [autoEnergyGenerationRate, setAutoEnergyGenerationRate] = useState(0);
 
     // Load and save state
+    //
     useEffect(() => {
         const loadState = async () => {
             const savedState = await loadGameState();
             if (savedState) {
                 setResources(savedState.resources || initialResources);
                 setAchievements(savedState.achievements || achievementsData);
+
+                const upgradesFromSaveFile = defaultUpgradeList.map((defaultUpgrade) => {
+                    const savedUpgrade = savedState.upgrades?.find((u) => u.id === defaultUpgrade.id);
+
+                    return {
+                        ...defaultUpgrade,
+                        level: savedUpgrade?.level || 0,
+                        costs: savedUpgrade?.costs || defaultUpgrade.costs,
+                    };
+                })
+                // Check for unlocked upgrades and apply special effects
+                // might need to find a new way to do this rather then here
+                //
+                upgradesFromSaveFile.forEach((upgrade) => {
+                    if (upgrade.level > 0) {
+                        if (upgrade.id === "reactor_storage") {
+                            setResources((prev) => ({
+                                ...prev,
+                                energy: { ...prev.energy, max: upgrade.level * 100 },
+                            }));
+                        }
+                    }
+                });
+
+
                 setUpgrades(
-                    defaultUpgradeList.map((defaultUpgrade) => {
-                        const savedUpgrade = savedState.upgrades?.find((u) => u.id === defaultUpgrade.id);
-                        return {
-                            ...defaultUpgrade,
-                            level: savedUpgrade?.level || 0,
-                            costs: savedUpgrade?.costs || defaultUpgrade.costs,
-                        };
-                    })
+                    upgradesFromSaveFile
                 );
             }
-
-            // Check for unlocked upgrades and apply special effects
-            // might need to find a new way to do this rather then here
-            //
-            upgrades.forEach((upgrade) => {
-                if (upgrade.level > 0) {
-                    if (upgrade.id === "reactor_storage") {
-                        setResources((prev) => ({
-                            ...prev,
-                            energy: { ...prev.energy, max: prev.energy.max + 100 },
-                        }));
-                    } else if (upgrade.id === "reactor_optimization") {
-                        setAutoEnergyGenerationRate((prev) => prev + 1);
-                    }
-                }
-            });
         };
 
+        console.log(resources)
         loadState();
     }, []);
+
+
     useEffect(() => {
         const saveState = async () => {
             const serializableUpgrades = upgrades.map((upgrade) => ({
@@ -102,6 +102,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         };
         saveState();
     }, [resources, achievements, upgrades]);
+
+
     // Resource updates
     const updateResources = (type: keyof Resources, changes: Partial<Resource>) => {
         setResources((prev) => ({
@@ -343,9 +345,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             alert("Not enough energy!");
             return;
         }
-
         // Deduct energy
-        updateResources("energy", { current: resources.energy.current - energyCost });
+        if (energyCost > 0) {
+            updateResources("energy", { current: resources.energy.current - energyCost });
+        }
 
         // Calculate actual output using efficiency multiplier
         const actualOutput = Math.round(output * resources[type].efficiency);
@@ -353,6 +356,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         // Add resource after cooldown
         setTimeout(() => {
             const updatedAmount = Math.min(resources[type].max, resources[type].current + actualOutput);
+
             updateResources(type, { current: updatedAmount });
 
             // Update achievement progress
@@ -364,15 +368,45 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
     // Auto generate energy based on the Rate if the player has upgraded
     // the reactor_optimization upgrade
+    //
+
+
+    // Auto generate energy based on the Rate if the player has upgraded
+    //
     useEffect(() => {
         const interval = setInterval(() => {
-            if (autoEnergyGenerationRate > 0) {
-                generateResource("energy", 0, autoEnergyGenerationRate, 0); // No cost, instant generation
+            // Get the reactor optimization upgrade level
+            const reactorOptimizationUpgrade = upgrades.find((u) => u.id === "reactor_optimization");
+            const optimizationLevel = reactorOptimizationUpgrade?.level || 0;
+
+            if (optimizationLevel > 0) {
+                const energyGenerationRate = optimizationLevel * resources.energy.efficiency;
+
+                // Update resources directly using setResources to ensure the latest state
+                //
+                setResources((prevResources) => {
+                    const updatedEnergy = Math.min(
+                        prevResources.energy.max,
+                        prevResources.energy.current + energyGenerationRate
+                    );
+
+                    return {
+                        ...prevResources,
+                        energy: {
+                            ...prevResources.energy,
+                            current: updatedEnergy,
+                        },
+                    };
+                });
+
+                console.log(
+                    `Auto-generating ${energyGenerationRate} energy per second. Current energy updated.`
+                );
             }
         }, 1000); // Generate energy every second
 
         return () => clearInterval(interval); // Cleanup on unmount
-    }, [autoEnergyGenerationRate, resources.energy.current]);
+    }, [upgrades, resources.energy.efficiency, setResources]);
 
     return (
         <GameContext.Provider

@@ -3,12 +3,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 import ResourceIcon from "./ui/ResourceIcon";
+import { Upgrade } from "@/data/upgrades";
 
 const ShipStatus = () => {
     const game = useGame();
     if (!game) return null;
 
-    const { resources, autoEnergyGenerationRate, achievements } = game;
+    const { resources, autoEnergyGenerationRate, achievements, upgrades } = game;
 
     const energyPercentage = resources?.energy
         ? (resources.energy.current / resources.energy.max) * 100
@@ -31,6 +32,10 @@ const ShipStatus = () => {
 
     // Animation for the goal container
     const goalOpacity = useRef(new Animated.Value(0)).current;
+    const getGenerationRate = () => {
+        const rate = upgrades.find((upgrade: Upgrade) => upgrade.id === "reactor_optimization")?.level;
+        return rate ?? 0;
+    }
 
     useEffect(() => {
         if (currentGoal) {
@@ -55,7 +60,7 @@ const ShipStatus = () => {
                 <View style={styles.energyBarTextContainer}>
                     <ResourceIcon type="energy" size={20} />
                     <Text style={styles.energyBarText}>
-                        {resources?.energy.current}/{resources?.energy.max} ({autoEnergyGenerationRate}/sec)
+                        {resources?.energy.current}/{resources?.energy.max} ({getGenerationRate()}/sec)
                     </Text>
                 </View>
             </View>

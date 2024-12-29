@@ -74,6 +74,26 @@ const achievements: Achievement[] = [
             console.log("Reactor storage upgrade achievement completed!");
         },
     },
+    {
+        id: "upgrade_reactor_optimization",
+        title: "Automated systems",
+        description: "Optimize your reactor to generate more Energy.",
+        upgradeGoals: {
+            reactor_optimization: 3, // Requires at least 3 level of reactor storage upgrade
+        },
+        progress: {
+            upgrades: {
+                reactor_optimization: 0,
+            },
+        },
+        story: `Your reactor's increased automation allows you to generate more energy with less waste, improving overall efficiency and allowing you to focus on becoming more efficient.
+        You have now unlocked the Core Operations Efficiency upgrade.`,
+        unlocks: ["core_operations_efficiency"],
+        completed: false,
+        onComplete: () => {
+            console.log("Reactor optimization upgrade achievement completed!");
+        },
+    },
     // Additional achievements
 ];
 
