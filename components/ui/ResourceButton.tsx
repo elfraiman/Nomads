@@ -30,7 +30,7 @@ const ResourceButton = ({
                 <Text style={styles.buttonText}>{title}</Text>
                 <View style={styles.iconContainer}>
                     <ResourceIcon type={resourceType} size={20} />
-                    <Text style={[styles.costText, isDisabled && styles.costTextDisabled]}>{cost}</Text>
+
                 </View>
             </View>
         </TouchableOpacity>
@@ -43,7 +43,8 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         padding: 10,
         alignItems: "center",
-        marginVertical: 5,
+        marginTop: 8,
+        width: '90%',
     },
     buttonDisabled: {
         backgroundColor: "#6B6B6B", // Gray color for disabled state

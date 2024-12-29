@@ -97,7 +97,7 @@ const achievements: Achievement[] = [
         title: "Increase Core Operations Efficiency",
         description: "Upgrade your core operations to increase resource generation.",
         upgradeGoals: {
-            core_operations_efficiency: 2, // Requires at least 3 level of reactor storage upgrade
+            core_operations_efficiency: 1, // Requires at least 3 level of reactor storage upgrade
         },
         progress: {
             upgrades: {
@@ -106,6 +106,25 @@ const achievements: Achievement[] = [
         },
         story: `Your core operations have been optimized to increase resource generation. You are now able to generate more resources.
         You ship has detected a Sun and you decide to explore it, detecting a new star system and the ability to harvest Solar Plasma`,
+        unlocks: ["core_operations_storage"],
+        completed: false,
+        onComplete: () => {
+            console.log("Core Operations Efficiency upgrade achievement completed!");
+        },
+    },
+    {
+        id: "upgrade_core_operations_storage",
+        title: "Increase Core Operations Storage",
+        description: "Upgrade your core operations storage to core resources storage.",
+        upgradeGoals: {
+            core_operations_storage: 1, // Requires at least 3 level of reactor storage upgrade
+        },
+        progress: {
+            upgrades: {
+                core_operations_storage: 0,
+            },
+        },
+        story: `Upgrade your core operations storage to increase resource storage.`,
         unlocks: [""],
         completed: false,
         onComplete: () => {

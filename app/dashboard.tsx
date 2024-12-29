@@ -1,14 +1,19 @@
 import { Collapsible } from "@/components/Collapsible";
 import ShipStatus from "@/components/ShipStatus";
 import ResourceButton from "@/components/ui/ResourceButton";
-import ResourceIcon, { ResourceType } from "@/components/ui/ResourceIcon";
+import ResourceIcon from "@/components/ui/ResourceIcon";
+import CoreOperations from "@/components/ui/ResourcePanel";
 import { useGame } from "@/context/GameContext";
-import { UpgradeCost } from "@/data/upgrades";
-import { isGatherEnergyAchievementComplete, isUpgradeCoreOperationsEfficiencyCompleted } from '@/utils/gameUtils';
+import achievements from "@/data/achievements";
+import { Resource } from "@/utils/defaults";
+import { isGatherEnergyAchievementComplete, isUpgradeCoreOperationsEfficiencyCompleted } from "@/utils/gameUtils";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo } from "react";
-import { Button, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useMemo, useState } from "react";
+import { Button, Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
+
+const { width, height } = Dimensions.get("window");
 
 const UpgradeModule = ({
     title,
@@ -20,274 +25,257 @@ const UpgradeModule = ({
     resources,
 }: {
     title: string;
-    costs: UpgradeCost[];
+    costs: any[];
     onUpgrade: () => void;
     onRemove: () => void;
     description: string;
     locked: boolean;
-    resources: { [key in ResourceType]: { current: number } };
-}) => (
-    <>
-        {!locked && (
-            <Collapsible title={title}>
-                <View style={locked ? styles.lockedContainer : styles.upgradeContainer}>
-                    {locked ? (
-                        <Text style={styles.lockedText}>Locked</Text>
-                    ) : (
-                        <>
-                            <View style={styles.costContainer}>
-                                <Text style={styles.costText}>Cost:</Text>
-                                {costs.map((cost, index) => (
-                                    <View key={index} style={styles.resourceContainer}>
-                                        <ResourceIcon type={cost.resourceType} size={20} />
-                                        <Text style={styles.costText}>{cost.amount}</Text>
-                                    </View>
-                                ))}
-                            </View>
-                            <View style={styles.buttonsContainer}>
-                                <Button
-                                    title={`Upgrade ${title}`}
-                                    onPress={onUpgrade}
-                                    color="#3A506B"
-                                    disabled={!costs.every(
-                                        (cost) => resources[cost.resourceType]?.current >= cost.amount
-                                    )}
-                                />
-                                <TouchableOpacity onPress={onRemove} style={styles.deleteButton}>
-                                    <Ionicons name="trash" size={20} color="#fff" />
-                                </TouchableOpacity>
-                            </View>
-                            <Text style={styles.description}>{description}</Text>
-                        </>
-                    )}
-                </View>
-            </Collapsible>
-        )}
-    </>
-);
+    resources: any;
+}) => {
+    // Check if the player can afford the upgrade
+    const canAfford = costs.every(
+        (cost) => resources[cost.resourceType]?.current >= cost.amount
+    );
+
+    return (
+        <Collapsible title={title}>
+            <View style={styles.upgradeContainer}>
+                {locked ? (
+                    <Text>Locked</Text>
+                ) : (
+                    <>
+                        <View style={styles.costContainer}>
+                            <Text style={styles.costText}>Cost:</Text>
+                            {costs.map((cost, index) => (
+                                <View key={index} style={styles.resourceContainer}>
+                                    <ResourceIcon type={cost.resourceType} size={20} />
+                                    <Text style={styles.costText}>{cost.amount}</Text>
+                                </View>
+                            ))}
+                        </View>
+                        <View style={styles.buttonsContainer}>
+                            <TouchableOpacity
+                                onPress={onUpgrade}
+                                style={[
+                                    styles.upgradeButton,
+                                    !canAfford && styles.disabledButton,
+                                ]}
+                                disabled={!canAfford}
+                            >
+                                <Text style={styles.upgradeButtonText}>Upgrade</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={onRemove} style={styles.deleteButton}>
+                                <Ionicons name="trash" size={20} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.description}>{description}</Text>
+                    </>
+                )}
+            </View>
+        </Collapsible>
+    );
+};
 
 
 const Dashboard = () => {
     const game = useGame();
 
     if (!game) return null;
-
-    const { resources, upgrades, updateResources, generateResource, isUpgradeUnlocked, purchaseUpgrade, downgradeUpgrade, achievements } = game;
-
-    // Memoized check for unlocked upgrades
-    const anyUpgradeUnlocked = useMemo(() => {
-        return upgrades.some((upgrade) => isUpgradeUnlocked(upgrade.id));
-    }, [achievements]);
+    const [isExpanded, setIsExpanded] = useState(false);
 
 
-    // Handler for generating energy
+    const {
+        resources,
+        upgrades,
+        updateResources,
+        generateResource,
+        isUpgradeUnlocked,
+        purchaseUpgrade,
+        downgradeUpgrade,
+        achievements,
+    } = game;
+
     const handleGenerateEnergy = () => {
         const newEnergy = Math.round(resources.energy.current + 1.18);
         updateResources("energy", { current: newEnergy });
     };
 
+
+    const anyUpgradeUnlocked = useMemo(() => upgrades.some((upgrade) => isUpgradeUnlocked(upgrade.id)), [upgrades]);
+
+    // Default resource generation values for Core Operations
     const defaultResourceGenerationValue = {
-        fuel: 10,            // Critical for early operations.
-        solarPlasma: 8,      // Slightly less useful early on.
-        darkMatter: 6,       // Rare resource, mid-game use.
-        frozenHydrogen: 5,   // Advanced or late-game resource.
-        alloys: 7            // Early to mid-game use.
+        fuel: 10,
+        solarPlasma: 8,
+        darkMatter: 6,
+        frozenHydrogen: 5,
+        alloys: 7,
     };
 
     return (
         <>
             <ShipStatus />
-            <ScrollView style={styles.container}>
-                {/* Actions Section */}
-                <Collapsible title="Actions">
-                    <View style={styles.cardContent}>
+
+            <LinearGradient
+                colors={["#0F2027", "#203A43", "#2C5364"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.container}
+            >
+                <ScrollView contentContainerStyle={styles.scrollViewContent}>
+                    {/* Actions Section */}
+                    <View style={styles.panel}>
+                        <Text style={styles.panelTitle}>Actions</Text>
                         <Button title="Generate Energy" color="#3A506B" onPress={handleGenerateEnergy} />
                     </View>
-                </Collapsible>
 
-
-                {/* Core operations Section */}
-                {isGatherEnergyAchievementComplete(achievements) && (
-                    <Collapsible title="Core Operations">
+                    {/* Core Operations Section */}
+                    <View style={styles.panel}>
+                        <Text style={styles.panelTitle}>Core Operations</Text>
                         <View style={styles.cardContent}>
-                            <ResourceButton
-                                title={`Refine Fuel`}
-                                resourceType="energy"
-                                cost={10}
-                                playerEnergy={resources.energy.current}
-                                currentAmount={resources.fuel.current}
-                                maxAmount={resources.fuel.max}
-                                onPress={() => generateResource("fuel", 10, defaultResourceGenerationValue.fuel, 0)}
-                            />
-                            <Text style={styles.description}>
-                                Use energy to refine trace materials into Fuel, generating{" "}
-                                <Text style={styles.highlight}>
-                                    +{Math.round(defaultResourceGenerationValue.fuel * resources.fuel.efficiency)}{" "}
-                                </Text>
-                                <ResourceIcon type="fuel" size={14} />.
-                            </Text>
-
-                            {isUpgradeCoreOperationsEfficiencyCompleted(achievements) && (
-                                <>
-                                    <ResourceButton
-                                        title={`Condense Solar Plasma`}
-                                        resourceType="energy"
-                                        cost={10}
-                                        playerEnergy={resources.energy.current}
-                                        currentAmount={resources.solarPlasma.current}
-                                        maxAmount={resources.solarPlasma.max}
-                                        onPress={() => generateResource("solarPlasma", 10, defaultResourceGenerationValue.solarPlasma, 0)}
+                            {/* Core operations Section */}
+                            {isGatherEnergyAchievementComplete(achievements) && (
+                                <Collapsible title="Generate">
+                                    <CoreOperations
+                                        resources={resources}
+                                        defaultResourceGenerationValue={defaultResourceGenerationValue}
+                                        generateResource={generateResource}
                                     />
-                                    <Text style={styles.description}>
-                                        Compress solar energy into plasma, generating{" "}
-                                        <Text style={styles.highlight}>
-                                            +{Math.round(defaultResourceGenerationValue.solarPlasma * resources.solarPlasma.efficiency)}{" "}
-                                        </Text>
-                                        <ResourceIcon type="solarPlasma" size={14} />.
-                                    </Text>
-                                </>
-
+                                </Collapsible>
                             )}
 
-                            {/* 
-                             <>
-                                <ResourceButton
-                                    title={`Harvest Dark Matter`}
-                                    resourceType="energy"
-                                    cost={10}
-                                    playerEnergy={resources.energy.current}
-                                    currentAmount={resources.darkMatter.current}
-                                    maxAmount={resources.darkMatter.max}
-                                    onPress={() => generateResource("darkMatter", 10, defaultResourceGenerationValue.darkMatter, 0)}
-                                />
-                                <Text style={styles.description}>
-                                    Activate stabilizers to collect Dark Matter, generating{" "}
-                                    <Text style={styles.highlight}>
-                                        +{Math.round(defaultResourceGenerationValue.darkMatter * resources.darkMatter.efficiency)}{" "}
-                                    </Text>
-                                    <ResourceIcon type="darkMatter" size={14} />.
-                                </Text>
-                            </>
 
-                            <>
-                                <ResourceButton
-                                    title={`Cryogenically Store Hydrogen`}
-                                    resourceType="energy"
-                                    cost={10}
-                                    playerEnergy={resources.energy.current}
-                                    currentAmount={resources.frozenHydrogen.current}
-                                    maxAmount={resources.frozenHydrogen.max}
-                                    onPress={() => generateResource("frozenHydrogen", 10, defaultResourceGenerationValue.frozenHydrogen, 0)}
-                                />
-                                <Text style={styles.description}>
-                                    Use cryogenic systems to harvest Frozen Hydrogen, generating{" "}
-                                    <Text style={styles.highlight}>
-                                        +{Math.round(defaultResourceGenerationValue.frozenHydrogen * resources.frozenHydrogen.efficiency)}{" "}
-                                    </Text>
-                                    <ResourceIcon type="frozenHydrogen" size={14} />.
-                                </Text>
-                            </> */}
                         </View>
-                    </Collapsible>
-                )}
+                    </View>
 
-
-                {/* Upgrades Section */}
-                {anyUpgradeUnlocked && (
-                    <Collapsible title="Module Upgrades">
-                        {upgrades?.map((upgrade) => (
-                            <UpgradeModule
-                                key={upgrade.id}
-                                title={upgrade.title}
-                                costs={upgrades.find((u) => u.id === upgrade.id)?.costs || upgrade.costs}
-                                onUpgrade={() => purchaseUpgrade(upgrade.id)}
-                                onRemove={() => downgradeUpgrade(upgrade.id)}
-                                description={upgrade.description(upgrades.find((u) => u.id === upgrade.id)?.level || 0)}
-                                locked={!isUpgradeUnlocked(upgrade.id)}
-                                resources={resources}
-                            />
-
-                        ))}
-                    </Collapsible>
-                )}
-            </ScrollView>
+                    {/* Module Upgrades Section */}
+                    {anyUpgradeUnlocked && (
+                        <View style={styles.panel}>
+                            <Text style={styles.panelTitle}>Module Upgrades</Text>
+                            {upgrades.map((upgrade) => (
+                                <UpgradeModule
+                                    key={upgrade.id}
+                                    title={upgrade.title}
+                                    costs={upgrade.costs}
+                                    onUpgrade={() => purchaseUpgrade(upgrade.id)}
+                                    onRemove={() => downgradeUpgrade(upgrade.id)}
+                                    description={upgrade.description(upgrade.level || 0)}
+                                    locked={!isUpgradeUnlocked(upgrade.id)}
+                                    resources={resources}
+                                />
+                            ))}
+                        </View>
+                    )}
+                </ScrollView>
+            </LinearGradient>
         </>
     );
 };
 
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#1E1E1E",
-        marginBottom: '15%',
+        width: width,
+        height: height,
+        padding: 6,
+    },
+    scrollViewContent: {
+        paddingBottom: 20,
+    },
+    cardContent: {
+        padding: 6,
+    },
+    description: {
+        color: "#DDD",
+        fontSize: 12,
+    },
+    highlight: {
+        color: "#FFF",
+        fontWeight: "bold",
+    },
+    panel: {
+        backgroundColor: "#1E1E2E",
+        borderRadius: 10,
+        padding: 16,
+        marginBottom: 10,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+        elevation: 10,
+    },
+    panelTitle: {
+        color: "#FFF",
+        fontSize: 16,
+        fontWeight: "bold",
+        marginBottom: 10,
+        textTransform: "uppercase",
     },
     upgradeContainer: {
+        backgroundColor: "#282A36",
         padding: 16,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 5,
-    },
-    lockedContainer: {
-        padding: 16,
-        backgroundColor: "#444",
-        borderRadius: 10,
-        marginBottom: 10,
-    },
-    lockedText: {
-        color: "red",
-        fontSize: 14,
-        textAlign: "center",
+        margin: 6,
     },
     costContainer: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: 10,
-        padding: 10,
-        backgroundColor: "#444",
+        marginBottom: 6,
     },
     resourceContainer: {
         flexDirection: "row",
         alignItems: "center",
+        marginLeft: 10,
     },
     costText: {
+        color: "#FFFA",
         fontSize: 14,
-        color: "white", // Gold color for the cost
-        fontWeight: "bold",
-        marginLeft: 5,
+        marginLeft: 4,
     },
     buttonsContainer: {
         flexDirection: "row",
-        alignItems: "center",
         justifyContent: "space-between",
-        marginTop: 6,
+        alignItems: "center",
+        marginTop: 10,
+    },
+    upgradeButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        borderRadius: 5,
+        backgroundColor: "#1B3B6F", // Space Sapphire
+        borderWidth: 2,
+        borderColor: "#87CEEB", // Complementary Sky Blue for accents
+    },
+    upgradeButtonText: {
+        color: "#FFFFFF", // White text for contrast
+        fontWeight: "bold",
+        textAlign: "center",
     },
     deleteButton: {
-        width: 36,
-        height: 36,
-        backgroundColor: "#3A506B",
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: 3,
-        marginLeft: 10,
+        backgroundColor: "#FF3E4D",
+        padding: 10,
+        borderRadius: 5,
     },
-    description: {
-        fontSize: 12,
-        color: "gray",
-        marginTop: 10,
-        marginBottom: 10,
+    disabledButton: {
+        backgroundColor: "#555", // A muted gray color for disabled state
+        borderColor: "#333", // Darker border for contrast
+    },
+    row: {
         flexDirection: "row",
         alignItems: "center",
+        marginTop: 6,
     },
-    highlight: {
-        color: "white", // Gold color for emphasis
-        fontWeight: "bold",
+    chevronButton: {
+        marginLeft: 10,
+        padding: 4,
     },
-    cardContent: {
-        padding: 15,
+    expandedContainer: {
+        marginTop: 6,
+        padding: 6,
+        backgroundColor: "#282A36", // Background for the expanded section
+        borderRadius: 8,
     },
+
 });
 
 export default Dashboard;

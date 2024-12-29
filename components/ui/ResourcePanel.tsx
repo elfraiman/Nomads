@@ -1,90 +1,154 @@
-import React from "react";
-import { View, Text, StyleSheet, Button } from "react-native";
-import ResourceIcon, { ResourceType } from "./ResourceIcon";
+import React, { useState } from "react";
+import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import ResourceIcon from "@/components/ui/ResourceIcon";
+import { ResourceType } from "@/components/ui/ResourceIcon";
+import ResourceButton from "@/components/ui/ResourceButton";
+import { Resource } from "@/utils/defaults";
 
+interface ResourcePanelProps {
+    resourceType: ResourceType;
+    title: string;
+    cost: number;
+    currentAmount: number;
+    maxAmount: number;
+    efficiency: number;
+    playerEnergy: number;
+    onGenerate: () => void;
+    description: string;
+}
 
 const ResourcePanel = ({
     resourceType,
-    resourceName,
-    current,
-    max,
-    efficiency,
+    title,
+    cost,
+    currentAmount,
+    maxAmount,
+    playerEnergy,
     onGenerate,
-    progress,
-}: {
-    resourceType: ResourceType;
-    resourceName: string;
-    current: number;
-    max: number;
-    efficiency: number;
-    onGenerate: () => void;
-    progress: number; // Progress percentage
-}) => {
+    description,
+}: ResourcePanelProps) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
     return (
-        <View style={styles.panel}>
-            <View style={styles.header}>
-                <ResourceIcon type={resourceType} size={30} />
-                <Text style={styles.title}>{resourceName}</Text>
+        <View>
+            <View style={styles.row}>
+                <ResourceButton
+                    title={title}
+                    resourceType={resourceType}
+                    cost={cost}
+                    playerEnergy={playerEnergy}
+                    currentAmount={currentAmount}
+                    maxAmount={maxAmount}
+                    onPress={onGenerate}
+                />
+                <TouchableOpacity
+                    style={styles.chevronButton}
+                    onPress={() => setIsExpanded(!isExpanded)}
+                >
+                    <Ionicons
+                        name={isExpanded ? "chevron-down" : "chevron-forward"}
+                        size={20}
+                        color="#FFF"
+                    />
+                </TouchableOpacity>
             </View>
-            <View style={styles.stats}>
-                <Text style={styles.statText}>
-                    Current: {current} / {max}
-                </Text>
-                <Text style={styles.statText}>Efficiency: +{Math.round(efficiency * 100)}%</Text>
-            </View>
-            <View style={styles.progressContainer}>
-                <View style={[styles.progressBar, { width: `${progress}%` }]} />
-            </View>
-            <Text style={styles.progressText}>Refining... {progress}%</Text>
-            <Button title={`Generate ${resourceName}`} onPress={onGenerate} color="#3A506B" />
+            {isExpanded && (
+                <View style={styles.expandedContainer}>
+                    <Text style={styles.description}>
+                        Cost: {cost} <ResourceIcon type="energy" size={14} />.
+                    </Text>
+                    <Text style={styles.description}>{description}<ResourceIcon type={resourceType} size={14} /></Text>
+                </View>
+            )}
+        </View>
+    );
+};
+
+const CoreOperations = ({
+    resources,
+    defaultResourceGenerationValue,
+    generateResource,
+}: any) => {
+    const returnPriceForResource = (resource: Resource, defaultPrice: number) => {
+        return Math.round(resource.efficiency * defaultPrice);
+    }
+    return (
+        <View style={styles.cardContent}>
+            <ResourcePanel
+                resourceType="fuel"
+                title="Refine Fuel"
+                cost={returnPriceForResource(resources.fuel, 10)}
+                currentAmount={resources.fuel.current}
+                maxAmount={resources.fuel.max}
+                efficiency={resources.fuel.efficiency}
+                playerEnergy={resources.energy.current}
+                onGenerate={() =>
+                    generateResource(
+                        "fuel",
+                        returnPriceForResource(resources.fuel, 10),
+                        defaultResourceGenerationValue.fuel * resources.fuel.efficiency,
+                        0
+                    )
+                }
+                description={`Use energy to refine trace materials into Fuel, generating +${Math.round(
+                    defaultResourceGenerationValue.fuel * resources.fuel.efficiency
+                )} `}
+            />
+            <ResourcePanel
+                resourceType="solarPlasma"
+                title="Condense Solar Plasma"
+                cost={10}
+                currentAmount={resources.solarPlasma.current}
+                maxAmount={resources.solarPlasma.max}
+                efficiency={resources.solarPlasma.efficiency}
+                playerEnergy={resources.energy.current}
+                onGenerate={() =>
+                    generateResource(
+                        "solarPlasma",
+                        10,
+                        defaultResourceGenerationValue.solarPlasma * resources.solarPlasma.efficiency,
+                        0
+                    )
+                }
+                description={`Compress solar energy into Solar Plasma, generating +${Math.round(
+                    defaultResourceGenerationValue.solarPlasma * resources.solarPlasma.efficiency
+                )}`}
+            />
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    panel: {
-        backgroundColor: "#2E2E2E",
-        borderRadius: 10,
-        padding: 15,
-        marginBottom: 15,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-    },
-    header: {
+    row: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 10,
+        justifyContent: "space-between",
+        marginTop: 6,
     },
-    title: {
-        fontSize: 18,
-        color: "#FFD700",
+    chevronButton: {
         marginLeft: 10,
+        padding: 4,
     },
-    stats: {
-        marginBottom: 10,
+    expandedContainer: {
+        marginTop: 6,
+        padding: 10,
+        backgroundColor: "#282A36",
+        borderRadius: 8,
     },
-    statText: {
-        color: "#FFF",
-        fontSize: 14,
-    },
-    progressContainer: {
-        height: 10,
-        backgroundColor: "#444",
-        borderRadius: 5,
-        overflow: "hidden",
-        marginVertical: 10,
-    },
-    progressBar: {
-        height: "100%",
-        backgroundColor: "#3A506B",
-    },
-    progressText: {
-        color: "#FFF",
+    description: {
+        color: "#DDD",
         fontSize: 12,
-        marginBottom: 10,
+        marginTop: 6,
     },
+    cardContent: {
+        padding: 6,
+    },
+    gained: {
+        color: "#FFF",
+        textDecorationLine: "underline",
+
+    }
 });
 
-export default ResourcePanel;
+export default CoreOperations;

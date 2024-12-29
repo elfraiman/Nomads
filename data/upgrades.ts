@@ -41,6 +41,19 @@ const defaultUpgradeList: Upgrade[] = [
         level: 1,
     },
     {
+        id: "core_operations_storage",
+        title: "Core Operations Storage",
+        description: (level: number) =>
+            `Upgrade core operations storage to safely store an additional +200 units. Enhanced containment systems and improved diagnostics ensure stability under increased loads.`,
+        costs: [
+            { resourceType: "energy", amount: 200 },
+            { resourceType: "fuel", amount: 100 },
+            { resourceType: "solarPlasma", amount: 50 }
+        ],
+        baseCostMultiplier: 1.5,
+        level: 0,
+    },
+    {
         id: "core_operations_efficiency",
         title: "Core Operations Efficiency",
         description: (level: number) =>

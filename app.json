@@ -12,13 +12,11 @@
       "supportsTablet": true
     },
     "android": {
-      "android": {
-        "package": "com.elfraiman.nomads"
-      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.elfraiman.nomads"
     },
     "web": {
       "bundler": "metro",

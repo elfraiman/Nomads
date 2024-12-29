@@ -8,18 +8,19 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 
-export function Collapsible({ children, title }: PropsWithChildren & { title: string }) {
+export function Collapsible({ children, title, condensed = false }: PropsWithChildren & { title: string, condensed?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const theme = useColorScheme() ?? 'light';
 
   return (
     <ThemedView>
       <TouchableOpacity
-        style={styles.heading}
+        style={{ ...styles.heading, padding: condensed ? 0 : 6, borderBottomWidth: condensed ? 0 : 1 }}
         onPress={() => setIsOpen((value) => !value)}
         activeOpacity={0.8}>
+
         <IconSymbol
-          name="chevron.right"
+          name={condensed ? 'info' : 'chevron.right'}
           size={18}
           weight="medium"
           color={theme === 'light' ? Colors.light.icon : Colors.dark.icon}
@@ -38,11 +39,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    fontSize: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'green'
+    padding: 6,
+    borderBottomColor: '#87CEEB'
   },
   content: {
-    marginTop: 6,
-    marginLeft: 6,
+    padding: 6
   },
 });

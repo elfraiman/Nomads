@@ -65,7 +65,7 @@ const ShipStatus = () => {
                 <View style={styles.energyBarTextContainer}>
                     <ResourceIcon type="energy" size={20} />
                     <Text style={styles.energyBarText}>
-                        {resources?.energy.current}/{resources?.energy.max} ({getGenerationRate()}/sec)
+                        {Math.round(resources?.energy.current)}/{resources?.energy.max} ({getGenerationRate()}/sec)
                     </Text>
                 </View>
             </View>

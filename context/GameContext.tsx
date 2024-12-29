@@ -68,10 +68,20 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                                 ...prev,
                                 energy: { ...prev.energy, max: upgrade.level * 100 },
                             }));
+                        } else if (upgrade.id === 'core_operations_storage') {
+                            /*   setResources((prev) => {
+                                  const updatedResources = Object.fromEntries(
+                                      Object.entries(prev).map(([key, value]) => [
+                                          key,
+                                          { ...value },
+                                      ])
+                                  ) as Resources;
+  
+                                  return updatedResources;
+                              }); */
                         }
                     }
                 });
-
 
                 setUpgrades(
                     upgradesFromSaveFile
@@ -290,6 +300,28 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 ...prev,
                 energy: { ...prev.energy, max: prev.energy.max + 100 },
             }));
+        } else if (id === "core_operations_storage") {
+            setResources((prev) => {
+                const updatedResources = Object.fromEntries(
+                    Object.entries(prev).map(([key, value]) => [
+                        key,
+                        { ...value, max: value.max + 200 },
+                    ])
+                ) as Resources;
+
+                return updatedResources;
+            });
+        } else if (id === "core_operations_efficiency") {
+            setResources((prev) => {
+                const updatedResources = Object.fromEntries(
+                    Object.entries(prev).map(([key, value]) => [
+                        key,
+                        { ...value, efficiency: value.efficiency * 1.05 },
+                    ])
+                ) as Resources;
+
+                return updatedResources;
+            });
         }
 
         // Update achievements for upgrades
