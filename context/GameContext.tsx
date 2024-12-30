@@ -64,21 +64,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 upgradesFromSaveFile.forEach((upgrade) => {
                     if (upgrade.level > 0) {
                         if (upgrade.id === "reactor_storage") {
-                            setResources((prev) => ({
-                                ...prev,
-                                energy: { ...prev.energy, max: upgrade.level * 100 },
-                            }));
                         } else if (upgrade.id === 'core_operations_storage') {
-                            /*   setResources((prev) => {
-                                  const updatedResources = Object.fromEntries(
-                                      Object.entries(prev).map(([key, value]) => [
-                                          key,
-                                          { ...value },
-                                      ])
-                                  ) as Resources;
-  
-                                  return updatedResources;
-                              }); */
                         }
                     }
                 });
@@ -89,7 +75,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             }
         };
 
-        console.log(resources)
+
         loadState();
     }, []);
 
@@ -104,8 +90,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 description: upgrade.description,
                 baseCostMultiplier: upgrade.baseCostMultiplier,
             }));
+
             await saveGameState({ resources, achievements, upgrades: serializableUpgrades });
-            console.log("Game state saved.");
         };
 
         const handleAppStateChange = async (nextAppState: AppStateStatus) => {
@@ -214,7 +200,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
 
     const updateAchievProgressForUpgrades = (upgradeId: string, level: number) => {
-        console.log("updateAchievProgressForUpgrades", upgradeId, level);
         setAchievements((prev) =>
             prev.map((achievement) => {
                 if (achievement.completed || !achievement.upgradeGoals) return achievement;
@@ -232,6 +217,14 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 }
 
                 if (isComplete) {
+                    // When we achieve upgrade core operations efficiency we unlock solar plasma
+                    //
+                    if (achievement.id === 'upgrade_core_operations_efficiency') {
+                        setResources((prev) => ({
+                            ...prev,
+                            solarPlasma: { ...prev.solarPlasma, locked: false },
+                        }));
+                    }
                     alert(`Achievement Unlocked: ${achievement.title}\n\n${achievement.story}`);
                     return { ...achievement, completed: true, progress: { upgrades: updatedProgress } };
                 }
@@ -296,10 +289,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
         // Apply special effects for this upgrade
         if (id === "reactor_storage") {
-            setResources((prev) => ({
-                ...prev,
-                energy: { ...prev.energy, max: prev.energy.max + 100 },
-            }));
+            updateResources("energy", { max: resources.energy.max + 100 });
         } else if (id === "core_operations_storage") {
             setResources((prev) => {
                 const updatedResources = Object.fromEntries(
@@ -362,10 +352,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
             // Revert any special effects caused by the upgrade
             if (id === "reactor_storage") {
-                setResources((prev) => ({
-                    ...prev,
-                    energy: { ...prev.energy, max: prev.energy.max - 100 },
-                }));
+                updateResources("energy", { max: resources.energy.max - 100 });
             }
         } else {
             alert("No upgrades to downgrade!");
@@ -419,10 +406,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
     // Auto generate energy based on the Rate if the player has upgraded
     // the reactor_optimization upgrade
-    //
-
-
-    // Auto generate energy based on the Rate if the player has upgraded
     //
     useEffect(() => {
         const interval = setInterval(() => {

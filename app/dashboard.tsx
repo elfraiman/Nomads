@@ -12,6 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo, useState } from "react";
 import { Button, Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
+import { Achievement } from '../data/achievements';
 
 const { width, height } = Dimensions.get("window");
 
@@ -38,41 +39,43 @@ const UpgradeModule = ({
     );
 
     return (
-        <Collapsible title={title}>
-            <View style={styles.upgradeContainer}>
-                {locked ? (
-                    <Text>Locked</Text>
-                ) : (
-                    <>
-                        <View style={styles.costContainer}>
-                            <Text style={styles.costText}>Cost:</Text>
-                            {costs.map((cost, index) => (
-                                <View key={index} style={styles.resourceContainer}>
-                                    <ResourceIcon type={cost.resourceType} size={20} />
-                                    <Text style={styles.costText}>{cost.amount}</Text>
-                                </View>
-                            ))}
-                        </View>
-                        <View style={styles.buttonsContainer}>
-                            <TouchableOpacity
-                                onPress={onUpgrade}
-                                style={[
-                                    styles.upgradeButton,
-                                    !canAfford && styles.disabledButton,
-                                ]}
-                                disabled={!canAfford}
-                            >
-                                <Text style={styles.upgradeButtonText}>Upgrade</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={onRemove} style={styles.deleteButton}>
-                                <Ionicons name="trash" size={20} color="#fff" />
-                            </TouchableOpacity>
-                        </View>
-                        <Text style={styles.description}>{description}</Text>
-                    </>
-                )}
-            </View>
-        </Collapsible>
+        !locked && (
+            <Collapsible title={title}>
+                <View style={styles.upgradeContainer}>
+                    {locked ? (
+                        <Text>Locked</Text>
+                    ) : (
+                        <>
+                            <View style={styles.costContainer}>
+                                <Text style={styles.costText}>Cost:</Text>
+                                {costs.map((cost, index) => (
+                                    <View key={index} style={styles.resourceContainer}>
+                                        <ResourceIcon type={cost.resourceType} size={20} />
+                                        <Text style={styles.costText}>{cost.amount}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                            <View style={styles.buttonsContainer}>
+                                <TouchableOpacity
+                                    onPress={onUpgrade}
+                                    style={[
+                                        styles.upgradeButton,
+                                        !canAfford && styles.disabledButton,
+                                    ]}
+                                    disabled={!canAfford}
+                                >
+                                    <Text style={styles.upgradeButtonText}>Upgrade</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={onRemove} style={styles.deleteButton}>
+                                    <Ionicons name="trash" size={20} color="#fff" />
+                                </TouchableOpacity>
+                            </View>
+                            <Text style={styles.description}>{description}</Text>
+                        </>
+                    )}
+                </View>
+            </Collapsible>
+        )
     );
 };
 
@@ -81,8 +84,6 @@ const Dashboard = () => {
     const game = useGame();
 
     if (!game) return null;
-    const [isExpanded, setIsExpanded] = useState(false);
-
 
     const {
         resources,
@@ -101,7 +102,7 @@ const Dashboard = () => {
     };
 
 
-    const anyUpgradeUnlocked = useMemo(() => upgrades.some((upgrade) => isUpgradeUnlocked(upgrade.id)), [upgrades]);
+    const anyUpgradeUnlocked = useMemo(() => upgrades.some((upgrade) => isUpgradeUnlocked(upgrade.id)), [achievements, upgrades]);
 
     // Default resource generation values for Core Operations
     const defaultResourceGenerationValue = {
@@ -114,7 +115,6 @@ const Dashboard = () => {
 
     return (
         <>
-            <ShipStatus />
 
             <LinearGradient
                 colors={["#0F2027", "#203A43", "#2C5364"]}
@@ -130,11 +130,12 @@ const Dashboard = () => {
                     </View>
 
                     {/* Core Operations Section */}
-                    <View style={styles.panel}>
-                        <Text style={styles.panelTitle}>Core Operations</Text>
-                        <View style={styles.cardContent}>
-                            {/* Core operations Section */}
-                            {isGatherEnergyAchievementComplete(achievements) && (
+                    {isGatherEnergyAchievementComplete(achievements) && (
+                        <View style={styles.panel}>
+                            <Text style={styles.panelTitle}>Core Operations</Text>
+                            <View style={styles.cardContent}>
+
+                                {/* Core operations Section */}
                                 <Collapsible title="Generate">
                                     <CoreOperations
                                         resources={resources}
@@ -142,11 +143,10 @@ const Dashboard = () => {
                                         generateResource={generateResource}
                                     />
                                 </Collapsible>
-                            )}
-
-
+                            </View>
                         </View>
-                    </View>
+                    )}
+
 
                     {/* Module Upgrades Section */}
                     {anyUpgradeUnlocked && (
@@ -168,6 +168,7 @@ const Dashboard = () => {
                     )}
                 </ScrollView>
             </LinearGradient>
+            <ShipStatus />
         </>
     );
 };
@@ -188,7 +189,8 @@ const styles = StyleSheet.create({
     },
     description: {
         color: "#DDD",
-        fontSize: 12,
+        fontSize: 13,
+        marginTop: 6,
     },
     highlight: {
         color: "#FFF",

@@ -115,7 +115,7 @@ const ShipStatus = () => {
 
 const styles = StyleSheet.create({
     container: {
-        position: "absolute",
+        position: "relative",
         bottom: 0,
         width: "100%",
         backgroundColor: "#222",

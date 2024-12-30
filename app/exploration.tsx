@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { StyleSheet, View, Text, TouchableOpacity, Dimensions } from "react-native";
-import { Svg, Circle, G, Defs, RadialGradient, Stop, Text as SvgText } from "react-native-svg";
+import { Svg, Circle, G, Defs, RadialGradient, Stop, Text as SvgText, Image as SvgImage } from "react-native-svg";
+
 
 interface Position {
     x: number;
@@ -18,6 +19,7 @@ interface Galaxy {
     name: string;
     size: number;
     planets: Planet[];
+    image: any;
 }
 
 const { width, height } = Dimensions.get("window");
@@ -26,7 +28,8 @@ const galaxies: Galaxy[] = [
     {
         id: 1,
         name: "Alpha Centauri",
-        size: 70,
+        size: 90,
+        image: require("../assets/images/galaxy.webp"),
         planets: [
             { id: 1, name: "Planet A1", position: { x: 150, y: height / 4 } },
             { id: 2, name: "Planet A2", position: { x: 250, y: height / 2.2 } },
@@ -37,7 +40,8 @@ const galaxies: Galaxy[] = [
     {
         id: 2,
         name: "Andromeda",
-        size: 50,
+        size: 70,
+        image: require("../assets/images/galaxy1.webp"),
         planets: [
             { id: 1, name: "Planet B1", position: { x: 70, y: height / 4.5 } },
             { id: 2, name: "Planet B2", position: { x: 180, y: height / 3.2 } },
@@ -47,8 +51,9 @@ const galaxies: Galaxy[] = [
     },
     {
         id: 3,
-        size: 30,
+        size: 120,
         name: "Milky Way",
+        image: require("../assets/images/galaxy2.webp"),
         planets: [
             { id: 1, name: "Planet C1", position: { x: 80, y: height / 5.0 } },
             { id: 2, name: "Planet C2", position: { x: 310, y: height / 4.2 } },
@@ -72,13 +77,12 @@ const generateRandomStars = (count: number) => {
 };
 
 const gradientColors = [
-    { start: "#6A0572", end: "#C33764" },
-    { start: "#162447", end: "#1F4068" },
-    { start: "#0F2027", end: "#203A43" },
-    { start: "#FF7E5F", end: "#FEB47B" },
-    { start: "#43C6AC", end: "#191654" },
-    { start: "#1E3C72", end: "#2A5298" },
-    { start: "#4568DC", end: "#B06AB3" },
+    "#C33764",
+    "#1F4068",
+    "#FEB47B",
+    "#191654",
+    "#2A5298",
+    "#B06AB3",
 ];
 
 const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => {
@@ -89,28 +93,6 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
     return (
         <View style={styles.container}>
             <Svg height="100%" width="100%">
-                {/* Define gradients for planets */}
-                <Defs>
-                    {galaxy.planets.map((planet: Planet, index: number) => {
-                        const { start, end } = gradientColors[index % gradientColors.length];
-                        return (
-                            <>
-                                <RadialGradient
-                                    key={getGradientId(index)}
-                                    id={getGradientId(index)}
-                                    cx="50%"
-                                    cy="50%"
-                                    r="50%"
-                                    gradientUnits="userSpaceOnUse"
-                                >
-                                    <Stop offset="0%" stopColor={start} />
-                                    <Stop offset="100%" stopColor={end} />
-                                </RadialGradient>
-
-                            </>
-                        );
-                    })}
-                </Defs>
 
                 {/* Render stars */}
                 {stars.map((star) => (
@@ -131,11 +113,12 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                             key={planet.id}
                             cx={planet.position.x}
                             cy={planet.position.y}
-                            r={20} // Adjust size as needed
-                            fill={`url(#${getGradientId(index)})`} // Apply gradient
+                            // Adjust size as needed
+                            r={20}
+                            fill={gradientColors[Math.floor(Math.random() * gradientColors.length)]} // Apply random color
                             stroke="purple"
                             strokeWidth={1} // Glow effect
-                            onPress={() => alert(`Selected planet: ${planet.name}`)}
+                            onPressIn={() => alert(`Selected planet: ${planet.name}`)}
                         />
                         <SvgText
                             x={planet.position.x}
@@ -158,9 +141,6 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
 };
 
 
-
-
-
 const ExplorationMap = () => {
     const [selectedGalaxy, setSelectedGalaxy] = useState<Galaxy | null>(null);
     const stars = generateRandomStars(100);
@@ -180,10 +160,10 @@ const ExplorationMap = () => {
         );
     }
 
-
     return (
         <View style={styles.container}>
             <Svg height="100%" width="100%">
+                {/* Render stars */}
                 {stars.map((star) => (
                     <Circle
                         key={star.id}
@@ -194,6 +174,8 @@ const ExplorationMap = () => {
                         opacity={0.8}
                     />
                 ))}
+
+                {/* Render galaxies */}
                 {galaxies.map((galaxy, index) => (
                     <G key={galaxy.id}>
                         <Defs>
@@ -210,16 +192,20 @@ const ExplorationMap = () => {
                             </RadialGradient>
                         </Defs>
 
-                        <Circle
-                            cx={galaxyPositions[index].cx}
-                            cy={galaxyPositions[index].cy}
-                            r={galaxy.size}
-                            fill={`url(#galaxy-gradient-${galaxy.id})`}
-                            onPress={() => setSelectedGalaxy(galaxy)}
+
+                        <SvgImage
+                            href={galaxy.image}
+                            x={galaxyPositions[index].cx - galaxy.size / 2}
+                            y={galaxyPositions[index].cy - galaxy.size / 2}
+                            width={galaxy.size}
+                            height={galaxy.size}
+                            onPressIn={() => setSelectedGalaxy(galaxy)} // Works for both mobile and web
                         />
+
+
                         <SvgText
                             x={galaxyPositions[index].cx}
-                            y={galaxyPositions[index].cy + galaxy.size + 20}
+                            y={(galaxyPositions[index].cy + galaxy.size / 2) + 20}
                             fill="white"
                             fontSize={18}
                             fontFamily="monospace" // You can use a futuristic custom font here
@@ -233,6 +219,8 @@ const ExplorationMap = () => {
         </View>
     );
 };
+
+
 
 
 const styles = StyleSheet.create({

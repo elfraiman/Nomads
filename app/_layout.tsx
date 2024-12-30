@@ -6,7 +6,7 @@ import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import { StatusBar, StyleSheet } from 'react-native';
 import Dashboard from './dashboard';
 import Exploration from './exploration';
 
@@ -37,6 +37,10 @@ export default function RootLayout() {
   return (
     <GameProvider>
       <ThemeProvider value={DarkTheme}>
+        <StatusBar
+          barStyle="light-content" // Options: "light-content", "dark-content"
+          backgroundColor="black" // Android-specific
+        />
         <Drawer.Navigator
           screenOptions={({ navigation }) => ({
             drawerStyle: {

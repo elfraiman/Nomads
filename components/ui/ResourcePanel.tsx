@@ -95,26 +95,29 @@ const CoreOperations = ({
                     defaultResourceGenerationValue.fuel * resources.fuel.efficiency
                 )} `}
             />
-            <ResourcePanel
-                resourceType="solarPlasma"
-                title="Condense Solar Plasma"
-                cost={10}
-                currentAmount={resources.solarPlasma.current}
-                maxAmount={resources.solarPlasma.max}
-                efficiency={resources.solarPlasma.efficiency}
-                playerEnergy={resources.energy.current}
-                onGenerate={() =>
-                    generateResource(
-                        "solarPlasma",
-                        10,
-                        defaultResourceGenerationValue.solarPlasma * resources.solarPlasma.efficiency,
-                        0
-                    )
-                }
-                description={`Compress solar energy into Solar Plasma, generating +${Math.round(
-                    defaultResourceGenerationValue.solarPlasma * resources.solarPlasma.efficiency
-                )}`}
-            />
+
+            {!resources.solarPlasma.locked && (
+                <ResourcePanel
+                    resourceType="solarPlasma"
+                    title="Condense Solar Plasma"
+                    cost={10}
+                    currentAmount={resources.solarPlasma.current}
+                    maxAmount={resources.solarPlasma.max}
+                    efficiency={resources.solarPlasma.efficiency}
+                    playerEnergy={resources.energy.current}
+                    onGenerate={() =>
+                        generateResource(
+                            "solarPlasma",
+                            10,
+                            defaultResourceGenerationValue.solarPlasma * resources.solarPlasma.efficiency,
+                            0
+                        )
+                    }
+                    description={`Compress solar energy into Solar Plasma, generating +${Math.round(
+                        defaultResourceGenerationValue.solarPlasma * resources.solarPlasma.efficiency
+                    )}`}
+                />
+            )}
         </View>
     );
 };
