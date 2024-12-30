@@ -1,9 +1,9 @@
 // src/data/upgrades.ts
 
-import { ResourceType } from "@/components/ui/ResourceIcon";
+import { PlayerResources } from "@/utils/defaults";
 
 export interface UpgradeCost {
-    resourceType: ResourceType;
+    resourceType: keyof PlayerResources; // Only valid keys of PlayerResources
     amount: number;
 }
 
@@ -50,7 +50,7 @@ const defaultUpgradeList: Upgrade[] = [
             { resourceType: "fuel", amount: 100 },
             { resourceType: "solarPlasma", amount: 50 }
         ],
-        baseCostMultiplier: 1.5,
+        baseCostMultiplier: 1.25,
         level: 0,
     },
     {
@@ -62,7 +62,7 @@ const defaultUpgradeList: Upgrade[] = [
             { resourceType: "energy", amount: 50 },
             { resourceType: "fuel", amount: 100 },
         ],
-        baseCostMultiplier: 1.8,
+        baseCostMultiplier: 1.5,
         level: 0,
     },
 

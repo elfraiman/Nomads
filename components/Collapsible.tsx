@@ -6,7 +6,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-
+import GradientBorder from './ui/GradientBorder';
 
 export function Collapsible({ children, title, condensed = false }: PropsWithChildren & { title: string, condensed?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -14,22 +14,23 @@ export function Collapsible({ children, title, condensed = false }: PropsWithChi
 
   return (
     <ThemedView>
-      <TouchableOpacity
-        style={{ ...styles.heading, padding: condensed ? 0 : 6, borderBottomWidth: condensed ? 0 : 1 }}
-        onPress={() => setIsOpen((value) => !value)}
-        activeOpacity={0.8}>
+      <GradientBorder>
+        <TouchableOpacity
+          style={{ ...styles.heading, padding: condensed ? 0 : 6, borderBottomWidth: condensed ? 0 : 1 }}
+          onPress={() => setIsOpen((value) => !value)}
+          activeOpacity={0.8}>
 
-        <IconSymbol
-          name={condensed ? 'info' : 'chevron.right'}
-          size={18}
-          weight="medium"
-          color={theme === 'light' ? Colors.light.icon : Colors.dark.icon}
-          style={{ transform: [{ rotate: isOpen ? '90deg' : '0deg' }] }}
-        />
-
-        <ThemedText type="defaultSemiBold">{title}</ThemedText>
-      </TouchableOpacity>
-      {isOpen && <ThemedView style={styles.content}>{children}</ThemedView>}
+          <IconSymbol
+            name={condensed ? 'info' : 'chevron.right'}
+            size={18}
+            weight="medium"
+            color={theme === 'light' ? Colors.light.icon : Colors.dark.icon}
+            style={{ transform: [{ rotate: isOpen ? '90deg' : '0deg' }] }}
+          />
+          <ThemedText type="glow" darkColor='#DFAA30'>{title}</ThemedText>
+        </TouchableOpacity>
+        {isOpen && <ThemedView style={styles.content}>{children}</ThemedView>}
+      </GradientBorder>
     </ThemedView>
   );
 }
@@ -42,7 +43,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     borderBottomWidth: 1,
     padding: 6,
-    borderBottomColor: '#87CEEB'
   },
   content: {
     padding: 6

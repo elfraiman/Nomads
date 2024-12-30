@@ -1,7 +1,19 @@
 import React from 'react';
-import { Ionicons, MaterialIcons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, MaterialCommunityIcons, FontAwesome5, Entypo, Fontisto } from '@expo/vector-icons';
 
-export type ResourceType = 'energy' | 'fuel' | 'solarPlasma' | 'tokens' | 'alloys' | 'darkMatter' | 'frozenHydrogen';
+export type ResourceType =
+    | 'energy'
+    | 'fuel'
+    | 'solarPlasma'
+    | 'tokens'
+    | 'alloys'
+    | 'darkMatter'
+    | 'frozenHydrogen'
+    | 'miningDrones'
+    | 'attackDrones'
+    | 'corvettes'
+    | 'marauders'
+    | 'titans';
 
 interface ResourceIconProps {
     type: ResourceType;
@@ -37,6 +49,26 @@ const resourceIcons: Record<ResourceType, { icon: React.ReactNode; defaultColor:
     frozenHydrogen: {
         icon: <FontAwesome5 name="snowflake" />,
         defaultColor: '#77C0D8',
+    },
+    miningDrones: {
+        icon: <Entypo name="aircraft" />,
+        defaultColor: '#00BFFF', // Light blue for mining drones
+    },
+    attackDrones: {
+        icon: <Fontisto name="helicopter" />,
+        defaultColor: '#FF4500', // Red-orange for attack drones
+    },
+    corvettes: {
+        icon: <MaterialCommunityIcons name="rocket-outline" />,
+        defaultColor: '#5F9EA0', // Cadet blue for corvettes
+    },
+    marauders: {
+        icon: <Ionicons name="skull-outline" />,
+        defaultColor: '#8B0000', // Dark red for marauders
+    },
+    titans: {
+        icon: <FontAwesome5 name="mountain" />,
+        defaultColor: '#FFD700', // Gold for titans
     },
 };
 

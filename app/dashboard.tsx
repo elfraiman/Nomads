@@ -1,18 +1,16 @@
 import { Collapsible } from "@/components/Collapsible";
 import ShipStatus from "@/components/ShipStatus";
-import ResourceButton from "@/components/ui/ResourceButton";
+import BuildOperations from "@/components/ui/BuildPanel";
+import BuildPanel from "@/components/ui/BuildPanel";
 import ResourceIcon from "@/components/ui/ResourceIcon";
 import CoreOperations from "@/components/ui/ResourcePanel";
 import { useGame } from "@/context/GameContext";
-import achievements from "@/data/achievements";
-import { Resource } from "@/utils/defaults";
-import { isGatherEnergyAchievementComplete, isUpgradeCoreOperationsEfficiencyCompleted } from "@/utils/gameUtils";
+import { isGatherEnergyAchievementComplete } from "@/utils/gameUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Button, Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
-import { Achievement } from '../data/achievements';
 
 const { width, height } = Dimensions.get("window");
 
@@ -94,6 +92,8 @@ const Dashboard = () => {
         purchaseUpgrade,
         downgradeUpgrade,
         achievements,
+        updateShips,
+        ships,
     } = game;
 
     const handleGenerateEnergy = () => {
@@ -112,12 +112,11 @@ const Dashboard = () => {
         frozenHydrogen: 5,
         alloys: 7,
     };
-
     return (
         <>
 
             <LinearGradient
-                colors={["#0F2027", "#203A43", "#2C5364"]}
+                colors={["#1A1C20", "#2B3035", "#3D444C"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.container}
@@ -126,7 +125,7 @@ const Dashboard = () => {
                     {/* Actions Section */}
                     <View style={styles.panel}>
                         <Text style={styles.panelTitle}>Actions</Text>
-                        <Button title="Generate Energy" color="#3A506B" onPress={handleGenerateEnergy} />
+                        <Button title="Generate Energy" color="#253947" onPress={handleGenerateEnergy} />
                     </View>
 
                     {/* Core Operations Section */}
@@ -134,13 +133,21 @@ const Dashboard = () => {
                         <View style={styles.panel}>
                             <Text style={styles.panelTitle}>Core Operations</Text>
                             <View style={styles.cardContent}>
-
                                 {/* Core operations Section */}
-                                <Collapsible title="Generate">
+                                <Collapsible title="Generate Core Resources">
                                     <CoreOperations
                                         resources={resources}
                                         defaultResourceGenerationValue={defaultResourceGenerationValue}
                                         generateResource={generateResource}
+                                    />
+                                </Collapsible>
+
+                                <Collapsible title="Drones">
+                                    <BuildOperations
+                                        resources={resources}
+                                        ships={ships}
+                                        updateResources={updateResources}
+                                        updateShips={updateShips}
                                     />
                                 </Collapsible>
                             </View>
@@ -188,19 +195,19 @@ const styles = StyleSheet.create({
         padding: 6,
     },
     description: {
-        color: "#DDD",
+        color: "#FFC857", // Light orange text for descriptions
         fontSize: 13,
         marginTop: 6,
     },
     highlight: {
-        color: "#FFF",
+        color: "#FFD700", // Bright gold color for highlights
         fontWeight: "bold",
     },
     panel: {
-        backgroundColor: "#1E1E2E",
-        borderRadius: 10,
+        backgroundColor: "#1B1B1D", // Very dark background for panels
+        borderRadius: 8,
         padding: 16,
-        marginBottom: 10,
+        marginTop: 16,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 5 },
         shadowOpacity: 0.5,
@@ -208,16 +215,19 @@ const styles = StyleSheet.create({
         elevation: 10,
     },
     panelTitle: {
-        color: "#FFF",
+        color: "#FFBF00", // Bright orange-yellow for panel titles
         fontSize: 16,
         fontWeight: "bold",
         marginBottom: 10,
         textTransform: "uppercase",
     },
     upgradeContainer: {
-        backgroundColor: "#282A36",
+        backgroundColor: "#222222", // Slightly lighter dark gray for contrast
         padding: 16,
         margin: 6,
+        borderRadius: 8,
+        borderColor: "#FFBF00", // Yellow border for contrast
+        borderWidth: 1,
     },
     costContainer: {
         flexDirection: "row",
@@ -230,7 +240,7 @@ const styles = StyleSheet.create({
         marginLeft: 10,
     },
     costText: {
-        color: "#FFFA",
+        color: "#FFD700", // Bright gold color for resource costs
         fontSize: 14,
         marginLeft: 4,
     },
@@ -244,23 +254,23 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         paddingHorizontal: 15,
         borderRadius: 5,
-        backgroundColor: "#1B3B6F", // Space Sapphire
+        backgroundColor: "#253947",
         borderWidth: 2,
-        borderColor: "#87CEEB", // Complementary Sky Blue for accents
+        borderColor: "black",
     },
     upgradeButtonText: {
-        color: "#FFFFFF", // White text for contrast
+        color: "white",
         fontWeight: "bold",
         textAlign: "center",
     },
     deleteButton: {
-        backgroundColor: "#FF3E4D",
+        backgroundColor: "#FF3E4D", // Bright red for delete buttons
         padding: 10,
         borderRadius: 5,
     },
     disabledButton: {
-        backgroundColor: "#555", // A muted gray color for disabled state
-        borderColor: "#333", // Darker border for contrast
+        backgroundColor: "#555555", // A muted gray color for disabled state
+        borderColor: "#333333", // Darker border for contrast
     },
     row: {
         flexDirection: "row",
@@ -274,10 +284,12 @@ const styles = StyleSheet.create({
     expandedContainer: {
         marginTop: 6,
         padding: 6,
-        backgroundColor: "#282A36", // Background for the expanded section
+        backgroundColor: "#292B2E", // Slightly lighter dark background for expanded sections
         borderRadius: 8,
+        borderColor: "#FFD700", // Bright gold border for emphasis
+        borderWidth: 1,
     },
-
 });
+
 
 export default Dashboard;

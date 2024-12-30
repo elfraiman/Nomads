@@ -30,24 +30,25 @@ const ResourceButton = ({
                 <Text style={styles.buttonText}>{title}</Text>
                 <View style={styles.iconContainer}>
                     <ResourceIcon type={resourceType} size={20} />
-
                 </View>
             </View>
         </TouchableOpacity>
     );
 };
-
 const styles = StyleSheet.create({
     button: {
-        backgroundColor: "#3A506B",
+        backgroundColor: "#253947",
         borderRadius: 5,
         padding: 10,
         alignItems: "center",
         marginTop: 8,
         width: '90%',
+        borderWidth: 2,
+        borderColor: "black", // Orange border for highlight
     },
     buttonDisabled: {
-        backgroundColor: "#6B6B6B", // Gray color for disabled state
+        backgroundColor: "#3A3A3A", // Muted gray for disabled state
+        borderColor: "#555555", // Subtle border for disabled buttons
     },
     buttonContent: {
         flexDirection: "row",
@@ -55,7 +56,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
     },
     buttonText: {
-        color: "#FFFFFF",
+        color: "white",
         fontSize: 16,
         fontWeight: "bold",
     },
@@ -65,13 +66,13 @@ const styles = StyleSheet.create({
         marginLeft: 10,
     },
     costText: {
-        color: "#FFD700", // Gold color for the cost
+        color: "#FFA726", // Warm orange for cost text
         fontSize: 16,
         fontWeight: "bold",
         marginLeft: 5,
     },
     costTextDisabled: {
-        color: "#AAAAAA", // Gray color for disabled text
+        color: "#777777", // Muted gray for disabled text
     },
 });
 

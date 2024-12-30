@@ -1,4 +1,11 @@
-
+export interface Ships {
+  miningDrones: number;
+  // Future additions:
+  // attackDrones: number;
+  // corvettes: number;
+  // marauders: number;
+  // titans: number;
+}
 
 export interface Resource {
   current: number;
@@ -7,7 +14,7 @@ export interface Resource {
   locked: boolean;
 }
 
-export interface Resources {
+export interface PlayerResources {
   energy: Resource;
   fuel: Resource;
   solarPlasma: Resource;
@@ -17,7 +24,8 @@ export interface Resources {
   tokens: Resource;
 }
 
-export const initialResources: Resources = {
+// Initial values for resources
+export const initialResources: PlayerResources = {
   energy: { current: 85, max: 100, efficiency: 1, locked: false },
   fuel: { current: 0, max: 100, efficiency: 1.8, locked: false },
   solarPlasma: { current: 0, max: 100, efficiency: 1.6, locked: true },
@@ -25,4 +33,13 @@ export const initialResources: Resources = {
   frozenHydrogen: { current: 0, max: 100, efficiency: 0.9, locked: true },
   alloys: { current: 0, max: 100, efficiency: 0.3, locked: true },
   tokens: { current: 0, max: 100, efficiency: 1, locked: true },
+};
+
+// Initial values for ships
+export const initialShips: Ships = {
+  miningDrones: 0,
+  // attackDrones: 0,
+  // corvettes: 0,
+  // marauders: 0,
+  // titans: 0,
 };

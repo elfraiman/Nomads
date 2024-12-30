@@ -1,18 +1,21 @@
 // src/data/gameState.ts
 
 
-import { Resources } from "@/utils/defaults";
+import { PlayerResources, Ships } from "@/utils/defaults";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Achievement } from "./achievements";
 import { Upgrade } from "./upgrades";
 
 export interface GameState {
-    resources: Resources;
+    resources: PlayerResources;
     achievements: Achievement[];
     upgrades: Upgrade[];
+    ships: Ships;
 }
 
 const GAME_STATE_KEY = "GAME_STATE";
+
+
 
 // Save the entire game state
 export const saveGameState = async (state: GameState) => {

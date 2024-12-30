@@ -42,6 +42,7 @@ const ResourcePanel = ({
                     maxAmount={maxAmount}
                     onPress={onGenerate}
                 />
+
                 <TouchableOpacity
                     style={styles.chevronButton}
                     onPress={() => setIsExpanded(!isExpanded)}
@@ -56,7 +57,7 @@ const ResourcePanel = ({
             {isExpanded && (
                 <View style={styles.expandedContainer}>
                     <Text style={styles.description}>
-                        Cost: {cost} <ResourceIcon type="energy" size={14} />.
+                        Cost: {cost} <ResourceIcon type="energy" size={14} />
                     </Text>
                     <Text style={styles.description}>{description}<ResourceIcon type={resourceType} size={14} /></Text>
                 </View>
@@ -136,22 +137,23 @@ const styles = StyleSheet.create({
     expandedContainer: {
         marginTop: 6,
         padding: 10,
-        backgroundColor: "#282A36",
+        backgroundColor: "#2B3035", // Mid-tone from the gradient theme
         borderRadius: 8,
+        borderWidth: 1,
+        borderColor: "#FFA726", // Orange highlight border
     },
     description: {
-        color: "#DDD",
+        color: "#FFD700", // Bright yellow for descriptive text
         fontSize: 12,
-        marginTop: 6,
     },
     cardContent: {
         padding: 6,
     },
     gained: {
-        color: "#FFF",
+        color: "#FFA726", // Orange for emphasis
         textDecorationLine: "underline",
-
-    }
+    },
 });
+
 
 export default CoreOperations;

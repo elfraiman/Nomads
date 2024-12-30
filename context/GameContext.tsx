@@ -1,27 +1,29 @@
 import achievementsData, { Achievement } from "@/data/achievements";
 import { loadGameState, saveGameState } from "@/data/asyncStorage";
 import defaultUpgradeList, { Upgrade, UpgradeCost } from "@/data/upgrades";
-import { initialResources, Resource, Resources } from "@/utils/defaults";
+import { initialResources, Resource, PlayerResources, Ships, initialShips } from "@/utils/defaults";
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { AppState, AppStateStatus, Platform } from "react-native";
 
 interface GameContextType {
-    resources: Resources; // Tracks resource states like energy, fuel, etc.
+    resources: PlayerResources; // Tracks resource states like energy, fuel, etc.
     achievements: Achievement[]; // Tracks all achievements and their states
     upgrades: Upgrade[]; // Tracks upgrades including their levels and costs
+    ships: Ships; // Tracks the number of ships the player has
 
     // Resource management functions
-    updateResources: (type: keyof Resources, changes: Partial<Resource>) => void;
-    upgradeResourceEfficiency: (type: keyof Resources, increment: number) => void;
+    updateResources: (type: keyof PlayerResources, changes: Partial<Resource>) => void;
+    upgradeResourceEfficiency: (type: keyof PlayerResources, increment: number) => void;
 
     // Upgrade management functions
     purchaseUpgrade: (id: string) => void;
     downgradeUpgrade: (id: string) => void;
+    updateShips: (shipType: keyof Ships, amount: number) => void;
 
     // General game actions
     resetResources: () => void;
     repairShip: () => void;
-    generateResource: (type: keyof Resources, energyCost: number, output: number, cooldown: number) => void;
+    generateResource: (type: keyof PlayerResources, energyCost: number, output: number, cooldown: number) => void;
 
     // Achievement tracking functions
     updateAchievProgressFromResources: (resources: Record<string, { current: number }>) => void;
@@ -36,8 +38,9 @@ interface GameContextType {
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider = ({ children }: { children: ReactNode }) => {
-    const [resources, setResources] = useState<Resources>(initialResources);
+    const [resources, setResources] = useState<PlayerResources>(initialResources);
     const [achievements, setAchievements] = useState<Achievement[]>(achievementsData);
+    const [ships, setShips] = useState(initialShips);
     const [upgrades, setUpgrades] = useState<Upgrade[]>(defaultUpgradeList);
 
     // Load and save state
@@ -48,6 +51,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             if (savedState) {
                 setResources(savedState.resources || initialResources);
                 setAchievements(savedState.achievements || achievementsData);
+                setShips(savedState.ships || initialShips);
 
                 const upgradesFromSaveFile = defaultUpgradeList.map((defaultUpgrade) => {
                     const savedUpgrade = savedState.upgrades?.find((u) => u.id === defaultUpgrade.id);
@@ -91,7 +95,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 baseCostMultiplier: upgrade.baseCostMultiplier,
             }));
 
-            await saveGameState({ resources, achievements, upgrades: serializableUpgrades });
+            await saveGameState({ resources, achievements, upgrades: serializableUpgrades, ships });
         };
 
         const handleAppStateChange = async (nextAppState: AppStateStatus) => {
@@ -119,12 +123,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 subscription.remove();
             };
         }
-    }, [resources, achievements, upgrades]);
+    }, [resources, achievements, upgrades, ships]);
 
 
 
     // Resource updates
-    const updateResources = (type: keyof Resources, changes: Partial<Resource>) => {
+    const updateResources = (type: keyof PlayerResources, changes: Partial<Resource>) => {
         setResources((prev) => ({
             ...prev,
             [type]: {
@@ -137,7 +141,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         updateAchievProgressFromResources({ [type]: { current: changes.current ?? resources[type].current } });
     };
 
-    const upgradeResourceEfficiency = (type: keyof Resources, increment: number) => {
+    const upgradeResourceEfficiency = (type: keyof PlayerResources, increment: number) => {
         setResources((prev) => ({
             ...prev,
             [type]: { ...prev[type], efficiency: prev[type].efficiency + increment },
@@ -197,7 +201,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             return newAchievements;
         });
     };
-
 
     const updateAchievProgressForUpgrades = (upgradeId: string, level: number) => {
         setAchievements((prev) =>
@@ -295,9 +298,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 const updatedResources = Object.fromEntries(
                     Object.entries(prev).map(([key, value]) => [
                         key,
-                        { ...value, max: value.max + 200 },
+                        key === "energy" ? value : { ...value, max: value.max + 200 },
                     ])
-                ) as Resources;
+                ) as PlayerResources;
 
                 return updatedResources;
             });
@@ -308,7 +311,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                         key,
                         { ...value, efficiency: value.efficiency * 1.05 },
                     ])
-                ) as Resources;
+                ) as PlayerResources;
 
                 return updatedResources;
             });
@@ -316,6 +319,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
         // Update achievements for upgrades
         updateAchievProgressForUpgrades(id, newLevel);
+    };
+
+    const updateShips = (shipType: keyof Ships, amount: number) => {
+        setShips((prev) => ({
+            ...prev,
+            [shipType]: amount,
+        }));
     };
 
 
@@ -374,7 +384,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
     // Generate resources with cooldown and cost
     const generateResource = (
-        type: keyof Resources,
+        type: keyof PlayerResources,
         energyCost: number,
         output: number,
         cooldown: number
@@ -432,10 +442,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                         },
                     };
                 });
-
-                console.log(
-                    `Auto-generating ${energyGenerationRate} energy per second. Current energy updated.`
-                );
             }
         }, 1000); // Generate energy every second
 
@@ -448,6 +454,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 resources,
                 achievements,
                 upgrades,
+                ships,
                 updateResources,
                 upgradeResourceEfficiency,
                 purchaseUpgrade,
@@ -459,6 +466,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 updateAchievProgressForUpgrades,
                 isAchievementUnlocked,
                 isUpgradeUnlocked,
+                updateShips,
+
             }}
         >
             {children}

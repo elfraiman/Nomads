@@ -88,8 +88,6 @@ const gradientColors = [
 const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => {
     const stars = generateRandomStars(100);
 
-    const getGradientId = (index: number) => `planet-gradient-${index}`;
-
     return (
         <View style={styles.container}>
             <Svg height="100%" width="100%">
@@ -121,6 +119,7 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                             onPressIn={() => alert(`Selected planet: ${planet.name}`)}
                         />
                         <SvgText
+                            id={planet.id.toString()}
                             x={planet.position.x}
                             y={planet.position.y + 38}
                             fill="white"
