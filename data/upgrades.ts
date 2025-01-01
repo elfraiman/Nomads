@@ -66,6 +66,7 @@ const defaultUpgradeList: Upgrade[] = [
         level: 0,
     },
 
+
     // Add more upgrades here
 ];
 

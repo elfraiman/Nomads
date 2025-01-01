@@ -140,7 +140,7 @@ const stars = generateRandomStars(400);
 const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => {
     const game = useGame();
     if (!game) return null;
-    const { updateResources, resources, setFoundAsteroids, foundAsteroids } = game;
+    const { updateResources, resources, setFoundAsteroids, foundAsteroids, ships, updateShips } = game;
     const [isScanning, setIsScanning] = useState(false);
     const [scanCooldown, setScanCooldown] = useState(0);
 
@@ -149,6 +149,8 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
 
     // Helper function to check if the player can afford the scan cost
     const canAffordScan = () => {
+        if (ships.scanningDrones <= 0) return false;
+
         return Object.entries(scanCost).every(([resource, amount]) => {
             return resources[resource as keyof PlayerResources]?.current >= amount;
         });
@@ -156,6 +158,8 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
 
     // Deduct the cost from player resources
     const deductScanCost = () => {
+        // Add one mining drone
+        updateShips("scanningDrones", ships.scanningDrones - 1);
         Object.entries(scanCost).forEach(([resource, amount]) => {
             updateResources(resource as keyof PlayerResources, {
                 current: resources[resource as keyof PlayerResources].current - amount,
@@ -215,15 +219,11 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
         }, 3000);
     };
 
-
-
     // Memoize the asteroids for this galaxy
     const visibleAsteroids = useMemo(
         () => foundAsteroids.filter((asteroid) => asteroid.galaxyId === galaxy.id),
         [foundAsteroids, galaxy.id]
     );
-
-
 
     return (
         <>
@@ -243,9 +243,8 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
 
                     {/* Render visible asteroids */}
                     {visibleAsteroids.map((asteroid) => (
-                        <>
+                        <React.Fragment key={asteroid.id}>
                             <Circle
-                                key={asteroid.id}
                                 cx={asteroid.x} // Use the static x-coordinate
                                 cy={asteroid.y ?? 0} // Use the static y-coordinate
                                 r={5 + (asteroid.maxResources / 1000) * 5} // Size based on resources
@@ -284,14 +283,13 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                             >
                                 {asteroid.maxResources}
                             </SvgText>
-                        </>
+                        </React.Fragment>
                     ))}
 
                     {/* Render planets */}
                     {galaxy.planets.map((planet: IPlanet) => (
-                        <>
+                        <React.Fragment key={planet.id}>
                             <Circle
-                                key={planet.id}
                                 cx={planet.position.x}
                                 cy={planet.position.y}
                                 r={20}
@@ -306,37 +304,46 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                             >
                                 {planet.name}
                             </SvgText>
-                        </>
+                        </React.Fragment>
                     ))}
                 </Svg>
-                <TouchableOpacity
-                    style={[
-                        styles.scanButtonContainer,
-                        (isScanning || scanCooldown > 0 || !canAffordScan()) ? styles.disabledButton : null,
-                    ]}
-                    onPress={handleScan}
-                    disabled={isScanning || scanCooldown > 0 || !canAffordScan()}
-                >
-                    {/* Scan Cost */}
-                    <View style={styles.scanCostContainer}>
-                        {Object.entries(scanCost).map(([resource, amount]) => (
-                            <View key={resource} style={styles.scanCostItem}>
-                                <ResourceIcon type={resource as keyof PlayerResources} size={18} />
-                                <Text style={styles.scanCostText}>{amount}</Text>
+
+                {/* Scan Button */}
+                {ships.scanningDrones > 0 && (
+                    <TouchableOpacity
+                        style={[
+                            styles.scanButtonContainer,
+                            (isScanning || scanCooldown > 0 || !canAffordScan()) ? styles.disabledButton : null,
+                        ]}
+                        onPress={handleScan}
+                        disabled={isScanning || scanCooldown > 0 || !canAffordScan()}
+                    >
+                        {/* Scan Cost */}
+                        <View style={styles.scanCostContainer}>
+                            {Object.entries(scanCost).map(([resource, amount]) => (
+                                <View key={resource} style={styles.scanCostItem}>
+                                    <ResourceIcon type={resource as keyof PlayerResources} size={18} />
+                                    <Text style={styles.scanCostText}>{amount}</Text>
+                                </View>
+                            ))}
+                            <View style={styles.scanCostItem}>
+                                <ResourceIcon type="scanningDrones" size={18} />
+                                <Text style={styles.scanCostText}>1</Text>
                             </View>
-                        ))}
-                    </View>
+                        </View>
 
-                    {/* Scan Button Text */}
-                    <Text style={styles.scanButtonText}>
-                        {isScanning
-                            ? "Scanning..."
-                            : scanCooldown > 0
-                                ? `Cooldown: ${scanCooldown}s`
-                                : "Scan for Asteroids"}
-                    </Text>
-                </TouchableOpacity>
+                        {/* Scan Button Text */}
+                        <Text style={styles.scanButtonText}>
+                            {isScanning
+                                ? "Scanning..."
+                                : scanCooldown > 0
+                                    ? `Cooldown: ${scanCooldown}s`
+                                    : "Scan for Asteroids"}
+                        </Text>
+                    </TouchableOpacity>
 
+
+                )}
 
                 <TouchableOpacity style={styles.backButton} onPress={onBack}>
                     <Text style={styles.backButtonText}>Back</Text>
@@ -447,7 +454,6 @@ const styles = StyleSheet.create({
         backgroundColor: "#1F4068", // Futuristic HUD dark blue
         borderRadius: 10,
         padding: 16,
-        width: 220,
         alignItems: "center",
         justifyContent: "space-between",
         shadowColor: "#00FFF5", // Futuristic glow

@@ -48,7 +48,7 @@ export default function RootLayout() {
               backgroundColor: '#222',
               width: 240,
             },
-            drawerActiveTintColor: '#fff',
+            drawerActiveTintColor: '#FFD93D',
             drawerInactiveTintColor: '#ccc',
             headerLeft: () => (
               <Ionicons
@@ -60,13 +60,29 @@ export default function RootLayout() {
               />
             ),
             headerStyle: {
-              backgroundColor: '#222',
+              backgroundColor: '#111', // Darker background for the header
+              borderBottomWidth: 2,
+              borderBottomColor: '#FFD93D', // Futuristic border glow
+              shadowColor: '#FFD93D',
+              shadowOpacity: 0.8,
+              shadowRadius: 15,
+              elevation: 10,
             },
-            headerTintColor: '#fff',
+            headerTintColor: '#FFD93D', // Futuristic cyan color
             headerTitleAlign: 'center',
-            headerTitleStyle: styles.headerTitle,
+            headerTitleStyle: {
+              fontSize: 22,
+              fontWeight: 'bold',
+              color: '#FFD93D',
+              textTransform: 'uppercase',
+              letterSpacing: 2,
+              textShadowColor: '#FFD93D',
+              textShadowOffset: { width: 0, height: 0 },
+              textShadowRadius: 8,
+            },
           })}
         >
+
           <Drawer.Screen
             name="dashboard"
             component={Dashboard}
@@ -93,7 +109,7 @@ export default function RootLayout() {
           />
         </Drawer.Navigator>
       </ThemeProvider>
-    </GameProvider>
+    </GameProvider >
   );
 }
 

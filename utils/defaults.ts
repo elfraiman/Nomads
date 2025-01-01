@@ -1,6 +1,6 @@
 export interface Ships {
   miningDrones: number;
-  resourceDrones: number;
+  scanningDrones: number;
   // attackDrones: number;
   // corvettes: number;
   // marauders: number;
@@ -37,8 +37,8 @@ export const initialResources: PlayerResources = {
 
 // Initial values for ships
 export const initialShips: Ships = {
-  miningDrones: 5,
-  resourceDrones: 0,
+  miningDrones: 0,
+  scanningDrones: 0,
   // attackDrones: 0,
   // corvettes: 0,
   // marauders: 0,

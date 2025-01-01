@@ -1,13 +1,14 @@
 import { PlayerResources, Resource, Ships } from "@/utils/defaults";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
-import { Button, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import ResourceIcon from "./ResourceIcon";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import ResourceIcon from "./ResourceIcon";
 
 
 const miningDroneCost = { fuel: 500, solarPlasma: 800, energy: 1000 };
-const resourceDroneCost = { fuel: 1000, solarPlasma: 1000, energy: 1000 }
+const scanningDroneCost = { fuel: 100, solarPlasma: 100, energy: 200 };
+
 
 const BuildPanel = ({
   cost,
@@ -171,8 +172,8 @@ const BuildOperations = ({
     }
   };
 
-  const buildResourceDrone = () => {
-    const cost = resourceDroneCost;
+  const buildScanningDrone = () => {
+    const cost = scanningDroneCost;
 
     const canAfford = resources.fuel.current >= cost.fuel &&
       resources.solarPlasma.current >= cost.solarPlasma &&
@@ -190,7 +191,7 @@ const BuildOperations = ({
       });
 
       // Add one mining drone
-      updateShips("resourceDrones", ships.resourceDrones + 1);
+      updateShips("scanningDrones", ships.scanningDrones + 1);
     } else {
       alert("Not enough resources to build a Mining Drone.");
     }
@@ -206,6 +207,15 @@ const BuildOperations = ({
 
   return (
     <View style={styles.cardContent}>
+      <BuildPanel
+        name="Build Scanning Drone"
+        canAfford={canAfford(scanningDroneCost)}
+        cost={scanningDroneCost}
+        description={`Manufacture a Scanning Drone to explore the galaxy.`}
+        onBuild={buildScanningDrone}
+        cooldown={30} // 1-minute cooldown
+      />
+
       <BuildPanel
         name="Build Mining Drone"
         canAfford={canAfford(miningDroneCost)}

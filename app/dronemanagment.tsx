@@ -10,6 +10,7 @@ import {
 import { useGame } from "@/context/GameContext";
 import ShipStatus from "@/components/ShipStatus";
 import ResourceIcon from "@/components/ui/ResourceIcon";
+import { LinearGradient } from "expo-linear-gradient";
 
 const DroneManagement = () => {
   const game = useGame();
@@ -23,80 +24,79 @@ const DroneManagement = () => {
 
   return (
     <>
-      <View style={styles.container}>
-        <Text style={styles.header}>Drone Management</Text>
+      <LinearGradient
+        colors={["#1A1C20", "#2B3035", "#3D444C"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.container}
+      >
+        <View style={styles.container}>
 
-        {/* Mining Drones Section */}
-        <View style={styles.section}>
-          <Text style={styles.subHeader}>Mining Drones</Text>
-          <Text style={styles.info}>
-            Available: {getAvailableDrones(ships.miningDrones, miningDroneAllocation) ?? 0}
-          </Text>
-
-          {foundAsteroids.length > 0 ? (
-            <FlatList
-              data={foundAsteroids}
-              keyExtractor={(asteroid) => asteroid.id.toString()}
-              renderItem={({ item: asteroid }) => {
-                return (
-                  <View style={styles.taskContainer}>
-                    <Text style={styles.taskText}>
-                      {asteroid.name} ({asteroid.maxResources} {<ResourceIcon type={asteroid.resource} size={14} />})
-                    </Text>
-                    <View style={styles.allocationControls}>
-                      {/* Increment Drone Allocation */}
-                      <TouchableOpacity
-                        style={[
-                          styles.controlButton,
-                          getAvailableDrones(ships.miningDrones, miningDroneAllocation) > 0
-                            ? null
-                            : styles.disabledButton,
-                        ]}
-                        onPress={() => allocateMiningDrones(asteroid, 1)}
-                        disabled={getAvailableDrones(ships.miningDrones, miningDroneAllocation) <= 0}
-                      >
-                        <Text style={styles.buttonText}>+1</Text>
-                      </TouchableOpacity>
-
-                      {/* Display Current Allocation */}
-                      <Text style={styles.allocationText}>
-                        {miningDroneAllocation[asteroid.id] || 0}
-                      </Text>
-
-                      {/* Decrement Drone Allocation */}
-                      <TouchableOpacity
-                        style={[
-                          styles.controlButton,
-                          (miningDroneAllocation[asteroid.id] || 0) > 0
-                            ? null
-                            : styles.disabledButton,
-                        ]}
-                        onPress={() => allocateMiningDrones(asteroid, -1)}
-                        disabled={(miningDroneAllocation[asteroid.id] || 0) <= 0}
-                      >
-                        <Text style={styles.buttonText}>-1</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                );
-              }}
-            />
-          ) : (
-            <Text style={styles.noAsteroidsText}>
-              No asteroids found. Scan for asteroids in the exploration map.
+          {/* Mining Drones Section */}
+          <View style={styles.section}>
+            <Text style={styles.subHeader}>Mining Drones</Text>
+            <Text style={styles.info}>
+              Available: {getAvailableDrones(ships.miningDrones, miningDroneAllocation) ?? 0}
             </Text>
-          )}
+
+            {foundAsteroids.length > 0 ? (
+              <FlatList
+                data={foundAsteroids}
+                keyExtractor={(asteroid) => asteroid.id.toString()}
+                renderItem={({ item: asteroid }) => {
+                  return (
+                    <View style={styles.taskContainer}>
+                      <Text style={styles.taskText}>
+                        {asteroid.name} ({asteroid.maxResources} {<ResourceIcon type={asteroid.resource} size={14} />})
+                      </Text>
+                      <View style={styles.allocationControls}>
+                        {/* Increment Drone Allocation */}
+                        <TouchableOpacity
+                          style={[
+                            styles.controlButton,
+                            getAvailableDrones(ships.miningDrones, miningDroneAllocation) > 0
+                              ? null
+                              : styles.disabledButton,
+                          ]}
+                          onPress={() => allocateMiningDrones(asteroid, 1)}
+                          disabled={getAvailableDrones(ships.miningDrones, miningDroneAllocation) <= 0}
+                        >
+                          <Text style={styles.buttonText}>+1</Text>
+                        </TouchableOpacity>
+
+                        {/* Display Current Allocation */}
+                        <Text style={styles.allocationText}>
+                          {miningDroneAllocation[asteroid.id] || 0}
+                        </Text>
+
+                        {/* Decrement Drone Allocation */}
+                        <TouchableOpacity
+                          style={[
+                            styles.controlButton,
+                            (miningDroneAllocation[asteroid.id] || 0) > 0
+                              ? null
+                              : styles.disabledButton,
+                          ]}
+                          onPress={() => allocateMiningDrones(asteroid, -1)}
+                          disabled={(miningDroneAllocation[asteroid.id] || 0) <= 0}
+                        >
+                          <Text style={styles.buttonText}>-1</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                }}
+              />
+            ) : (
+              <Text style={styles.noAsteroidsText}>
+                No asteroids found. Scan for asteroids in the exploration map.
+              </Text>
+            )}
+
+          </View>
 
         </View>
-
-        <Button
-          title="Back to Dashboard"
-          onPress={() => {
-            // Navigate back to Dashboard
-          }}
-        />
-      </View>
-
+      </LinearGradient>
       <ShipStatus />
     </>
   );
@@ -105,15 +105,7 @@ const DroneManagement = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1E1E1E",
     padding: 16,
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#FFD700",
-    marginBottom: 16,
-    textAlign: "center",
   },
   section: {
     marginBottom: 24,

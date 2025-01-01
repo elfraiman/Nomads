@@ -451,6 +451,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         );
     };
 
+    // When an asteroid is mined to 0, it will get depleted
+    // we handle returning the drones and alerting the player.
+    //
     const handleDepletedAsteroid = (asteroidId: string) => {
         setFoundAsteroids((prev) => prev.filter((a) => a.id.toString() !== asteroidId));
         setMiningDroneAllocation((prev) => {

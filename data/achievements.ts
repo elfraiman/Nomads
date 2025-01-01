@@ -86,7 +86,7 @@ const achievements: Achievement[] = [
         },
         story: `Your reactor's increased automation allows you to generate more energy with less waste, improving overall efficiency and allowing you to focus on becoming more efficient.
         You have now unlocked the Core Operations Efficiency upgrade.`,
-        unlocks: ["core_operations_efficiency"],
+        unlocks: ["core_operations_efficiency", "drone_crafting"],
         completed: false,
         onComplete: () => {
             console.log("Reactor optimization upgrade achievement completed!");
@@ -124,8 +124,9 @@ const achievements: Achievement[] = [
                 core_operations_storage: 0,
             },
         },
-        story: `Upgrade your core operations storage to increase resource storage.`,
-        unlocks: [""],
+        story: `Since our ship can now safely generate more resources and store them, we can now build drones to help us explore the universe. 
+        You have now unlocked the Drone Crafting & Asteroid scanning.`,
+        unlocks: ["drones_crafting"],
         completed: false,
         onComplete: () => {
             console.log("Core Operations Efficiency upgrade achievement completed!");

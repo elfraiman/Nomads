@@ -11,10 +11,10 @@ export type ResourceType =
     | 'frozenHydrogen'
     | 'miningDrones'
     | 'resourceDrones'
-    | 'attackDrones'
     | 'corvettes'
     | 'marauders'
-    | 'titans';
+    | 'titans'
+    | 'scanningDrones';
 
 interface ResourceIconProps {
     type: ResourceType;
@@ -59,7 +59,7 @@ const resourceIcons: Record<ResourceType, { icon: React.ReactNode; defaultColor:
         icon: <Entypo name="aircraft" />,
         defaultColor: '#00BFFF', // Light blue for mining drones
     },
-    attackDrones: {
+    scanningDrones: {
         icon: <Fontisto name="helicopter" />,
         defaultColor: '#FF4500', // Red-orange for attack drones
     },

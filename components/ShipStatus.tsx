@@ -1,12 +1,15 @@
 import { useGame } from "@/context/GameContext";
 import { Upgrade } from "@/data/upgrades";
-import { useEffect, useRef } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
-import ResourceIcon from "./ui/ResourceIcon";
 import { LinearGradient } from "expo-linear-gradient";
+import { useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import ActiveGoal from "./ui/ActiveGoal";
+import ResourceIcon from "./ui/ResourceIcon";
 
 const ShipStatus = () => {
     const game = useGame();
+    const [isDronesExpanded, setIsDronesExpanded] = useState(false);
+
     if (!game) return null;
 
     const { resources, achievements, upgrades, ships } = game;
@@ -20,212 +23,220 @@ const ShipStatus = () => {
         return rate ?? 0;
     };
 
-    // Find the first incomplete achievement with either resource or upgrade goals
-    const currentGoal = achievements.find((achievement) => {
-        if (achievement.completed) return false;
-
-        const hasIncompleteResourceGoals = Object.entries(achievement.resourceGoals || {}).some(
-            ([resource, goal]) => (resources[resource as keyof typeof resources]?.current || 0) < goal
-        );
-
-        const hasIncompleteUpgradeGoals = Object.entries(achievement.upgradeGoals || {}).some(
-            ([upgrade, goal]) => (achievement.progress.upgrades?.[upgrade] || 0) < goal
-        );
-
-        return hasIncompleteResourceGoals || hasIncompleteUpgradeGoals;
-    });
+    const shipCount = Object.keys(ships).length;
+    const expandedHeight = shipCount * 40 + 60; // Adjust height based on number of ships
 
     return (
         <View style={styles.container}>
-            {/* Energy Bar */}
-            <View style={styles.energyBarContainer}>
-                <LinearGradient
-                    colors={["#FFD93D", "#FFA726", "#FF5722"]}
-                    start={[0, 0]}
-                    end={[1, 0]}
-                    style={[styles.energyBarFill, { width: `${energyPercentage}%` }]}
-                />
-                <View style={styles.energyBarTextContainer}>
-                    <ResourceIcon type="energy" size={20} />
-                    <Text style={styles.energyBarText}>
-                        {Math.round(resources?.energy.current)}/{resources?.energy.max} ({getGenerationRate()}/sec)
-                    </Text>
-                </View>
-            </View>
-
-            {/* Other Resources */}
-            {Object.entries(resources).map(([key, resource]) => {
-                if (key === "energy" || resource.locked) return null;
-                return (
-                    <View style={styles.resource} key={key}>
-                        <ResourceIcon type={key as keyof typeof resources} />
-                        <Text style={styles.text}>
-                            {Math.round(resource.current)}/{resource.max}
+            {/* Resources Container */}
+            <View style={styles.resourcesContainer}>
+                {/* Energy Bar */}
+                <View style={styles.energyBarContainer}>
+                    <LinearGradient
+                        colors={["#FFD93D", "#FFA726", "#FF5722"]}
+                        start={[0, 0]}
+                        end={[1, 0]}
+                        style={[styles.energyBarFill, { width: `${energyPercentage}%` }]}
+                    />
+                    <View style={styles.energyBarTextContainer}>
+                        <ResourceIcon type="energy" size={20} />
+                        <Text style={styles.energyBarText}>
+                            {Math.round(resources?.energy.current)}/{resources?.energy.max} ({getGenerationRate()}/sec)
                         </Text>
                     </View>
-                );
-            })}
+                </View>
 
-            {/* Current Goal */}
-            {currentGoal && (
-                <Animated.View style={[styles.goalContainer]}>
-                    <Text style={styles.goalText}>{currentGoal.description}</Text>
-                    {/* Display Resource Goals */}
-                    {Object.entries(currentGoal.resourceGoals || {}).map(([resource, goal]) => (
-                        <View key={resource} style={styles.resourceGoal}>
-                            <ResourceIcon type={resource as keyof typeof resources} />
-                            <Text style={styles.goalText}>
-                                {resources[resource as keyof typeof resources]?.current || 0}/{goal}
-                            </Text>
-                        </View>
-                    ))}
-
-                    {/* Display Upgrade Goals */}
-                    {Object.entries(currentGoal.upgradeGoals || {}).map(([upgrade, goal]) => (
-                        <View key={upgrade} style={styles.upgradeGoal}>
-                            <Text style={styles.goalText}>
-                                {upgrade}: {currentGoal.progress.upgrades?.[upgrade] || 0}/{goal}
-                            </Text>
-                        </View>
-                    ))}
-                </Animated.View>
-            )}
-
-            {/* Ships Section */}
-            <View style={styles.shipsContainer}>
-                <Text style={styles.sectionTitle}>Drones</Text>
-                <View style={styles.shipsGrid}>
-                    {Object.entries(ships).map(([shipType, count]) => {
-                        // Calculate available drones
-                        const allocatedDrones =
-                            shipType === "miningDrones"
-                                ? Object.values(game.miningDroneAllocation).reduce((a, b) => a + b, 0)
-                                : 0;
-
-                        const availableDrones = count - allocatedDrones;
-
+                <View style={styles.otherResources}>
+                    {/* Other Resources */}
+                    {Object.entries(resources).map(([key, resource]) => {
+                        if (key === "energy" || resource.locked) return null;
                         return (
-                            <View key={shipType} style={styles.shipItem}>
-                                <ResourceIcon type={shipType as keyof typeof ships} size={14} />
-                                <Text style={styles.shipText}>
-                                    {availableDrones}/{count} {/* Available / Total */}
+                            <View style={styles.resource} key={key}>
+                                <ResourceIcon type={key as keyof typeof resources} />
+                                <Text style={styles.resourceText}>
+                                    {Math.round(resource.current)}/{resource.max}
                                 </Text>
                             </View>
                         );
                     })}
                 </View>
+
+                <ActiveGoal />
             </View>
 
+            {/* Drones Container */}
+            {ships.scanningDrones > 0 && (
+                <View style={[
+                    styles.shipsContainer,
+                    isDronesExpanded
+                        ? { height: expandedHeight, top: -expandedHeight }
+                        : styles.collapsed,
+                ]}
+                >
+                    <View style={styles.dronesContent}>
+                        {isDronesExpanded && (
+                            <View>
+                                <Text style={styles.shipsHeader}>Drones</Text>
+                                {Object.entries(ships).map(([shipType, count]) => {
+                                    let allocatedDrones = 0;
 
+                                    // Determine allocated drones based on the ship type
+                                    if (shipType === "miningDrones") {
+                                        allocatedDrones = Object.values(game.miningDroneAllocation).reduce((a, b) => a + b, 0);
+                                    } else if (shipType === "scanningDrones") {
+                                        allocatedDrones = 0; // Scanning drones are not allocated in the same way
+                                    }
 
+                                    const availableDrones = count - allocatedDrones;
 
-        </View>
+                                    return (
+                                        <View key={shipType} style={styles.shipItem}>
+                                            <ResourceIcon
+                                                type={shipType as keyof typeof ships}
+                                                size={18}
+                                            />
+                                            <Text style={styles.shipText}>
+                                                {availableDrones}/{count}
+                                            </Text>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                        )}
+                    </View>
+
+                    <TouchableOpacity
+                        onPress={() => setIsDronesExpanded(!isDronesExpanded)}
+                        style={styles.toggleButton}
+                    >
+                        <Text style={styles.toggleButtonText}>
+                            {isDronesExpanded ? "Hide" : "Show"} Drones
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
+        </View >
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         position: "relative",
-        bottom: 0,
         width: "100%",
-        backgroundColor: "#222",
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        flexWrap: "wrap",
-        paddingVertical: 10,
-        paddingHorizontal: 10,
-        borderTopWidth: 1,
-        borderTopColor: "#444",
-        zIndex: 1000,
+    },
+    resourcesContainer: {
+        width: "100%",
+        backgroundColor: "#1E1E1E",
+        padding: 16,
     },
     energyBarContainer: {
         position: "relative",
         width: "100%",
-        height: 25,
+        height: 20,
         backgroundColor: "#444",
-
         overflow: "hidden",
+        borderRadius: 5,
+        marginBottom: 12,
     },
     energyBarFill: {
         position: "absolute",
         left: 0,
         top: 0,
         bottom: 0,
-        backgroundColor: "#FFA726",
     },
     energyBarTextContainer: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        zIndex: 1,
         height: "100%",
-    },
-    goalContainer: {
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        marginTop: 10,
-        width: "100%",
-        backgroundColor: "#444",
-        padding: 10,
-        borderRadius: 5,
-    },
-    resourceGoal: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginTop: 5,
-    },
-    upgradeGoal: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginTop: 5,
-    },
-    goalText: {
-        color: "#FFD93D", // Gold for emphasis
-        fontSize: 14,
-        fontWeight: "bold",
-        marginLeft: 5,
     },
     energyBarText: {
         color: "#fff",
         fontSize: 14,
         fontWeight: "bold",
+        marginLeft: 5,
+    },
+    otherResources: {
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "space-between",
     },
     resource: {
-        flexDirection: "row",
+        flexDirection: "column",
         alignItems: "center",
-        marginVertical: 5,
     },
-    text: {
+    resourceText: {
         color: "#fff",
-        marginLeft: 5,
-        fontSize: 16,
+        fontSize: 14,
+        marginLeft: 6,
+    },
+    goalContainer: {
+        marginTop: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 8,
+        backgroundColor: "#333",
+        borderRadius: 5,
+        borderWidth: 1,
+        borderColor: "#555",
+    },
+    goalText: {
+        color: "#FFD93D",
+        fontSize: 14,
         fontWeight: "bold",
     },
     shipsContainer: {
-        marginTop: 10,
+        position: "absolute",
+        top: -40,
+        right: 0,
+        backgroundColor: "rgba(30, 30, 30, 0.9)",
+        borderRadius: 8,
+        width: 120,
+        borderWidth: 1,
+        borderColor: "#444",
+        overflow: "hidden",
+    },
+    expanded: {
+        height: "auto",
+        paddingBottom: 40, // Ensure room for toggle butto
+        top: -125,
+    },
+    collapsed: {
+        height: 38,
+    },
+    dronesContent: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "flex-start",
+    },
+    toggleButton: {
+        backgroundColor: "#444",
+        padding: 10,
+        alignItems: "center",
+        position: "absolute",
+        bottom: 0,
         width: "100%",
     },
-    sectionTitle: {
-        color: "#FFD93D", // Gold for emphasis
+    toggleButtonText: {
+        color: "#FFD93D",
+        fontSize: 12,
+        fontWeight: "bold",
+    },
+    shipsHeader: {
+        color: "#FFD93D",
         fontSize: 16,
         fontWeight: "bold",
         marginBottom: 10,
-    },
-    shipsGrid: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        justifyContent: "space-between",
+        textAlign: "center",
     },
     shipItem: {
-        flexDirection: "column",
+        flexDirection: "row",
         alignItems: "center",
-        marginHorizontal: 6,
+        justifyContent: "space-between",
+        marginBottom: 5,
     },
     shipText: {
         color: "#FFFFFF",
-        marginTop: 5,
         fontSize: 14,
         fontWeight: "bold",
     },

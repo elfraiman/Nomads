@@ -92,6 +92,7 @@ const Dashboard = () => {
         downgradeUpgrade,
         achievements,
         updateShips,
+        isAchievementUnlocked,
         ships,
     } = game;
 
@@ -115,7 +116,6 @@ const Dashboard = () => {
 
     return (
         <>
-
             <LinearGradient
                 colors={["#1A1C20", "#2B3035", "#3D444C"]}
                 start={{ x: 0, y: 0 }}
@@ -148,19 +148,22 @@ const Dashboard = () => {
 
 
                     {/* Ship building Section */}
-                    <View style={styles.panel}>
-                        <Text style={styles.panelTitle}>Drone crafting</Text>
-                        <View style={styles.cardContent}>
-                            <Collapsible title="Worker drones">
-                                <BuildOperations
-                                    resources={resources}
-                                    ships={ships}
-                                    updateResources={updateResources}
-                                    updateShips={updateShips}
-                                />
-                            </Collapsible>
+                    {isAchievementUnlocked("upgrade_core_operations_storage") && (
+                        <View style={styles.panel}>
+                            <Text style={styles.panelTitle}>Drone crafting</Text>
+                            <View style={styles.cardContent}>
+                                <Collapsible title="Worker drones">
+                                    <BuildOperations
+                                        resources={resources}
+                                        ships={ships}
+                                        updateResources={updateResources}
+                                        updateShips={updateShips}
+                                    />
+                                </Collapsible>
+                            </View>
                         </View>
-                    </View>
+                    )}
+
 
 
 
