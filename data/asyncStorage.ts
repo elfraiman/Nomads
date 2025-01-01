@@ -5,12 +5,17 @@ import { PlayerResources, Ships } from "@/utils/defaults";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Achievement } from "./achievements";
 import { Upgrade } from "./upgrades";
+import { IAsteroid } from "@/app/exploration";
 
 export interface GameState {
     resources: PlayerResources;
     achievements: Achievement[];
     upgrades: Upgrade[];
     ships: Ships;
+    allocatedDrones: {
+        mining: Record<string, number>;
+    };
+    foundAsteroids: IAsteroid[];
 }
 
 const GAME_STATE_KEY = "GAME_STATE";

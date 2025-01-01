@@ -1,8 +1,9 @@
+import { IAsteroid } from "@/app/exploration";
 import achievementsData, { Achievement } from "@/data/achievements";
 import { loadGameState, saveGameState } from "@/data/asyncStorage";
 import defaultUpgradeList, { Upgrade, UpgradeCost } from "@/data/upgrades";
 import { initialResources, Resource, PlayerResources, Ships, initialShips } from "@/utils/defaults";
-import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { AppState, AppStateStatus, Platform } from "react-native";
 
 interface GameContextType {
@@ -10,6 +11,11 @@ interface GameContextType {
     achievements: Achievement[]; // Tracks all achievements and their states
     upgrades: Upgrade[]; // Tracks upgrades including their levels and costs
     ships: Ships; // Tracks the number of ships the player has
+    miningDroneAllocation: Record<string, number>;
+    foundAsteroids: IAsteroid[];
+
+    // Drones
+    allocateMiningDrones: (asteroid: IAsteroid, count: number) => void;
 
     // Resource management functions
     updateResources: (type: keyof PlayerResources, changes: Partial<Resource>) => void;
@@ -32,6 +38,9 @@ interface GameContextType {
     // State-checking functions
     isAchievementUnlocked: (id: string) => boolean;
     isUpgradeUnlocked: (upgradeId: string) => boolean;
+
+    // Exploration
+    setFoundAsteroids: (asteroids: IAsteroid[]) => void;
 }
 
 
@@ -42,9 +51,53 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const [achievements, setAchievements] = useState<Achievement[]>(achievementsData);
     const [ships, setShips] = useState(initialShips);
     const [upgrades, setUpgrades] = useState<Upgrade[]>(defaultUpgradeList);
+    const [miningDroneAllocation, setMiningDroneAllocation] = useState<Record<string, number>>({});
+    const [foundAsteroids, setFoundAsteroids] = useState<IAsteroid[]>([]);
 
-    // Load and save state
+    // save state
     //
+    useEffect(() => {
+        const handleSaveGameState = async () => {
+            const serializableUpgrades = upgrades.map((upgrade) => ({
+                id: upgrade.id,
+                level: upgrade.level,
+                costs: upgrade.costs,
+                title: upgrade.title,
+                description: upgrade.description,
+                baseCostMultiplier: upgrade.baseCostMultiplier,
+            }));
+
+            await saveGameState({ resources, achievements, upgrades: serializableUpgrades, ships, allocatedDrones: { mining: miningDroneAllocation }, foundAsteroids });
+        };
+
+        const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+            if (nextAppState === "background" || nextAppState === "inactive") {
+                await handleSaveGameState();
+            }
+        };
+
+        if (Platform.OS === "web") {
+            // For browser refresh or close
+            const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+                handleSaveGameState();
+                event.preventDefault();
+                event.returnValue = ""; // Ensures the confirmation dialog shows on some browsers
+            };
+
+            window.addEventListener("beforeunload", handleBeforeUnload);
+            return () => {
+                window.removeEventListener("beforeunload", handleBeforeUnload);
+            };
+        } else {
+            // For React Native AppState
+            const subscription = AppState.addEventListener("change", handleAppStateChange);
+            return () => {
+                subscription.remove();
+            };
+        }
+    }, [resources, achievements, upgrades, ships, foundAsteroids, miningDroneAllocation]);
+
+    // Load game state on initial render
     useEffect(() => {
         const loadState = async () => {
             const savedState = await loadGameState();
@@ -52,6 +105,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 setResources(savedState.resources || initialResources);
                 setAchievements(savedState.achievements || achievementsData);
                 setShips(savedState.ships || initialShips);
+                setFoundAsteroids(savedState.foundAsteroids || []);
+                setMiningDroneAllocation(savedState.allocatedDrones?.mining || {});
+
 
                 const upgradesFromSaveFile = defaultUpgradeList.map((defaultUpgrade) => {
                     const savedUpgrade = savedState.upgrades?.find((u) => u.id === defaultUpgrade.id);
@@ -83,50 +139,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         loadState();
     }, []);
 
-
-    useEffect(() => {
-        const handleSaveGameState = async () => {
-            const serializableUpgrades = upgrades.map((upgrade) => ({
-                id: upgrade.id,
-                level: upgrade.level,
-                costs: upgrade.costs,
-                title: upgrade.title,
-                description: upgrade.description,
-                baseCostMultiplier: upgrade.baseCostMultiplier,
-            }));
-
-            await saveGameState({ resources, achievements, upgrades: serializableUpgrades, ships });
-        };
-
-        const handleAppStateChange = async (nextAppState: AppStateStatus) => {
-            if (nextAppState === "background" || nextAppState === "inactive") {
-                await handleSaveGameState();
-            }
-        };
-
-        if (Platform.OS === "web") {
-            // For browser refresh or close
-            const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-                handleSaveGameState();
-                event.preventDefault();
-                event.returnValue = ""; // Ensures the confirmation dialog shows on some browsers
-            };
-
-            window.addEventListener("beforeunload", handleBeforeUnload);
-            return () => {
-                window.removeEventListener("beforeunload", handleBeforeUnload);
-            };
-        } else {
-            // For React Native AppState
-            const subscription = AppState.addEventListener("change", handleAppStateChange);
-            return () => {
-                subscription.remove();
-            };
-        }
-    }, [resources, achievements, upgrades, ships]);
-
-
-
     // Resource updates
     const updateResources = (type: keyof PlayerResources, changes: Partial<Resource>) => {
         setResources((prev) => ({
@@ -139,6 +151,16 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         }));
 
         updateAchievProgressFromResources({ [type]: { current: changes.current ?? resources[type].current } });
+    };
+
+    const allocateMiningDrones = (asteroid: IAsteroid, count: number) => {
+        setMiningDroneAllocation((prev) => {
+            const newCount = (prev[asteroid.id] || 0) + count;
+            return {
+                ...prev,
+                [asteroid.id]: Math.max(0, newCount), // Prevent negative allocation
+            };
+        });
     };
 
     const upgradeResourceEfficiency = (type: keyof PlayerResources, increment: number) => {
@@ -328,7 +350,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         }));
     };
 
-
     const downgradeUpgrade = (id: string) => {
         const upgrade = defaultUpgradeList.find((u: Upgrade) => u.id === id);
         if (!upgrade) return;
@@ -414,39 +435,86 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         }, cooldown * 1000);
     };
 
-    // Auto generate energy based on the Rate if the player has upgraded
-    // the reactor_optimization upgrade
-    //
+    // Mining
+    const mineAsteroid = (asteroidId: number, amount: number) => {
+
+        setFoundAsteroids((prev) =>
+            prev
+                .map((asteroid) =>
+                    asteroid.id === asteroidId
+                        ? {
+                            ...asteroid,
+                            maxResources: asteroid.maxResources - amount,
+                        }
+                        : asteroid
+                )
+        );
+    };
+
+    const handleDepletedAsteroid = (asteroidId: string) => {
+        setFoundAsteroids((prev) => prev.filter((a) => a.id.toString() !== asteroidId));
+        setMiningDroneAllocation((prev) => {
+            const { [asteroidId]: removed, ...remainingAllocation } = prev;
+            return remainingAllocation;
+        });
+
+        const depletedAsteroid = foundAsteroids.find((a) => a.id.toString() === asteroidId);
+        if (depletedAsteroid) {
+            alert(`${depletedAsteroid.name} has been depleted!`);
+        }
+    };
+
+
+    // Auto ticker for resources
     useEffect(() => {
         const interval = setInterval(() => {
-            // Get the reactor optimization upgrade level
-            const reactorOptimizationUpgrade = upgrades.find((u) => u.id === "reactor_optimization");
-            const optimizationLevel = reactorOptimizationUpgrade?.level || 0;
+            setResources((prevResources) => {
+                let updatedResources = { ...prevResources };
 
-            if (optimizationLevel > 0) {
-                const energyGenerationRate = optimizationLevel * resources.energy.efficiency;
-
-                // Update resources directly using setResources to ensure the latest state
-                //
-                setResources((prevResources) => {
-                    const updatedEnergy = Math.min(
-                        prevResources.energy.max,
-                        prevResources.energy.current + energyGenerationRate
-                    );
-
-                    return {
-                        ...prevResources,
-                        energy: {
-                            ...prevResources.energy,
-                            current: updatedEnergy,
-                        },
+                // Auto-generate energy based on reactor optimization level
+                const reactorOptimizationUpgrade = upgrades.find((u) => u.id === "reactor_optimization");
+                const optimizationLevel = reactorOptimizationUpgrade?.level || 0;
+                if (optimizationLevel > 0) {
+                    const energyGenerationRate = optimizationLevel * prevResources.energy.efficiency;
+                    updatedResources.energy = {
+                        ...updatedResources.energy,
+                        current: Math.min(
+                            updatedResources.energy.current + energyGenerationRate,
+                            updatedResources.energy.max
+                        ),
                     };
-                });
-            }
-        }, 1000); // Generate energy every second
+                }
 
-        return () => clearInterval(interval); // Cleanup on unmount
-    }, [upgrades, resources.energy.efficiency, setResources]);
+                // Generate resources for mining drones
+                Object.entries(miningDroneAllocation).forEach(([asteroidId, count]) => {
+                    const asteroid = foundAsteroids.find((a) => a.id.toString() === asteroidId);
+                    const asteroidResourceType = asteroid?.resource as keyof PlayerResources;
+
+                    if (asteroid && prevResources[asteroidResourceType]) {
+                        if (asteroid.maxResources > 0) {
+                            const resourcesToMine = Math.min(count, asteroid.maxResources);
+
+                            updatedResources[asteroidResourceType] = {
+                                ...updatedResources[asteroidResourceType],
+                                current: Math.min(
+                                    updatedResources[asteroidResourceType].current + resourcesToMine,
+                                    updatedResources[asteroidResourceType].max
+                                ),
+                            };
+
+                            mineAsteroid(asteroid.id, resourcesToMine);
+                        } else {
+                            handleDepletedAsteroid(asteroidId);
+                        }
+                    }
+                });
+
+                return updatedResources;
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [miningDroneAllocation, upgrades, setResources, mineAsteroid, foundAsteroids]);
 
     return (
         <GameContext.Provider
@@ -455,6 +523,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 achievements,
                 upgrades,
                 ships,
+                miningDroneAllocation,
+                foundAsteroids,
                 updateResources,
                 upgradeResourceEfficiency,
                 purchaseUpgrade,
@@ -467,7 +537,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 isAchievementUnlocked,
                 isUpgradeUnlocked,
                 updateShips,
-
+                allocateMiningDrones,
+                setFoundAsteroids
             }}
         >
             {children}

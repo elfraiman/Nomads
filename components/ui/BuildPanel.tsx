@@ -7,6 +7,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
 const miningDroneCost = { fuel: 500, solarPlasma: 800, energy: 1000 };
+const resourceDroneCost = { fuel: 1000, solarPlasma: 1000, energy: 1000 }
 
 const BuildPanel = ({
   cost,
@@ -14,12 +15,14 @@ const BuildPanel = ({
   onBuild,
   cooldown,
   canAfford,
+  name,
 }: {
   cost: { [key: string]: number };
   description: string;
   onBuild: () => void;
   cooldown: number; // Cooldown in seconds
   canAfford: boolean;
+  name: string;
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOnCooldown, setIsOnCooldown] = useState(false);
@@ -90,11 +93,11 @@ const BuildPanel = ({
           disabled={isOnCooldown || !canAfford}
           onPress={handleBuild}
         >
-          <View style={styles.buttonContent}>
+          <View>
             <Text style={styles.buttonText}>
               {isOnCooldown
                 ? `Cooling Down... (${cooldownTimeLeft}s)`
-                : "Mining Drone"}
+                : name}
               <View style={styles.iconContainer}>
                 <ResourceIcon type="miningDrones" size={20} />
               </View>
@@ -168,6 +171,31 @@ const BuildOperations = ({
     }
   };
 
+  const buildResourceDrone = () => {
+    const cost = resourceDroneCost;
+
+    const canAfford = resources.fuel.current >= cost.fuel &&
+      resources.solarPlasma.current >= cost.solarPlasma &&
+      resources.energy.current >= cost.energy;
+
+    // Check if the player can afford the cost
+    if (canAfford) {
+      // Deduct resources
+      updateResources("fuel", { current: resources.fuel.current - cost.fuel });
+      updateResources("solarPlasma", {
+        current: resources.solarPlasma.current - cost.solarPlasma,
+      });
+      updateResources("energy", {
+        current: resources.energy.current - cost.energy,
+      });
+
+      // Add one mining drone
+      updateShips("resourceDrones", ships.resourceDrones + 1);
+    } else {
+      alert("Not enough resources to build a Mining Drone.");
+    }
+  };
+
   const canAfford = (costs: { [key: string]: number }) => {
     return Object.entries(costs).every(([resource, amount]) => {
       const typedResource = resource as keyof PlayerResources;
@@ -179,6 +207,7 @@ const BuildOperations = ({
   return (
     <View style={styles.cardContent}>
       <BuildPanel
+        name="Build Mining Drone"
         canAfford={canAfford(miningDroneCost)}
         cost={miningDroneCost}
         description={`Refine Alloy and Solar Plasma and build a Mining Drone.`}

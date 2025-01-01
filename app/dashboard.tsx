@@ -1,7 +1,6 @@
 import { Collapsible } from "@/components/Collapsible";
 import ShipStatus from "@/components/ShipStatus";
 import BuildOperations from "@/components/ui/BuildPanel";
-import BuildPanel from "@/components/ui/BuildPanel";
 import ResourceIcon from "@/components/ui/ResourceIcon";
 import CoreOperations from "@/components/ui/ResourcePanel";
 import { useGame } from "@/context/GameContext";
@@ -106,12 +105,14 @@ const Dashboard = () => {
 
     // Default resource generation values for Core Operations
     const defaultResourceGenerationValue = {
-        fuel: 10,
-        solarPlasma: 8,
-        darkMatter: 6,
-        frozenHydrogen: 5,
-        alloys: 7,
+        fuel: 8,
+        solarPlasma: 6,
+        darkMatter: 4,
+        frozenHydrogen: 3,
+        alloys: 2,
     };
+
+
     return (
         <>
 
@@ -141,18 +142,27 @@ const Dashboard = () => {
                                         generateResource={generateResource}
                                     />
                                 </Collapsible>
-
-                                <Collapsible title="Drones">
-                                    <BuildOperations
-                                        resources={resources}
-                                        ships={ships}
-                                        updateResources={updateResources}
-                                        updateShips={updateShips}
-                                    />
-                                </Collapsible>
                             </View>
                         </View>
                     )}
+
+
+                    {/* Ship building Section */}
+                    <View style={styles.panel}>
+                        <Text style={styles.panelTitle}>Drone crafting</Text>
+                        <View style={styles.cardContent}>
+                            <Collapsible title="Worker drones">
+                                <BuildOperations
+                                    resources={resources}
+                                    ships={ships}
+                                    updateResources={updateResources}
+                                    updateShips={updateShips}
+                                />
+                            </Collapsible>
+                        </View>
+                    </View>
+
+
 
 
                     {/* Module Upgrades Section */}

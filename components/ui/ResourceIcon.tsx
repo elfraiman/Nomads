@@ -10,6 +10,7 @@ export type ResourceType =
     | 'darkMatter'
     | 'frozenHydrogen'
     | 'miningDrones'
+    | 'resourceDrones'
     | 'attackDrones'
     | 'corvettes'
     | 'marauders'
@@ -51,6 +52,10 @@ const resourceIcons: Record<ResourceType, { icon: React.ReactNode; defaultColor:
         defaultColor: '#77C0D8',
     },
     miningDrones: {
+        icon: <MaterialCommunityIcons name="drone" />,
+        defaultColor: '#00BFFF', // Light blue for mining drones
+    },
+    resourceDrones: {
         icon: <Entypo name="aircraft" />,
         defaultColor: '#00BFFF', // Light blue for mining drones
     },

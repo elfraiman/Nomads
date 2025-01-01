@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import { StatusBar, StyleSheet } from 'react-native';
 import Dashboard from './dashboard';
 import Exploration from './exploration';
+import DroneManagement from './dronemanagment';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -80,6 +81,14 @@ export default function RootLayout() {
             options={{
               title: 'Exploration',
               drawerIcon: ({ color }) => <Ionicons name="planet-outline" size={24} color={color} />,
+            }}
+          />
+          <Drawer.Screen
+            name="droneManagement"
+            component={DroneManagement}
+            options={{
+              title: 'Drone Management',
+              drawerIcon: ({ color }) => <Ionicons name="airplane" size={24} color={color} />,
             }}
           />
         </Drawer.Navigator>

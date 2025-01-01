@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import ResourceIcon from "@/components/ui/ResourceIcon";
 import { ResourceType } from "@/components/ui/ResourceIcon";
 import ResourceButton from "@/components/ui/ResourceButton";
-import { Resource } from "@/utils/defaults";
+import { PlayerResources, Resource } from "@/utils/defaults";
 
 interface ResourcePanelProps {
     resourceType: ResourceType;
@@ -66,11 +66,24 @@ const ResourcePanel = ({
     );
 };
 
+interface CoreOperationsProps {
+    resources: {
+        fuel: Resource;
+        solarPlasma: Resource & { locked: boolean };
+        energy: Resource;
+    };
+    defaultResourceGenerationValue: {
+        fuel: number;
+        solarPlasma: number;
+    };
+    generateResource: (type: keyof PlayerResources, energyCost: number, output: number, cooldown: number) => void;
+}
+
 const CoreOperations = ({
     resources,
     defaultResourceGenerationValue,
     generateResource,
-}: any) => {
+}: CoreOperationsProps) => {
     const returnPriceForResource = (resource: Resource, defaultPrice: number) => {
         return Math.round(resource.efficiency * defaultPrice);
     }
@@ -101,7 +114,7 @@ const CoreOperations = ({
                 <ResourcePanel
                     resourceType="solarPlasma"
                     title="Condense Solar Plasma"
-                    cost={10}
+                    cost={returnPriceForResource(resources.solarPlasma, 16)}
                     currentAmount={resources.solarPlasma.current}
                     maxAmount={resources.solarPlasma.max}
                     efficiency={resources.solarPlasma.efficiency}
@@ -109,7 +122,7 @@ const CoreOperations = ({
                     onGenerate={() =>
                         generateResource(
                             "solarPlasma",
-                            10,
+                            returnPriceForResource(resources.solarPlasma, 16),
                             defaultResourceGenerationValue.solarPlasma * resources.solarPlasma.efficiency,
                             0
                         )

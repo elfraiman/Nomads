@@ -20,6 +20,21 @@ const ShipStatus = () => {
         return rate ?? 0;
     };
 
+    // Find the first incomplete achievement with either resource or upgrade goals
+    const currentGoal = achievements.find((achievement) => {
+        if (achievement.completed) return false;
+
+        const hasIncompleteResourceGoals = Object.entries(achievement.resourceGoals || {}).some(
+            ([resource, goal]) => (resources[resource as keyof typeof resources]?.current || 0) < goal
+        );
+
+        const hasIncompleteUpgradeGoals = Object.entries(achievement.upgradeGoals || {}).some(
+            ([upgrade, goal]) => (achievement.progress.upgrades?.[upgrade] || 0) < goal
+        );
+
+        return hasIncompleteResourceGoals || hasIncompleteUpgradeGoals;
+    });
+
     return (
         <View style={styles.container}>
             {/* Energy Bar */}
@@ -51,18 +66,59 @@ const ShipStatus = () => {
                 );
             })}
 
-            {/* Ships Section */}
-            <View style={styles.shipsContainer}>
-                <Text style={styles.sectionTitle}>Ships</Text>
-                <View style={styles.shipsGrid}>
-                    {Object.entries(ships).map(([shipType, count]) => (
-                        <View key={shipType} style={styles.shipItem}>
-                            <ResourceIcon type={shipType as keyof typeof ships} size={14} />
-                            <Text style={styles.shipText}>{count}</Text>
+            {/* Current Goal */}
+            {currentGoal && (
+                <Animated.View style={[styles.goalContainer]}>
+                    <Text style={styles.goalText}>{currentGoal.description}</Text>
+                    {/* Display Resource Goals */}
+                    {Object.entries(currentGoal.resourceGoals || {}).map(([resource, goal]) => (
+                        <View key={resource} style={styles.resourceGoal}>
+                            <ResourceIcon type={resource as keyof typeof resources} />
+                            <Text style={styles.goalText}>
+                                {resources[resource as keyof typeof resources]?.current || 0}/{goal}
+                            </Text>
                         </View>
                     ))}
+
+                    {/* Display Upgrade Goals */}
+                    {Object.entries(currentGoal.upgradeGoals || {}).map(([upgrade, goal]) => (
+                        <View key={upgrade} style={styles.upgradeGoal}>
+                            <Text style={styles.goalText}>
+                                {upgrade}: {currentGoal.progress.upgrades?.[upgrade] || 0}/{goal}
+                            </Text>
+                        </View>
+                    ))}
+                </Animated.View>
+            )}
+
+            {/* Ships Section */}
+            <View style={styles.shipsContainer}>
+                <Text style={styles.sectionTitle}>Drones</Text>
+                <View style={styles.shipsGrid}>
+                    {Object.entries(ships).map(([shipType, count]) => {
+                        // Calculate available drones
+                        const allocatedDrones =
+                            shipType === "miningDrones"
+                                ? Object.values(game.miningDroneAllocation).reduce((a, b) => a + b, 0)
+                                : 0;
+
+                        const availableDrones = count - allocatedDrones;
+
+                        return (
+                            <View key={shipType} style={styles.shipItem}>
+                                <ResourceIcon type={shipType as keyof typeof ships} size={14} />
+                                <Text style={styles.shipText}>
+                                    {availableDrones}/{count} {/* Available / Total */}
+                                </Text>
+                            </View>
+                        );
+                    })}
                 </View>
             </View>
+
+
+
+
         </View>
     );
 };
@@ -104,6 +160,32 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         zIndex: 1,
         height: "100%",
+    },
+    goalContainer: {
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: 10,
+        width: "100%",
+        backgroundColor: "#444",
+        padding: 10,
+        borderRadius: 5,
+    },
+    resourceGoal: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 5,
+    },
+    upgradeGoal: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 5,
+    },
+    goalText: {
+        color: "#FFD93D", // Gold for emphasis
+        fontSize: 14,
+        fontWeight: "bold",
+        marginLeft: 5,
     },
     energyBarText: {
         color: "#fff",
