@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import ResourceIcon from "./ResourceIcon";
+import { GameContextType, GameProvider } from '../../context/GameContext';
 
 
 const miningDroneCost = { fuel: 500, solarPlasma: 800, energy: 1000 };
@@ -139,11 +140,13 @@ const BuildOperations = ({
   ships,
   updateResources,
   updateShips,
+  game,
 }: {
   resources: PlayerResources;
   ships: Ships;
   updateResources: (type: keyof PlayerResources, changes: Partial<Resource>) => void;
   updateShips: (shipType: keyof Ships, amount: number) => void;
+  game: GameContextType;
 }) => {
 
 
@@ -216,14 +219,17 @@ const BuildOperations = ({
         cooldown={30} // 1-minute cooldown
       />
 
-      <BuildPanel
-        name="Build Mining Drone"
-        canAfford={canAfford(miningDroneCost)}
-        cost={miningDroneCost}
-        description={`Refine Alloy and Solar Plasma and build a Mining Drone.`}
-        onBuild={buildMiningDrone}
-        cooldown={60} // 1-minute cooldown
-      />
+      {game.isAchievementUnlocked("build_scanning_drones") && (
+        <BuildPanel
+          name="Build Mining Drone"
+          canAfford={canAfford(miningDroneCost)}
+          cost={miningDroneCost}
+          description={`Refine Alloy and Solar Plasma and build a Mining Drone.`}
+          onBuild={buildMiningDrone}
+          cooldown={60} // 1-minute cooldown
+        />
+      )}
+
     </View>
   );
 };

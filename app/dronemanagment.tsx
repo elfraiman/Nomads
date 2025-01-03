@@ -39,6 +39,8 @@ const DroneManagement = () => {
               Available: {getAvailableDrones(ships.miningDrones, miningDroneAllocation) ?? 0}
             </Text>
 
+            {/* Display Asteroids */}
+            <Text style={styles.subHeader}>Asteroids:</Text>
             {foundAsteroids.length > 0 ? (
               <FlatList
                 data={foundAsteroids}
@@ -92,9 +94,7 @@ const DroneManagement = () => {
                 No asteroids found. Scan for asteroids in the exploration map.
               </Text>
             )}
-
           </View>
-
         </View>
       </LinearGradient>
       <ShipStatus />

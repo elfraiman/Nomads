@@ -154,6 +154,7 @@ const Dashboard = () => {
                             <View style={styles.cardContent}>
                                 <Collapsible title="Worker drones">
                                     <BuildOperations
+                                        game={game}
                                         resources={resources}
                                         ships={ships}
                                         updateResources={updateResources}
@@ -163,10 +164,6 @@ const Dashboard = () => {
                             </View>
                         </View>
                     )}
-
-
-
-
 
                     {/* Module Upgrades Section */}
                     {anyUpgradeUnlocked && (

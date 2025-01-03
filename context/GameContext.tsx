@@ -6,7 +6,7 @@ import { initialResources, Resource, PlayerResources, Ships, initialShips } from
 import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { AppState, AppStateStatus, Platform } from "react-native";
 
-interface GameContextType {
+export interface GameContextType {
     resources: PlayerResources; // Tracks resource states like energy, fuel, etc.
     achievements: Achievement[]; // Tracks all achievements and their states
     upgrades: Upgrade[]; // Tracks upgrades including their levels and costs
@@ -267,6 +267,38 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         );
     };
 
+    const updateAchievProgressForShips = (shipType: string, count: number) => {
+        setAchievements((prev) =>
+            prev.map((achievement) => {
+                if (achievement.completed || !achievement.shipGoals) return achievement;
+
+                const updatedProgress = { ...achievement.progress.ships };
+                let isComplete = true;
+
+                for (const [requiredShip, goal] of Object.entries(achievement.shipGoals)) {
+                    const current = requiredShip === shipType ? count : updatedProgress[requiredShip] || 0;
+                    updatedProgress[requiredShip] = Math.min(goal, current);
+
+                    if (updatedProgress[requiredShip] < goal) {
+                        isComplete = false;
+                    }
+                }
+
+                if (isComplete) {
+                    // Custom logic for specific ship-related achievements
+                    if (achievement.id === "build_scout_fleet") {
+                        alert("You have built your first Scout Fleet! This unlocks advanced exploration features.");
+                    }
+
+                    alert(`Achievement Unlocked: ${achievement.title}\n\n${achievement.story}`);
+                    return { ...achievement, completed: true, progress: { ships: updatedProgress } };
+                }
+
+                return { ...achievement, progress: { ships: updatedProgress } };
+            })
+        );
+    };
+
     // Upgrades logic
     const purchaseUpgrade = (id: string) => {
         const upgrade = upgrades.find((u) => u.id === id);
@@ -348,6 +380,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             ...prev,
             [shipType]: amount,
         }));
+
+        updateAchievProgressForShips(shipType, amount);
     };
 
     const downgradeUpgrade = (id: string) => {
@@ -437,7 +471,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
     // Mining
     const mineAsteroid = (asteroidId: number, amount: number) => {
-
         setFoundAsteroids((prev) =>
             prev
                 .map((asteroid) =>
@@ -478,13 +511,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 const reactorOptimizationUpgrade = upgrades.find((u) => u.id === "reactor_optimization");
                 const optimizationLevel = reactorOptimizationUpgrade?.level || 0;
                 if (optimizationLevel > 0) {
-                    const energyGenerationRate = optimizationLevel * prevResources.energy.efficiency;
+                    const energyGenerationRate = Math.round(optimizationLevel * prevResources.energy.efficiency);
                     updatedResources.energy = {
                         ...updatedResources.energy,
-                        current: Math.min(
+                        current: Math.round(Math.min(
                             updatedResources.energy.current + energyGenerationRate,
                             updatedResources.energy.max
-                        ),
+                        )),
                     };
                 }
 

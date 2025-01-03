@@ -10,7 +10,7 @@ const ActiveGoal = () => {
 
   if (!game) return null;
 
-  const { resources, achievements } = game;
+  const { resources, achievements, ships } = game;
 
   const currentGoal = achievements.find((achievement) => {
     if (achievement.completed) return false;
@@ -23,7 +23,11 @@ const ActiveGoal = () => {
       ([upgrade, goal]) => (achievement.progress.upgrades?.[upgrade] || 0) < goal
     );
 
-    return hasIncompleteResourceGoals || hasIncompleteUpgradeGoals;
+    const hasIncompleteShipGoals = Object.entries(achievement.shipGoals || {}).some(
+      ([ship, goal]) => (achievement.progress.ships?.[ship] || 0) < goal
+    );
+
+    return hasIncompleteResourceGoals || hasIncompleteUpgradeGoals || hasIncompleteShipGoals;
   });
 
   if (!currentGoal) return null;
@@ -46,6 +50,7 @@ const ActiveGoal = () => {
           style={styles.content}
         >
           <Text style={styles.description}>{currentGoal.description}</Text>
+
           {/* Resource Goals */}
           {Object.entries(currentGoal.resourceGoals || {}).map(([resource, goal]) => (
             <View style={styles.goalItem} key={resource}>
@@ -60,8 +65,18 @@ const ActiveGoal = () => {
           {Object.entries(currentGoal.upgradeGoals || {}).map(([upgrade, goal]) => (
             <View style={styles.goalItem} key={upgrade}>
               <Text style={styles.goalTextCentered}>
-                {upgrade.replace(/_/g, " ").toLocaleUpperCase()}:{" "}
+                {upgrade.replace(/_/g, " ").toUpperCase()}:{" "}
                 {currentGoal.progress.upgrades?.[upgrade] || 0}/{goal}
+              </Text>
+            </View>
+          ))}
+
+          {/* Ship Goals */}
+          {Object.entries(currentGoal.shipGoals || {}).map(([ship, goal]) => (
+            <View style={styles.goalItem} key={ship}>
+              <ResourceIcon type={ship as keyof typeof ships} size={20} />
+              <Text style={styles.goalTextCentered}>
+                {currentGoal.progress.ships?.[ship] || 0}/{goal}
               </Text>
             </View>
           ))}
@@ -103,7 +118,6 @@ const styles = StyleSheet.create({
   goalItem: {
     flexDirection: "row",
     alignItems: "center",
-
     width: "50%", // Constrain the width
     paddingVertical: 5,
     paddingHorizontal: 10,
