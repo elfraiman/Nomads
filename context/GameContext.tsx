@@ -34,6 +34,8 @@ export interface GameContextType {
     // Achievement tracking functions
     updateAchievProgressFromResources: (resources: Record<string, { current: number }>) => void;
     updateAchievProgressForUpgrades: (upgradeId: string, level: number) => void;
+    updateAchievProgressForShips: (shipType: string, count: number) => void;
+    updateAchievToCompleted: (id: string) => void;
 
     // State-checking functions
     isAchievementUnlocked: (id: string) => boolean;
@@ -54,7 +56,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const [miningDroneAllocation, setMiningDroneAllocation] = useState<Record<string, number>>({});
     const [foundAsteroids, setFoundAsteroids] = useState<IAsteroid[]>([]);
 
-    // save state
+    // Save state
     //
     useEffect(() => {
         const handleSaveGameState = async () => {
@@ -259,14 +261,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         );
     };
 
-    const isAchievementUnlocked = (id: string) => achievements.some((a) => a.id === id && a.completed);
-
-    const isUpgradeUnlocked = (upgradeId: string): boolean => {
-        return achievements.some(
-            (achievement) => achievement.unlocks.includes(upgradeId) && achievement.completed
-        );
-    };
-
     const updateAchievProgressForShips = (shipType: string, count: number) => {
         setAchievements((prev) =>
             prev.map((achievement) => {
@@ -286,6 +280,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
                 if (isComplete) {
                     // Custom logic for specific ship-related achievements
+                    //
                     if (achievement.id === "build_scout_fleet") {
                         alert("You have built your first Scout Fleet! This unlocks advanced exploration features.");
                     }
@@ -296,6 +291,23 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
                 return { ...achievement, progress: { ships: updatedProgress } };
             })
+        );
+    };
+
+    const updateAchievToCompleted = (id: string) => {
+        setAchievements((prev) =>
+            prev.map((achievement) =>
+                achievement.id === id
+                    ? { ...achievement, completed: true }
+                    : achievement
+            )
+        );
+    };
+    const isAchievementUnlocked = (id: string) => achievements.some((a) => a.id === id && a.completed);
+
+    const isUpgradeUnlocked = (upgradeId: string): boolean => {
+        return achievements.some(
+            (achievement) => achievement.unlocks.includes(upgradeId) && achievement.completed
         );
     };
 
@@ -363,7 +375,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 const updatedResources = Object.fromEntries(
                     Object.entries(prev).map(([key, value]) => [
                         key,
-                        { ...value, efficiency: value.efficiency * 1.05 },
+                        { ...value, efficiency: Math.round(value.efficiency * 1.05) },
                     ])
                 ) as PlayerResources;
 
@@ -508,6 +520,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 let updatedResources = { ...prevResources };
 
                 // Auto-generate energy based on reactor optimization level
+                //
                 const reactorOptimizationUpgrade = upgrades.find((u) => u.id === "reactor_optimization");
                 const optimizationLevel = reactorOptimizationUpgrade?.level || 0;
                 if (optimizationLevel > 0) {
@@ -522,6 +535,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 }
 
                 // Generate resources for mining drones
+                //
                 Object.entries(miningDroneAllocation).forEach(([asteroidId, count]) => {
                     const asteroid = foundAsteroids.find((a) => a.id.toString() === asteroidId);
                     const asteroidResourceType = asteroid?.resource as keyof PlayerResources;
@@ -574,7 +588,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 isUpgradeUnlocked,
                 updateShips,
                 allocateMiningDrones,
-                setFoundAsteroids
+                setFoundAsteroids,
+                updateAchievToCompleted,
+                updateAchievProgressForShips,
             }}
         >
             {children}

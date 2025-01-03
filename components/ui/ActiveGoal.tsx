@@ -12,25 +12,15 @@ const ActiveGoal = () => {
 
   const { resources, achievements, ships } = game;
 
-  const currentGoal = achievements.find((achievement) => {
-    if (achievement.completed) return false;
-
-    const hasIncompleteResourceGoals = Object.entries(achievement.resourceGoals || {}).some(
-      ([resource, goal]) => (resources[resource as keyof typeof resources]?.current || 0) < goal
-    );
-
-    const hasIncompleteUpgradeGoals = Object.entries(achievement.upgradeGoals || {}).some(
-      ([upgrade, goal]) => (achievement.progress.upgrades?.[upgrade] || 0) < goal
-    );
-
-    const hasIncompleteShipGoals = Object.entries(achievement.shipGoals || {}).some(
-      ([ship, goal]) => (achievement.progress.ships?.[ship] || 0) < goal
-    );
-
-    return hasIncompleteResourceGoals || hasIncompleteUpgradeGoals || hasIncompleteShipGoals;
-  });
+  // Find the first incomplete goal
+  const currentGoal = achievements.find((achievement) => !achievement.completed);
 
   if (!currentGoal) return null;
+
+  // Helper to calculate progress percentage
+  const calculateProgress = (current: number, goal: number) => {
+    return Math.min((current / goal) * 100, 100);
+  };
 
   return (
     <View style={styles.container}>
@@ -42,6 +32,7 @@ const ActiveGoal = () => {
           {isExpanded ? "Hide Active Goal" : "Show Active Goal"}
         </Text>
       </TouchableOpacity>
+
       {isExpanded && (
         <LinearGradient
           colors={["#333", "#222"]}
@@ -52,34 +43,78 @@ const ActiveGoal = () => {
           <Text style={styles.description}>{currentGoal.description}</Text>
 
           {/* Resource Goals */}
-          {Object.entries(currentGoal.resourceGoals || {}).map(([resource, goal]) => (
-            <View style={styles.goalItem} key={resource}>
-              <ResourceIcon type={resource as keyof typeof resources} size={20} />
-              <Text style={styles.goalTextCentered}>
-                {resources[resource as keyof typeof resources]?.current || 0}/{goal}
-              </Text>
-            </View>
-          ))}
+          {Object.entries(currentGoal.resourceGoals || {}).map(([resource, goal]) => {
+            const current = resources[resource as keyof typeof resources]?.current || 0;
+            const progress = calculateProgress(current, goal);
+            return (
+              <View style={styles.goalItem} key={resource}>
+                <View style={styles.progressContainer}>
+                  <Text style={styles.goalText}>
+                    <ResourceIcon type={resource as keyof typeof resources} size={20} />{" "}
+                    {`${current}/${goal}`}
+                  </Text>
+                  <View style={styles.progressBar}>
+                    <LinearGradient
+                      colors={["#4CAF50", "#087F23"]}
+                      start={[0, 0]}
+                      end={[1, 0]}
+                      style={[styles.progressFill, { width: `${progress}%` }]}
+                    />
+                  </View>
+                </View>
+              </View>
+            );
+          })}
 
           {/* Upgrade Goals */}
-          {Object.entries(currentGoal.upgradeGoals || {}).map(([upgrade, goal]) => (
-            <View style={styles.goalItem} key={upgrade}>
-              <Text style={styles.goalTextCentered}>
-                {upgrade.replace(/_/g, " ").toUpperCase()}:{" "}
-                {currentGoal.progress.upgrades?.[upgrade] || 0}/{goal}
-              </Text>
-            </View>
-          ))}
+          {Object.entries(currentGoal.upgradeGoals || {}).map(([upgrade, goal]) => {
+            const current = currentGoal.progress?.upgrades?.[upgrade] || 0;
+            const progress = calculateProgress(current, goal);
+
+            return (
+              <View style={styles.goalItem} key={upgrade}>
+                <Text style={styles.goalText}>
+                  {upgrade.replace(/_/g, " ").toUpperCase()}
+                </Text>
+                <View style={styles.progressContainer}>
+                  <Text style={styles.goalText}>{`${current}/${goal}`}</Text>
+                  <View style={styles.progressBar}>
+                    <LinearGradient
+                      colors={["#4CAF50", "#087F23"]}
+                      start={[0, 0]}
+                      end={[1, 0]}
+                      style={[styles.progressFill, { width: `${progress}%` }]}
+                    />
+                  </View>
+                </View>
+              </View>
+            );
+          })}
 
           {/* Ship Goals */}
-          {Object.entries(currentGoal.shipGoals || {}).map(([ship, goal]) => (
-            <View style={styles.goalItem} key={ship}>
-              <ResourceIcon type={ship as keyof typeof ships} size={20} />
-              <Text style={styles.goalTextCentered}>
-                {currentGoal.progress.ships?.[ship] || 0}/{goal}
-              </Text>
-            </View>
-          ))}
+          {Object.entries(currentGoal.shipGoals || {}).map(([ship, goal]) => {
+            const current = currentGoal?.progress?.ships?.[ship] || 0;
+            const progress = calculateProgress(current, goal);
+
+            return (
+              <View style={styles.goalItem} key={ship}>
+                <View style={styles.progressContainer}>
+                  <Text style={styles.goalText}>
+                    <ResourceIcon type={ship as keyof typeof ships} size={20} />{" "}
+                    {`${current}/${goal}`}
+                  </Text>
+                  <View style={styles.progressBar}>
+                    <LinearGradient
+                      colors={["#4CAF50", "#087F23"]}
+                      start={[0, 0]}
+                      end={[1, 0]}
+                      style={[styles.progressFill, { width: `${progress}%` }]}
+                    />
+                  </View>
+                </View>
+              </View>
+            );
+          })}
         </LinearGradient>
       )}
     </View>
@@ -98,6 +133,7 @@ const styles = StyleSheet.create({
   header: {
     padding: 10,
     alignItems: "center",
+    backgroundColor: "#444",
   },
   headerText: {
     color: "#FFD93D",
@@ -106,29 +142,45 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 10,
-    alignItems: "center", // Centers all child elements
+    alignItems: "center",
   },
   description: {
     color: "#FFF",
     fontSize: 16,
     marginBottom: 10,
     textAlign: "center",
-    width: "100%", // Prevent overflow
   },
   goalItem: {
     flexDirection: "row",
     alignItems: "center",
-    width: "50%", // Constrain the width
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 5,
     marginVertical: 5,
+    width: "100%",
   },
-  goalTextCentered: {
+  progressContainer: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  goalText: {
     color: "#FFD93D",
     fontSize: 14,
     textAlign: "center",
-    flex: 1, // Ensures proper alignment
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: "#444",
+    borderRadius: 4,
+    marginTop: 4,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  noProgressText: {
+    color: "#FF5722",
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 10,
   },
 });
 

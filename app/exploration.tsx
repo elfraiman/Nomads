@@ -5,6 +5,7 @@ import { Svg, Circle, G, Defs, RadialGradient, Stop, Text as SvgText, Image as S
 import { useGame } from "@/context/GameContext"; // Assuming a game context
 import ResourceIcon from "@/components/ui/ResourceIcon";
 import ShipStatus from "@/components/ShipStatus";
+import achievements from "@/data/achievements";
 
 
 interface IPosition {
@@ -140,7 +141,7 @@ const stars = generateRandomStars(400);
 const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => {
     const game = useGame();
     if (!game) return null;
-    const { updateResources, resources, setFoundAsteroids, foundAsteroids, ships, updateShips } = game;
+    const { updateResources, resources, setFoundAsteroids, foundAsteroids, ships, updateShips, updateAchievToCompleted, isAchievementUnlocked } = game;
     const [isScanning, setIsScanning] = useState(false);
     const [scanCooldown, setScanCooldown] = useState(0);
 
@@ -198,6 +199,13 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
             );
 
             if (foundAsteroid) {
+                if (!isAchievementUnlocked("find_an_asteroid")) {
+                    updateAchievToCompleted("find_an_asteroid");
+                    const story = achievements.find((ach) => ach.id === "find_an_asteroid")?.story;
+                    alert(story);
+                }
+
+
                 setFoundAsteroids([
                     ...foundAsteroids,
                     {
@@ -209,7 +217,7 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                     },
                 ]);
 
-                alert(`Found ${foundAsteroid.name}!`);
+                alert(`Found ${foundAsteroid.name}! It has ${foundAsteroid.maxResources} ${foundAsteroid.resource}.`);
             } else {
                 alert("No asteroids found. Try scanning again.");
             }
@@ -415,7 +423,7 @@ const ExplorationMap = () => {
                             y={galaxyPositions[index].cy - galaxy.size / 2}
                             width={galaxy.size}
                             height={galaxy.size}
-                            onPressIn={() => setSelectedGalaxy(galaxy)} // Works for both mobile and web
+                            onPress={() => setSelectedGalaxy(galaxy)} // Works for both mobile and web
                         />
 
 

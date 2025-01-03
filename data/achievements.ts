@@ -6,7 +6,7 @@ export interface Achievement {
     resourceGoals?: Record<string, number>; // Maps resource names to required amounts (optional)
     upgradeGoals?: Record<string, number>; // Maps upgrade IDs to required levels (optional)
     shipGoals?: Record<string, number>; // Maps ship types to required counts (optional)
-    progress: {
+    progress?: {
         resources?: Record<string, number>; // Tracks current progress for each resource
         upgrades?: Record<string, number>; // Tracks current progress for each upgrade
         ships?: Record<string, number>; // Tracks current progress for each ship type
@@ -174,6 +174,37 @@ const achievements: Achievement[] = [
             console.log("Exploration is key to survival achievement completed!");
         },
     },
+    {
+        id: "find_an_asteroid",
+        title: "Asteroid Hunter",
+        description: "Go to the Explore control panel to find start sending Scanning drones to find an Asteroid.",
+        story: "You have found an asteroid and are now able to harvest resources from it.",
+        unlocks: ["mining_drones"],
+        completed: false,
+        onComplete: () => {
+            console.log("Exploration is key to survival achievement completed!");
+        },
+    },
+    {
+        id: "build_mining_drones",
+        title: "Mining Operations",
+        description: "Build 2 Mining Drones to start mining the asteroid you found.",
+        story: "Congratulations! You have successfully learned the core automation of the ship and are now able to mine the asteroid and harvest core resources.",
+        unlocks: [""],
+        shipGoals: {
+            miningDrones: 2,
+        },
+        progress: {
+            ships: {
+                miningDrones: 0,
+            },
+        },
+        completed: false,
+        onComplete: () => {
+            console.log("Mining Operations achievement completed!");
+        },
+    },
+
     // Additional achievements
 ];
 

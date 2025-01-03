@@ -219,7 +219,7 @@ const BuildOperations = ({
         cooldown={30} // 1-minute cooldown
       />
 
-      {game.isAchievementUnlocked("build_scanning_drones") && (
+      {game.isAchievementUnlocked("find_an_asteroid") && (
         <BuildPanel
           name="Build Mining Drone"
           canAfford={canAfford(miningDroneCost)}
