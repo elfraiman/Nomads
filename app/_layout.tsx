@@ -1,19 +1,37 @@
 import { GameProvider } from '@/context/GameContext';
+import colors from '@/utils/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { StatusBar, StyleSheet } from 'react-native';
+import { StatusBar } from 'react-native';
+import CombatPage from './combatPage';
 import Dashboard from './dashboard';
-import Exploration from './exploration';
 import DroneManagement from './dronemanagment';
+import Exploration from './exploration';
 
 SplashScreen.preventAutoHideAsync();
 
 const Drawer = createDrawerNavigator();
+const Stack = createStackNavigator();
+
+function ExplorationStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false, // Hide headers for a seamless transition
+      }}
+    >
+      <Stack.Screen name="Exploration" component={Exploration} />
+      <Stack.Screen name="CombatPage" component={CombatPage} />
+    </Stack.Navigator>
+  );
+}
+
 
 export default function RootLayout() {
   const router = useRouter();
@@ -45,10 +63,10 @@ export default function RootLayout() {
         <Drawer.Navigator
           screenOptions={({ navigation }) => ({
             drawerStyle: {
-              backgroundColor: '#222',
+              backgroundColor: colors.background,
               width: 240,
             },
-            drawerActiveTintColor: '#FFD93D',
+            drawerActiveTintColor: colors.primary,
             drawerInactiveTintColor: '#ccc',
             headerLeft: () => (
               <Ionicons
@@ -60,29 +78,28 @@ export default function RootLayout() {
               />
             ),
             headerStyle: {
-              backgroundColor: '#111', // Darker background for the header
+              backgroundColor: colors.background, // Darker background for the header
               borderBottomWidth: 2,
-              borderBottomColor: '#FFD93D', // Futuristic border glow
-              shadowColor: '#FFD93D',
+              borderBottomColor: colors.primary, // Futuristic border glow
+              shadowColor: colors.glowEffect,
               shadowOpacity: 0.8,
-              shadowRadius: 15,
-              elevation: 10,
+              shadowRadius: 10,
+              elevation: 6,
             },
-            headerTintColor: '#FFD93D', // Futuristic cyan color
+            headerTintColor: colors.textPrimary, // Futuristic cyan color
             headerTitleAlign: 'center',
             headerTitleStyle: {
-              fontSize: 22,
+              fontSize: 18,
               fontWeight: 'bold',
-              color: '#FFD93D',
+              color: colors.textPrimary,
               textTransform: 'uppercase',
               letterSpacing: 2,
-              textShadowColor: '#FFD93D',
+              textShadowColor: colors.glowEffect,
               textShadowOffset: { width: 0, height: 0 },
               textShadowRadius: 8,
             },
           })}
         >
-
           <Drawer.Screen
             name="dashboard"
             component={Dashboard}
@@ -92,8 +109,8 @@ export default function RootLayout() {
             }}
           />
           <Drawer.Screen
-            name="exploration"
-            component={Exploration}
+            name="explorationStack"
+            component={ExplorationStack} // Use the stack for Exploration and Combat
             options={{
               title: 'Exploration',
               drawerIcon: ({ color }) => <Ionicons name="planet-outline" size={24} color={color} />,
@@ -107,16 +124,9 @@ export default function RootLayout() {
               drawerIcon: ({ color }) => <Ionicons name="airplane" size={24} color={color} />,
             }}
           />
+          <Stack.Screen name="CombatPage" component={CombatPage} />
         </Drawer.Navigator>
       </ThemeProvider>
     </GameProvider >
   );
 }
-
-const styles = StyleSheet.create({
-  headerTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-});

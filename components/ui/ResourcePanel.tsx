@@ -5,6 +5,7 @@ import ResourceIcon from "@/components/ui/ResourceIcon";
 import { ResourceType } from "@/components/ui/ResourceIcon";
 import ResourceButton from "@/components/ui/ResourceButton";
 import { PlayerResources, Resource } from "@/utils/defaults";
+import colors from "@/utils/colors";
 
 interface ResourcePanelProps {
     resourceType: ResourceType;
@@ -150,20 +151,19 @@ const styles = StyleSheet.create({
     expandedContainer: {
         marginTop: 6,
         padding: 10,
-        backgroundColor: "#2B3035", // Mid-tone from the gradient theme
-        borderRadius: 8,
+        backgroundColor: colors.panelBackground, // Mid-tone from the gradient theme
         borderWidth: 1,
-        borderColor: "#FFA726", // Orange highlight border
+        borderColor: colors.border, // Orange highlight border
     },
     description: {
-        color: "#FFD700", // Bright yellow for descriptive text
+        color: colors.textPrimary, // Bright yellow for descriptive text
         fontSize: 12,
     },
     cardContent: {
         padding: 6,
     },
     gained: {
-        color: "#FFA726", // Orange for emphasis
+        color: colors.warning, // Orange for emphasis
         textDecorationLine: "underline",
     },
 });

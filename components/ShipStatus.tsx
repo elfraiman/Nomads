@@ -5,6 +5,7 @@ import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import ActiveGoal from "./ui/ActiveGoal";
 import ResourceIcon from "./ui/ResourceIcon";
+import colors from "@/utils/colors";
 
 const ShipStatus = () => {
     const game = useGame();
@@ -12,7 +13,7 @@ const ShipStatus = () => {
 
     if (!game) return null;
 
-    const { resources, achievements, upgrades, ships } = game;
+    const { resources, upgrades, ships } = game;
 
     const energyPercentage = resources?.energy
         ? (resources.energy.current / resources.energy.max) * 100
@@ -24,7 +25,7 @@ const ShipStatus = () => {
     };
 
     const shipCount = Object.keys(ships).length;
-    const expandedHeight = shipCount * 40 + 60; // Adjust height based on number of ships
+    const expandedHeight = shipCount * 40 + 60;
 
     return (
         <View style={styles.container}>
@@ -33,7 +34,7 @@ const ShipStatus = () => {
                 {/* Energy Bar */}
                 <View style={styles.energyBarContainer}>
                     <LinearGradient
-                        colors={["#FFD93D", "#FFA726", "#FF5722"]}
+                        colors={["#FFA93D", "#FF7726", "#ff3860",]}
                         start={[0, 0]}
                         end={[1, 0]}
                         style={[styles.energyBarFill, { width: `${energyPercentage}%` }]}
@@ -96,7 +97,8 @@ const ShipStatus = () => {
                                                 size={18}
                                             />
                                             <Text style={styles.shipText}>
-                                                {availableDrones}/{count}
+                                                {availableDrones <= 0 ? 0 : (availableDrones / count)}
+
                                             </Text>
                                         </View>
                                     );
@@ -113,6 +115,7 @@ const ShipStatus = () => {
                             {isDronesExpanded ? "Hide" : "Show"} Drones
                         </Text>
                     </TouchableOpacity>
+
                 </View>
             )}
 
@@ -124,19 +127,24 @@ const styles = StyleSheet.create({
     container: {
         position: "relative",
         width: "100%",
+        borderTopWidth: 2,
+        borderTopColor: colors.glowEffect,
+        shadowColor: colors.glowEffect,
+        shadowOpacity: 0.8,
+        shadowRadius: 10,
+        elevation: 6,
     },
     resourcesContainer: {
         width: "100%",
-        backgroundColor: "#1E1E1E",
+        backgroundColor: colors.background,
         padding: 16,
     },
     energyBarContainer: {
         position: "relative",
         width: "100%",
         height: 20,
-        backgroundColor: "#444",
+        backgroundColor: colors.disabledBackground,
         overflow: "hidden",
-        borderRadius: 5,
         marginBottom: 12,
     },
     energyBarFill: {
@@ -152,7 +160,7 @@ const styles = StyleSheet.create({
         height: "100%",
     },
     energyBarText: {
-        color: "#fff",
+        color: colors.textPrimary,
         fontSize: 14,
         fontWeight: "bold",
         marginLeft: 5,
@@ -167,7 +175,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     resourceText: {
-        color: "#fff",
+        color: colors.textPrimary,
         fontSize: 14,
         marginLeft: 6,
     },
@@ -175,13 +183,13 @@ const styles = StyleSheet.create({
         marginTop: 10,
         paddingVertical: 10,
         paddingHorizontal: 8,
-        backgroundColor: "#333",
+        backgroundColor: colors.panelBackground,
         borderRadius: 5,
         borderWidth: 1,
-        borderColor: "#555",
+        borderColor: colors.disabledBorder,
     },
     goalText: {
-        color: "#FFD93D",
+        color: colors.primary,
         fontSize: 14,
         fontWeight: "bold",
     },
@@ -189,28 +197,28 @@ const styles = StyleSheet.create({
         position: "absolute",
         top: -40,
         right: 0,
-        backgroundColor: "rgba(30, 30, 30, 0.9)",
-        borderRadius: 8,
+        backgroundColor: colors.transparentBackground,
         width: 120,
         borderWidth: 1,
-        borderColor: "#444",
+        borderColor: colors.border,
         overflow: "hidden",
     },
     expanded: {
         height: "auto",
-        paddingBottom: 40, // Ensure room for toggle butto
+        paddingBottom: 40, // Ensure room for toggle button
         top: -125,
     },
     collapsed: {
         height: 38,
+
     },
     dronesContent: {
         flex: 1,
         alignItems: "center",
         justifyContent: "flex-start",
+
     },
     toggleButton: {
-        backgroundColor: "#444",
         padding: 10,
         alignItems: "center",
         position: "absolute",
@@ -218,14 +226,13 @@ const styles = StyleSheet.create({
         width: "100%",
     },
     toggleButtonText: {
-        color: "#FFD93D",
+        color: colors.textPrimary,
         fontSize: 12,
         fontWeight: "bold",
     },
     shipsHeader: {
-        color: "#FFD93D",
+        color: colors.textPrimary,
         fontSize: 16,
-        fontWeight: "bold",
         marginBottom: 10,
         textAlign: "center",
     },
@@ -236,7 +243,7 @@ const styles = StyleSheet.create({
         marginBottom: 5,
     },
     shipText: {
-        color: "#FFFFFF",
+        color: colors.textPrimary,
         fontSize: 14,
         fontWeight: "bold",
     },

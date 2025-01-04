@@ -1,11 +1,11 @@
-import { Achievement } from "@/data/achievements";
+import { IAchievement } from "@/data/achievements";
 
 /**
  * Checks if the "gather_100_energy" achievement is completed.
  * @param achievements - List of achievements
  * @returns True if the achievement is completed, otherwise false
  */
-export const isGatherEnergyAchievementComplete = (achievements: Achievement[]): boolean => {
+export const isGatherEnergyAchievementComplete = (achievements: IAchievement[]): boolean => {
   const achievement = achievements.find((ach) => ach.id === "gather_100_energy");
   return achievement?.completed ?? false;
 };
@@ -15,7 +15,7 @@ export const isGatherEnergyAchievementComplete = (achievements: Achievement[]): 
  * @param achievements - List of achievements
  * @returns True if the achievement is completed, otherwise false
  */
-export const isUpgradeCoreOperationsEfficiencyCompleted = (achievements: Achievement[]): boolean => {
+export const isUpgradeCoreOperationsEfficiencyCompleted = (achievements: IAchievement[]): boolean => {
   const achievement = achievements.find((ach) => ach.id === "upgrade_core_operations_efficiency");
   return achievement?.completed ?? false;
 };

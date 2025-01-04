@@ -1,41 +1,41 @@
-// src/data/achievements.ts
-export interface Achievement {
+
+export interface IAchievement {
     id: string;
     title: string;
     description: string;
-    resourceGoals?: Record<string, number>; // Maps resource names to required amounts (optional)
-    upgradeGoals?: Record<string, number>; // Maps upgrade IDs to required levels (optional)
-    shipGoals?: Record<string, number>; // Maps ship types to required counts (optional)
+    resourceGoals?: Record<string, number>;
+    upgradeGoals?: Record<string, number>;
+    shipGoals?: Record<string, number>;
     progress?: {
-        resources?: Record<string, number>; // Tracks current progress for each resource
-        upgrades?: Record<string, number>; // Tracks current progress for each upgrade
-        ships?: Record<string, number>; // Tracks current progress for each ship type
+        resources?: Record<string, number>;
+        upgrades?: Record<string, number>;
+        ships?: Record<string, number>;
     };
     story: string;
-    unlocks: string[]; // List of upgrades this achievement unlocks
-    completed?: boolean; // Indicates whether the achievement is completed
+    unlocks: string[];
+    completed: boolean;
     onComplete: () => void;
 }
 
-
-
-const achievements: Achievement[] = [
+const achievements: IAchievement[] = [
     {
         id: "gather_100_energy",
         title: "Energy Pioneer",
         description: "Gather 100 Energy to unlock Reactor Optimization upgrades.",
         resourceGoals: {
-            energy: 100
+            energy: 100,
         },
         progress: {
             resources: {
-                energy: 0
-            }
+                energy: 0,
+            },
         },
-        story: "As you gather the first 100 units of energy, the ship's reactor begins to hum steadily. New possibilities emerge as the ship's systems stabilize.",
+        story: `Your ship's systems spark to life as you gather the first units of energy. The reactor's hum grows steady, and you feel a sense of accomplishment. This is just the beginning of your journey to rebuild the ship's power core.`,
         unlocks: [""],
         completed: false,
-        onComplete: () => { console.log("Energy Pioneer achievement completed!"); },
+        onComplete: () => {
+            console.log("Energy Pioneer achievement completed!");
+        },
     },
     {
         id: "gather_fuel",
@@ -49,7 +49,7 @@ const achievements: Achievement[] = [
                 fuel: 0,
             },
         },
-        story: "You've successfully collected critical resources to stabilize your operations.",
+        story: `The ship's tanks begin to fill with fuel, a lifeblood that promises movement and exploration. As the reserves increase, the navigation systems flicker to life, urging you to venture further into the unknown.`,
         completed: false,
         unlocks: ["reactor_storage"],
         onComplete: () => {
@@ -61,14 +61,14 @@ const achievements: Achievement[] = [
         title: "Energy Baron",
         description: "Upgrade your reactor storage to unlock Reactor Optimization upgrades.",
         upgradeGoals: {
-            reactor_storage: 1, // Requires at least 1 level of reactor storage upgrade
+            reactor_storage: 1,
         },
         progress: {
             upgrades: {
                 reactor_storage: 0,
             },
         },
-        story: "Your reactor's increased capacity allows you to sustain more complex operations, paving the way for further optimizations.",
+        story: `With improved reactor storage, the ship feels alive. Power surges through the systems, and dormant modules begin to hum softly. The AI interface hints at greater upgrades awaiting your command.`,
         unlocks: ["reactor_optimization"],
         completed: false,
         onComplete: () => {
@@ -77,7 +77,7 @@ const achievements: Achievement[] = [
     },
     {
         id: "upgrade_reactor_optimization",
-        title: "Automated systems",
+        title: "Automated Systems",
         description: "Optimize your reactor to generate more Energy.",
         upgradeGoals: {
             reactor_optimization: 5,
@@ -87,8 +87,7 @@ const achievements: Achievement[] = [
                 reactor_optimization: 0,
             },
         },
-        story: `Your reactor's increased automation allows you to generate more energy with less waste, improving overall efficiency and allowing you to focus on becoming more efficient.
-        You have now unlocked the Core Operations Efficiency upgrade.`,
+        story: `Your reactor now operates at peak efficiency, generating energy with precision. The ship's AI acknowledges your success, suggesting new pathways to explore and new resources to uncover.`,
         unlocks: ["core_operations_efficiency"],
         completed: false,
         onComplete: () => {
@@ -100,15 +99,14 @@ const achievements: Achievement[] = [
         title: "Increase Core Operations Efficiency",
         description: "Upgrade your core operations to increase resource generation.",
         upgradeGoals: {
-            core_operations_efficiency: 1, // Requires at least 3 level of reactor storage upgrade
+            core_operations_efficiency: 1,
         },
         progress: {
             upgrades: {
                 core_operations_efficiency: 0,
             },
         },
-        story: `Your core operations have been optimized to increase resource generation. You are now able to generate more resources.
-        You ship has detected a Sun and you decide to explore it, detecting a new star system and the ability to harvest Solar Plasma`,
+        story: `As core operations become streamlined, resource generation reaches unprecedented levels. The AI announces the detection of a nearby star, sparking a new era of exploration and discovery.`,
         unlocks: ["core_operations_storage"],
         completed: false,
         onComplete: () => {
@@ -118,27 +116,7 @@ const achievements: Achievement[] = [
     {
         id: "upgrade_core_operations_storage",
         title: "Increase Core Operations Storage",
-        description: "Upgrade your core operations storage to core resources storage.",
-        upgradeGoals: {
-            core_operations_storage: 2, // Requires at least 3 level of reactor storage upgrade
-        },
-        progress: {
-            upgrades: {
-                core_operations_storage: 0,
-            },
-        },
-        story: `Since our ship can now safely generate more resources and store them, we can now build drones to help us explore the universe. 
-        You have now unlocked the Drone Crafting & Asteroid scanning.`,
-        unlocks: ["drones_crafting"],
-        completed: false,
-        onComplete: () => {
-            console.log("Core Operations Storage upgrade achievement completed!");
-        },
-    },
-    {
-        id: "upgrade_core_operations_storage",
-        title: "Increase Core Operations Storage",
-        description: "Upgrade your core operations storage to core resources storage.",
+        description: "Upgrade your core operations storage to store more resources.",
         upgradeGoals: {
             core_operations_storage: 2,
         },
@@ -147,8 +125,7 @@ const achievements: Achievement[] = [
                 core_operations_storage: 0,
             },
         },
-        story: `Since our ship can now safely generate more resources and store them, we can now build Scanning Drones to help us explore the universe. 
-        You have now unlocked the Drone Crafting & Asteroid scanning.`,
+        story: `Storage upgrades completed. The ship’s capacity to hold vital resources now allows for extended missions. The AI suggests building scanning drones to chart nearby star systems for potential riches.`,
         unlocks: ["drones_crafting"],
         completed: false,
         onComplete: () => {
@@ -157,8 +134,8 @@ const achievements: Achievement[] = [
     },
     {
         id: "build_scanning_drones",
-        title: "Exploration is key to survival",
-        description: "Build 5 Exploration Drones to start exploring the galaxies.",
+        title: "Exploration is Key to Survival",
+        description: "Build 5 Scanning Drones to start exploring the galaxies.",
         shipGoals: {
             scanningDrones: 5,
         },
@@ -167,7 +144,7 @@ const achievements: Achievement[] = [
                 scanningDrones: 0,
             },
         },
-        story: "With a fleet of Scanning drones, you can efficiently explore the galaxies for asteroids.",
+        story: `With scanning drones assembled, your ship detects faint energy signals in distant galaxies. The onboard AI suggests deploying these drones to uncover nearby asteroid fields rich in untapped resources.`,
         unlocks: ["asteroid_scanning"],
         completed: false,
         onComplete: () => {
@@ -177,20 +154,18 @@ const achievements: Achievement[] = [
     {
         id: "find_an_asteroid",
         title: "Asteroid Hunter",
-        description: "Go to the Explore control panel to find start sending Scanning drones to find an Asteroid.",
-        story: "You have found an asteroid and are now able to harvest resources from it.",
+        description: "Find a resourceful asteroid using Scanning Drones.",
+        story: `An asteroid has been detected, pulsating with precious resources. Your scanners indicate this will be a key turning point in your survival. Deploy mining drones to harvest its bounty.`,
         unlocks: ["mining_drones"],
         completed: false,
         onComplete: () => {
-            console.log("Exploration is key to survival achievement completed!");
+            console.log("Asteroid Hunter achievement completed!");
         },
     },
     {
         id: "build_mining_drones",
         title: "Mining Operations",
         description: "Build 2 Mining Drones to start mining the asteroid you found.",
-        story: "Congratulations! You have successfully learned the core automation of the ship and are now able to mine the asteroid and harvest core resources.",
-        unlocks: [""],
         shipGoals: {
             miningDrones: 2,
         },
@@ -199,13 +174,13 @@ const achievements: Achievement[] = [
                 miningDrones: 0,
             },
         },
+        story: `Mining drones deploy seamlessly onto the asteroid’s surface, extracting vital resources. The ship's AI commends your ingenuity, hinting at the vast potential for automation.`,
+        unlocks: [""],
         completed: false,
         onComplete: () => {
             console.log("Mining Operations achievement completed!");
         },
     },
-
-    // Additional achievements
 ];
 
 export default achievements;

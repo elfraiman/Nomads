@@ -16,7 +16,7 @@ export interface Upgrade {
     level: number;
 }
 
-const defaultUpgradeList: Upgrade[] = [
+const initialUpgradeList: Upgrade[] = [
     {
         id: "reactor_optimization",
         title: "Reactor Optimization",
@@ -68,4 +68,4 @@ const defaultUpgradeList: Upgrade[] = [
     // Add more upgrades here
 ];
 
-export default defaultUpgradeList;
+export default initialUpgradeList;

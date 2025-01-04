@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useGame } from "@/context/GameContext";
 import ResourceIcon from "./ResourceIcon";
+import colors from "@/utils/colors";
 
 const ActiveGoal = () => {
   const game = useGame();
@@ -35,7 +36,7 @@ const ActiveGoal = () => {
 
       {isExpanded && (
         <LinearGradient
-          colors={["#333", "#222"]}
+          colors={[colors.border, colors.panelBackground]}
           start={[0, 0]}
           end={[1, 1]}
           style={styles.content}
@@ -55,7 +56,7 @@ const ActiveGoal = () => {
                   </Text>
                   <View style={styles.progressBar}>
                     <LinearGradient
-                      colors={["#4CAF50", "#087F23"]}
+                      colors={[colors.successGradient[0], colors.successGradient[1]]}
                       start={[0, 0]}
                       end={[1, 0]}
                       style={[styles.progressFill, { width: `${progress}%` }]}
@@ -80,7 +81,7 @@ const ActiveGoal = () => {
                   <Text style={styles.goalText}>{`${current}/${goal}`}</Text>
                   <View style={styles.progressBar}>
                     <LinearGradient
-                      colors={["#4CAF50", "#087F23"]}
+                      colors={[colors.successGradient[0], colors.successGradient[1]]}
                       start={[0, 0]}
                       end={[1, 0]}
                       style={[styles.progressFill, { width: `${progress}%` }]}
@@ -105,7 +106,7 @@ const ActiveGoal = () => {
                   </Text>
                   <View style={styles.progressBar}>
                     <LinearGradient
-                      colors={["#4CAF50", "#087F23"]}
+                      colors={[colors.successGradient[0], colors.successGradient[1]]}
                       start={[0, 0]}
                       end={[1, 0]}
                       style={[styles.progressFill, { width: `${progress}%` }]}
@@ -125,18 +126,18 @@ const styles = StyleSheet.create({
   container: {
     width: "100%",
     marginVertical: 10,
-    borderRadius: 8,
+    borderRadius: 0,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#444",
+    borderColor: colors.border,
   },
   header: {
     padding: 10,
     alignItems: "center",
-    backgroundColor: "#444",
+    backgroundColor: colors.panelBackground,
   },
   headerText: {
-    color: "#FFD93D",
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: "bold",
   },
@@ -145,7 +146,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   description: {
-    color: "#FFF",
+    color: colors.textPrimary,
     fontSize: 16,
     marginBottom: 10,
     textAlign: "center",
@@ -161,13 +162,13 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   goalText: {
-    color: "#FFD93D",
+    color: colors.textPrimary,
     fontSize: 14,
     textAlign: "center",
   },
   progressBar: {
     height: 8,
-    backgroundColor: "#444",
+    backgroundColor: colors.disabled,
     borderRadius: 4,
     marginTop: 4,
     overflow: "hidden",
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   noProgressText: {
-    color: "#FF5722",
+    color: colors.secondary,
     fontSize: 16,
     textAlign: "center",
     marginTop: 10,

@@ -1,18 +1,18 @@
-import { IAsteroid } from "@/app/exploration";
-import achievementsData, { Achievement } from "@/data/achievements";
+import achievementsData, { IAchievement } from "@/data/achievements";
 import { loadGameState, saveGameState } from "@/data/asyncStorage";
-import defaultUpgradeList, { Upgrade, UpgradeCost } from "@/data/upgrades";
-import { initialResources, Resource, PlayerResources, Ships, initialShips } from "@/utils/defaults";
-import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
+import initialUpgradeList, { Upgrade, UpgradeCost } from "@/data/upgrades";
+import { initialResources, Resource, PlayerResources, Ships, initialShips, IAsteroid, IGalaxy, initialGalaxies } from "@/utils/defaults";
+import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { AppState, AppStateStatus, Platform } from "react-native";
 
 export interface GameContextType {
     resources: PlayerResources; // Tracks resource states like energy, fuel, etc.
-    achievements: Achievement[]; // Tracks all achievements and their states
+    achievements: IAchievement[]; // Tracks all achievements and their states
     upgrades: Upgrade[]; // Tracks upgrades including their levels and costs
     ships: Ships; // Tracks the number of ships the player has
     miningDroneAllocation: Record<string, number>;
     foundAsteroids: IAsteroid[];
+    galaxies: IGalaxy[];
 
     // Drones
     allocateMiningDrones: (asteroid: IAsteroid, count: number) => void;
@@ -20,6 +20,7 @@ export interface GameContextType {
     // Resource management functions
     updateResources: (type: keyof PlayerResources, changes: Partial<Resource>) => void;
     upgradeResourceEfficiency: (type: keyof PlayerResources, increment: number) => void;
+    setResources: React.Dispatch<React.SetStateAction<PlayerResources>>;
 
     // Upgrade management functions
     purchaseUpgrade: (id: string) => void;
@@ -43,6 +44,7 @@ export interface GameContextType {
 
     // Exploration
     setFoundAsteroids: (asteroids: IAsteroid[]) => void;
+    setUnlockedGalaxies: (galaxies: IGalaxy[]) => void;
 }
 
 
@@ -50,11 +52,12 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider = ({ children }: { children: ReactNode }) => {
     const [resources, setResources] = useState<PlayerResources>(initialResources);
-    const [achievements, setAchievements] = useState<Achievement[]>(achievementsData);
+    const [achievements, setAchievements] = useState<IAchievement[]>(achievementsData);
     const [ships, setShips] = useState(initialShips);
-    const [upgrades, setUpgrades] = useState<Upgrade[]>(defaultUpgradeList);
+    const [upgrades, setUpgrades] = useState<Upgrade[]>(initialUpgradeList);
     const [miningDroneAllocation, setMiningDroneAllocation] = useState<Record<string, number>>({});
     const [foundAsteroids, setFoundAsteroids] = useState<IAsteroid[]>([]);
+    const [galaxies, setUnlockedGalaxies] = useState<IGalaxy[]>(initialGalaxies);
 
     // Save state
     //
@@ -69,7 +72,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 baseCostMultiplier: upgrade.baseCostMultiplier,
             }));
 
-            await saveGameState({ resources, achievements, upgrades: serializableUpgrades, ships, allocatedDrones: { mining: miningDroneAllocation }, foundAsteroids });
+            await saveGameState({ resources, achievements, upgrades: serializableUpgrades, ships, allocatedDrones: { mining: miningDroneAllocation }, foundAsteroids, galaxies });
         };
 
         const handleAppStateChange = async (nextAppState: AppStateStatus) => {
@@ -109,9 +112,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 setShips(savedState.ships || initialShips);
                 setFoundAsteroids(savedState.foundAsteroids || []);
                 setMiningDroneAllocation(savedState.allocatedDrones?.mining || {});
+                setUnlockedGalaxies(initialGalaxies);
 
-
-                const upgradesFromSaveFile = defaultUpgradeList.map((defaultUpgrade) => {
+                const upgradesFromSaveFile = initialUpgradeList.map((defaultUpgrade) => {
                     const savedUpgrade = savedState.upgrades?.find((u) => u.id === defaultUpgrade.id);
 
                     return {
@@ -120,6 +123,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                         costs: savedUpgrade?.costs || defaultUpgrade.costs,
                     };
                 })
+
+
                 // Check for unlocked upgrades and apply special effects
                 // might need to find a new way to do this rather then here
                 //
@@ -178,13 +183,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         setAchievements((prevAchievements) => {
             const newAchievements = prevAchievements.map((achievement) => {
                 // Skip completed achievements or those without resource goals
-                if (achievement.completed || !achievement.resourceGoals) return achievement;
+                if (achievement.completed || !achievement.resourceGoals || !achievement.progress) return achievement;
 
                 // Combine updatedResources with the current state of all resources
                 const combinedResources = { ...resources, ...updatedResources } as any;
 
                 // Update progress for each resource goal
-                const updatedProgress = { ...achievement.progress.resources };
+                const updatedProgress = { ...achievement.progress?.resources };
                 let isComplete = true;
 
                 for (const [resource, goal] of Object.entries(achievement.resourceGoals)) {
@@ -229,9 +234,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const updateAchievProgressForUpgrades = (upgradeId: string, level: number) => {
         setAchievements((prev) =>
             prev.map((achievement) => {
-                if (achievement.completed || !achievement.upgradeGoals) return achievement;
+                if (achievement.completed || !achievement.upgradeGoals || !achievement.progress) return achievement;
 
-                const updatedProgress = { ...achievement.progress.upgrades };
+                const updatedProgress = { ...achievement.progress?.upgrades };
                 let isComplete = true;
 
                 for (const [requiredUpgrade, goal] of Object.entries(achievement.upgradeGoals)) {
@@ -264,9 +269,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const updateAchievProgressForShips = (shipType: string, count: number) => {
         setAchievements((prev) =>
             prev.map((achievement) => {
-                if (achievement.completed || !achievement.shipGoals) return achievement;
+                if (achievement.completed || !achievement.shipGoals || !achievement.progress) return achievement;
 
-                const updatedProgress = { ...achievement.progress.ships };
+                const updatedProgress = { ...achievement.progress?.ships };
                 let isComplete = true;
 
                 for (const [requiredShip, goal] of Object.entries(achievement.shipGoals)) {
@@ -294,7 +299,16 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         );
     };
 
+    const unlockGalaxy = (galaxyId: number) => {
+        setUnlockedGalaxies((prev) =>
+            prev.map(galaxy => galaxy.id === galaxyId ? { ...galaxy, found: true } : galaxy));
+    }
+
     const updateAchievToCompleted = (id: string) => {
+        if (id === "build_scanning_drones") {
+            unlockGalaxy(1);
+        }
+
         setAchievements((prev) =>
             prev.map((achievement) =>
                 achievement.id === id
@@ -303,6 +317,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             )
         );
     };
+
     const isAchievementUnlocked = (id: string) => achievements.some((a) => a.id === id && a.completed);
 
     const isUpgradeUnlocked = (upgradeId: string): boolean => {
@@ -397,7 +412,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const downgradeUpgrade = (id: string) => {
-        const upgrade = defaultUpgradeList.find((u: Upgrade) => u.id === id);
+        const upgrade = initialUpgradeList.find((u: Upgrade) => u.id === id);
         if (!upgrade) return;
 
         const currentUpgrade = upgrades[id as any];
@@ -575,6 +590,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 ships,
                 miningDroneAllocation,
                 foundAsteroids,
+                galaxies,
                 updateResources,
                 upgradeResourceEfficiency,
                 purchaseUpgrade,
@@ -591,6 +607,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 setFoundAsteroids,
                 updateAchievToCompleted,
                 updateAchievProgressForShips,
+                setUnlockedGalaxies,
+                setResources,
             }}
         >
             {children}

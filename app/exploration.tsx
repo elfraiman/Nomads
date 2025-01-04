@@ -1,4 +1,4 @@
-import { PlayerResources } from "@/utils/defaults";
+import { IAsteroid, IGalaxy, IPlanet, PlayerResources } from "@/utils/defaults";
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View, Text, TouchableOpacity, Dimensions } from "react-native";
 import { Svg, Circle, G, Defs, RadialGradient, Stop, Text as SvgText, Image as SvgImage } from "react-native-svg";
@@ -6,107 +6,24 @@ import { useGame } from "@/context/GameContext"; // Assuming a game context
 import ResourceIcon from "@/components/ui/ResourceIcon";
 import ShipStatus from "@/components/ShipStatus";
 import achievements from "@/data/achievements";
+import colors from "@/utils/colors";
+import { NavigationProp, useNavigation, useRoute } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "react-native-screens/lib/typescript/native-stack/types";
 
 
-interface IPosition {
-    x: number;
-    y: number;
-}
-
-interface IPlanet {
-    id: number;
-    name: string;
-    position: IPosition;
-}
-
-interface IGalaxy {
-    id: number;
-    name: string;
-    size: number;
-    planets: IPlanet[];
-    image: any;
-    asteroids: IAsteroid[];
-}
-
-export interface IAsteroid {
-    id: number;
-    name: string;
-    resource: keyof PlayerResources;
-    findChance: number;
-    maxResources: number;
-    galaxyId: number;
-    x?: number;
-    y?: number;
-}
 const { width: fullWidth, height: fullHeight } = Dimensions.get("window");
 
-const width = fullWidth - 16; // 16px padding on each side
-const height = fullHeight - 16; // 16px padding on each side
+const padding = 0; // 16px padding on each side
+const width = fullWidth - padding;
+const height = fullHeight - padding;
 
-const galaxies: IGalaxy[] = [
-    {
-        id: 1,
-        name: "Alpha Centauri",
-        size: 90,
-        image: require("../assets/images/galaxy.webp"),
-        planets: [
-            { id: 1, name: "Planet A1", position: { x: 150, y: height / 5.4 } },
-            { id: 2, name: "Planet A2", position: { x: 250, y: height / 4.2 } },
-            { id: 3, name: "Planet A3", position: { x: 80, y: height / 3.2 } },
-            { id: 4, name: "Planet A4", position: { x: 300, y: height / 2.1 } },
-        ],
-        asteroids: [
-            { galaxyId: 1, id: 1, name: "Asteroid Ignis", resource: "fuel" as keyof PlayerResources, findChance: 0.5, maxResources: 1000 },
-            { galaxyId: 1, id: 2, name: "Asteroid Solara", resource: "solarPlasma" as keyof PlayerResources, findChance: 0.3, maxResources: 1000 },
-            { galaxyId: 1, id: 3, name: "Asteroid Umbra", resource: "darkMatter" as keyof PlayerResources, findChance: 0.2, maxResources: 1000 },
-            { galaxyId: 1, id: 4, name: "Asteroid Ferra", resource: "alloys" as keyof PlayerResources, findChance: 0.1, maxResources: 1000 },
-            { galaxyId: 1, id: 5, name: "Asteroid Cryon", resource: "frozenHydrogen" as keyof PlayerResources, findChance: 0.1, maxResources: 1000 },
-            { galaxyId: 1, id: 6, name: "Asteroid Volta", resource: "energy" as keyof PlayerResources, findChance: 0.1, maxResources: 1000 },
-        ]
-
-    },
-    {
-        id: 2,
-        name: "Andromeda",
-        size: 70,
-        image: require("../assets/images/galaxy1.webp"),
-        planets: [
-            { id: 1, name: "Planet B1", position: { x: 70, y: height / 5.2 } },
-            { id: 2, name: "Planet B2", position: { x: 180, y: height / 3.5 } },
-            { id: 3, name: "Planet B3", position: { x: 300, y: height / 2.5 } },
-            { id: 4, name: "Planet B4", position: { x: 95, y: height / 2 } },
-        ],
-        asteroids: [
-            { galaxyId: 2, id: 1, name: "Asteroid Pyros", resource: "fuel" as keyof PlayerResources, findChance: 0.45, maxResources: 1000 },
-            { galaxyId: 2, id: 2, name: "Asteroid Helion", resource: "solarPlasma" as keyof PlayerResources, findChance: 0.25, maxResources: 1000 },
-            { galaxyId: 2, id: 3, name: "Asteroid Obscura", resource: "darkMatter" as keyof PlayerResources, findChance: 0.15, maxResources: 1000 },
-            { galaxyId: 2, id: 4, name: "Asteroid Ferris", resource: "alloys" as keyof PlayerResources, findChance: 0.08, maxResources: 1000 },
-            { galaxyId: 2, id: 5, name: "Asteroid Glacius", resource: "frozenHydrogen" as keyof PlayerResources, findChance: 0.05, maxResources: 1000 },
-            { galaxyId: 2, id: 6, name: "Asteroid Aether", resource: "energy" as keyof PlayerResources, findChance: 0.02, maxResources: 1000 },
-        ]
-
-    },
-    {
-        id: 3,
-        size: 120,
-        name: "Milky Way",
-        image: require("../assets/images/galaxy2.webp"),
-        planets: [
-            { id: 1, name: "Planet C1", position: { x: 80, y: height / 5.5 } },
-            { id: 2, name: "Planet C2", position: { x: 310, y: height / 4.2 } },
-            { id: 3, name: "Planet C3", position: { x: 275, y: height / 3 } },
-            { id: 4, name: "Planet C4", position: { x: 200, y: height / 2 } },
-        ],
-        asteroids: [
-            { galaxyId: 3, id: 1, name: "Asteroid Ignatius", resource: "fuel" as keyof PlayerResources, findChance: 0.5, maxResources: 1000 },
-            { galaxyId: 3, id: 2, name: "Asteroid Solaris", resource: "solarPlasma" as keyof PlayerResources, findChance: 0.3, maxResources: 1000 },
-            { galaxyId: 3, id: 4, name: "Asteroid Ferrox", resource: "alloys" as keyof PlayerResources, findChance: 0.15, maxResources: 1000 },
-            { galaxyId: 3, id: 3, name: "Asteroid Umbriel", resource: "darkMatter" as keyof PlayerResources, findChance: 0.2, maxResources: 1000 },
-            { galaxyId: 3, id: 5, name: "Asteroid Cryonos", resource: "frozenHydrogen" as keyof PlayerResources, findChance: 0.1, maxResources: 1000 },
-            { galaxyId: 3, id: 6, name: "Asteroid Electra", resource: "energy" as keyof PlayerResources, findChance: 0.05, maxResources: 1000 },
-            { galaxyId: 3, id: 7, name: "Asteroid Cinderon", resource: "fuel" as keyof PlayerResources, findChance: 0.4, maxResources: 1000 },
-        ]
-    },
+const starColors = [
+    "white",
+    "#9db4ff",
+    "#ffc690",
+    "#e4e8ff",
+    "#ffbb7b",
+    "#fff1df",
 ];
 
 const generateRandomStars = (count: number) => {
@@ -118,35 +35,30 @@ const generateRandomStars = (count: number) => {
             y: Math.random() * height,
             radius: Math.random() * (0.2 + 2),
             fill: starColors[Math.floor(Math.random() * starColors.length)],
-            opacity: Math.random() * 0.6 + 0.2
+            opacity: Math.random() * 0.8 + 0.2
         });
     }
     return stars;
 };
 
 
-const starColors = [
-    "white",
-    "#9db4ff",
-    "#ffc690",
-    "#e4e8ff",
-    "#ffbb7b",
-    "#fff1df",
-];
-
-const stars = generateRandomStars(400);
-
+export type RootStackParamList = {
+    Exploration: undefined;
+    CombatPage: { planet: IPlanet };
+};
 
 
 const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => {
     const game = useGame();
+    const navigator = useNavigation<NavigationProp<RootStackParamList>>();
+
+
     if (!game) return null;
     const { updateResources, resources, setFoundAsteroids, foundAsteroids, ships, updateShips, updateAchievToCompleted, isAchievementUnlocked } = game;
     const [isScanning, setIsScanning] = useState(false);
     const [scanCooldown, setScanCooldown] = useState(0);
-
     const scanCost = { fuel: 100, solarPlasma: 100, energy: 100 };
-
+    const stars = useMemo(() => generateRandomStars(300), []);
 
     // Helper function to check if the player can afford the scan cost
     const canAffordScan = () => {
@@ -167,7 +79,6 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
             });
         });
     };
-
 
     // Cooldown Timer
     useEffect(() => {
@@ -256,7 +167,8 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                                 cx={asteroid.x} // Use the static x-coordinate
                                 cy={asteroid.y ?? 0} // Use the static y-coordinate
                                 r={5 + (asteroid.maxResources / 1000) * 5} // Size based on resources
-
+                                onPress={() => alert(`${asteroid.maxResources} of ${asteroid.resource}`)}
+                                onPressIn={() => alert(`${asteroid.maxResources} of ${asteroid.resource}`)}
                                 fill={
                                     asteroid.resource === "fuel"
                                         ? "red"
@@ -297,12 +209,17 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                     {/* Render planets */}
                     {galaxy.planets.map((planet: IPlanet) => (
                         <React.Fragment key={planet.id}>
-                            <Circle
-                                cx={planet.position.x}
-                                cy={planet.position.y}
-                                r={20}
-                                fill="blue"
+                            <SvgImage
+                                key={planet.id}
+                                href={planet.image}
+                                x={planet.position.x - 30}
+                                y={planet.position.y - 40}
+                                width={60}
+                                height={60}
+                                onPress={() => navigator.navigate("CombatPage", { planet })}
+                                onPressIn={() => navigator.navigate("CombatPage", { planet })}
                             />
+
                             <SvgText
                                 x={planet.position.x}
                                 y={planet.position.y + 35}
@@ -317,7 +234,7 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                 </Svg>
 
                 {/* Scan Button */}
-                {ships.scanningDrones > 0 && (
+                {isAchievementUnlocked("build_scanning_drones") && (
                     <TouchableOpacity
                         style={[
                             styles.scanButtonContainer,
@@ -349,15 +266,12 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                                     : "Scan for Asteroids"}
                         </Text>
                     </TouchableOpacity>
-
-
                 )}
 
                 <TouchableOpacity style={styles.backButton} onPress={onBack}>
                     <Text style={styles.backButtonText}>Back</Text>
                 </TouchableOpacity>
             </View>
-
             <ShipStatus />
         </>
     );
@@ -365,8 +279,11 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
 
 
 const ExplorationMap = () => {
+    const game = useGame();
+    if (!game) return null;
+    const galaxies = useMemo(() => game.galaxies, [game.galaxies]);
     const [selectedGalaxy, setSelectedGalaxy] = useState<IGalaxy | null>(null);
-    const stars = generateRandomStars(100);
+    const stars = useMemo(() => generateRandomStars(1000), []);
 
     const galaxyPositions = [
         { cx: width / 2, cy: height / 4 },
@@ -382,6 +299,8 @@ const ExplorationMap = () => {
             />
         );
     }
+
+
 
     return (
         <View style={styles.container}>
@@ -400,45 +319,48 @@ const ExplorationMap = () => {
 
                 {/* Render galaxies */}
                 {galaxies.map((galaxy, index) => (
-                    <G key={galaxy.id}>
-                        <Defs>
-                            <RadialGradient
-                                id={`galaxy-gradient-${galaxy.id}`}
-                                cx="50%"
-                                cy="50%"
-                                rx="50%"
-                                ry="50%"
-                                gradientUnits="userSpaceOnUse"
+                    galaxy.found && (
+                        <G key={galaxy.id}>
+                            <Defs>
+                                <RadialGradient
+                                    id={`galaxy-gradient-${galaxy.id}`}
+                                    cx="50%"
+                                    cy="50%"
+                                    rx="50%"
+                                    ry="50%"
+                                    gradientUnits="userSpaceOnUse"
+                                >
+                                    <Stop offset="0%" stopColor="rgba(126, 20, 255, 0.8)" />
+                                    <Stop offset="100%" stopColor="rgba(0, 0, 255, 0.1)" />
+                                </RadialGradient>
+                            </Defs>
+
+
+                            <SvgImage
+                                key={galaxy.id + 100}
+                                href={galaxy.image}
+                                x={galaxyPositions[index].cx - galaxy.size / 2}
+                                y={galaxyPositions[index].cy - galaxy.size / 2}
+                                width={galaxy.size}
+                                height={galaxy.size}
+                                onPressIn={() => setSelectedGalaxy(galaxy)}
+                                onPress={() => setSelectedGalaxy(galaxy)}
+                            />
+
+
+                            <SvgText
+                                key={galaxy.id + 200}
+                                x={galaxyPositions[index].cx}
+                                y={(galaxyPositions[index].cy + galaxy.size / 2) + 20}
+                                fill="white"
+                                fontSize={18}
+                                fontFamily="monospace" // You can use a futuristic custom font here
+                                textAnchor="middle"
                             >
-                                <Stop offset="0%" stopColor="rgba(126, 20, 255, 0.8)" />
-                                <Stop offset="100%" stopColor="rgba(0, 0, 255, 0.1)" />
-                            </RadialGradient>
-                        </Defs>
-
-
-                        <SvgImage
-                            key={galaxy.id + 100}
-                            href={galaxy.image}
-                            x={galaxyPositions[index].cx - galaxy.size / 2}
-                            y={galaxyPositions[index].cy - galaxy.size / 2}
-                            width={galaxy.size}
-                            height={galaxy.size}
-                            onPress={() => setSelectedGalaxy(galaxy)} // Works for both mobile and web
-                        />
-
-
-                        <SvgText
-                            key={galaxy.id + 200}
-                            x={galaxyPositions[index].cx}
-                            y={(galaxyPositions[index].cy + galaxy.size / 2) + 20}
-                            fill="white"
-                            fontSize={18}
-                            fontFamily="monospace" // You can use a futuristic custom font here
-                            textAnchor="middle"
-                        >
-                            {galaxy.name}
-                        </SvgText>
-                    </G>
+                                {galaxy.name}
+                            </SvgText>
+                        </G>
+                    )
                 ))}
             </Svg>
         </View>
@@ -459,23 +381,22 @@ const styles = StyleSheet.create({
         position: "absolute",
         bottom: 16,
         left: 'auto',
-        backgroundColor: "#1F4068", // Futuristic HUD dark blue
-        borderRadius: 10,
-        padding: 16,
+        backgroundColor: colors.panelBackground, // Futuristic HUD dark blue
+        padding: 6,
         alignItems: "center",
         justifyContent: "space-between",
-        shadowColor: "#00FFF5", // Futuristic glow
+        shadowColor: colors.glowEffect, // Futuristic glow
         shadowOpacity: 0.9,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 4 },
         elevation: 10,
         borderWidth: 2,
-        borderColor: "#00FFF5",
+        borderColor: colors.primary,
     },
     disabledButton: {
-        backgroundColor: "#444",
+        backgroundColor: colors.disabledBackground,
         opacity: 0.5,
-        borderColor: "#777",
+        borderColor: colors.disabledBorder,
         shadowColor: "transparent",
     },
     scanCostContainer: {
@@ -490,30 +411,22 @@ const styles = StyleSheet.create({
         marginHorizontal: 6,
     },
     scanCostText: {
-        color: "#FFD700", // Gold for resource amounts
+        color: colors.textPrimary, // Gold for resource amounts
         fontSize: 14,
         marginLeft: 5,
+        fontWeight: 700,
     },
     scanButtonText: {
-        color: "#FFF",
+        color: colors.textPrimary,
         fontSize: 16,
-        fontWeight: "bold",
         textAlign: "center",
-    },
-    title: {
-        position: "absolute",
-        bottom: 50,
-        color: "white",
-        fontSize: 20,
-        fontWeight: "bold",
     },
     backButton: {
         position: "absolute",
-        bottom: 50,
-        left: 20,
-        backgroundColor: "blue",
+        bottom: 16,
+        left: 16,
+        backgroundColor: colors.hudBlue,
         padding: 10,
-        borderRadius: 5,
     },
     backButtonText: {
         color: "white",

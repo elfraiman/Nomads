@@ -5,12 +5,12 @@ import {
   Text,
   TouchableOpacity,
   FlatList,
-  Button,
 } from "react-native";
 import { useGame } from "@/context/GameContext";
 import ShipStatus from "@/components/ShipStatus";
 import ResourceIcon from "@/components/ui/ResourceIcon";
 import { LinearGradient } from "expo-linear-gradient";
+import colors from "@/utils/colors";
 
 const DroneManagement = () => {
   const game = useGame();
@@ -25,16 +25,15 @@ const DroneManagement = () => {
   return (
     <>
       <LinearGradient
-        colors={["#1A1C20", "#2B3035", "#3D444C"]}
+        colors={[colors.panelBackground, colors.disabledBackground]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.container}
       >
-        <View style={styles.container}>
-
-          {/* Mining Drones Section */}
-          <View style={styles.section}>
-            <Text style={styles.subHeader}>Mining Drones</Text>
+        {/* Mining Drones Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Mining Drones</Text>
+          <View style={styles.contentContainer}>
             <Text style={styles.info}>
               Available: {getAvailableDrones(ships.miningDrones, miningDroneAllocation) ?? 0}
             </Text>
@@ -45,49 +44,48 @@ const DroneManagement = () => {
               <FlatList
                 data={foundAsteroids}
                 keyExtractor={(asteroid) => asteroid.id.toString()}
-                renderItem={({ item: asteroid }) => {
-                  return (
-                    <View style={styles.taskContainer}>
-                      <Text style={styles.taskText}>
-                        {asteroid.name} ({asteroid.maxResources} {<ResourceIcon type={asteroid.resource} size={14} />})
+                renderItem={({ item: asteroid }) => (
+                  <View style={styles.taskContainer}>
+                    <Text style={styles.taskText}>
+                      {asteroid.name} ({asteroid.maxResources}{" "}
+                      <ResourceIcon type={asteroid.resource} size={14} />)
+                    </Text>
+                    <View style={styles.allocationControls}>
+                      {/* Increment Drone Allocation */}
+                      <TouchableOpacity
+                        style={[
+                          styles.controlButton,
+                          getAvailableDrones(ships.miningDrones, miningDroneAllocation) > 0
+                            ? null
+                            : styles.disabledButton,
+                        ]}
+                        onPress={() => allocateMiningDrones(asteroid, 1)}
+                        disabled={getAvailableDrones(ships.miningDrones, miningDroneAllocation) <= 0}
+                      >
+                        <Text style={styles.buttonText}>+1</Text>
+                      </TouchableOpacity>
+
+                      {/* Display Current Allocation */}
+                      <Text style={styles.allocationText}>
+                        {miningDroneAllocation[asteroid.id] || 0}
                       </Text>
-                      <View style={styles.allocationControls}>
-                        {/* Increment Drone Allocation */}
-                        <TouchableOpacity
-                          style={[
-                            styles.controlButton,
-                            getAvailableDrones(ships.miningDrones, miningDroneAllocation) > 0
-                              ? null
-                              : styles.disabledButton,
-                          ]}
-                          onPress={() => allocateMiningDrones(asteroid, 1)}
-                          disabled={getAvailableDrones(ships.miningDrones, miningDroneAllocation) <= 0}
-                        >
-                          <Text style={styles.buttonText}>+1</Text>
-                        </TouchableOpacity>
 
-                        {/* Display Current Allocation */}
-                        <Text style={styles.allocationText}>
-                          {miningDroneAllocation[asteroid.id] || 0}
-                        </Text>
-
-                        {/* Decrement Drone Allocation */}
-                        <TouchableOpacity
-                          style={[
-                            styles.controlButton,
-                            (miningDroneAllocation[asteroid.id] || 0) > 0
-                              ? null
-                              : styles.disabledButton,
-                          ]}
-                          onPress={() => allocateMiningDrones(asteroid, -1)}
-                          disabled={(miningDroneAllocation[asteroid.id] || 0) <= 0}
-                        >
-                          <Text style={styles.buttonText}>-1</Text>
-                        </TouchableOpacity>
-                      </View>
+                      {/* Decrement Drone Allocation */}
+                      <TouchableOpacity
+                        style={[
+                          styles.controlButton,
+                          (miningDroneAllocation[asteroid.id] || 0) > 0
+                            ? null
+                            : styles.disabledButton,
+                        ]}
+                        onPress={() => allocateMiningDrones(asteroid, -1)}
+                        disabled={(miningDroneAllocation[asteroid.id] || 0) <= 0}
+                      >
+                        <Text style={styles.buttonText}>-1</Text>
+                      </TouchableOpacity>
                     </View>
-                  );
-                }}
+                  </View>
+                )}
               />
             ) : (
               <Text style={styles.noAsteroidsText}>
@@ -107,19 +105,37 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  section: {
+  sectionContainer: {
     marginBottom: 24,
+    padding: 16,
+    backgroundColor: colors.transparentBackground,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  subHeader: {
+  sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#FFA726",
+    color: colors.textPrimary,
+    marginBottom: 12,
+  },
+  contentContainer: {
+    backgroundColor: colors.panelBackground,
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  subHeader: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   info: {
     fontSize: 16,
-    color: "#FFF",
-    marginBottom: 12,
+    color: colors.textPrimary,
+    marginBottom: 16,
   },
   taskContainer: {
     flexDirection: "row",
@@ -128,7 +144,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   taskText: {
-    color: "#FFF",
+    color: colors.textPrimary,
     fontSize: 16,
     flex: 1,
   },
@@ -137,25 +153,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   controlButton: {
-    backgroundColor: "#253947",
+    backgroundColor: colors.buttonGreen,
     padding: 8,
     borderRadius: 4,
     marginHorizontal: 4,
   },
   disabledButton: {
-    backgroundColor: "#555",
+    backgroundColor: colors.disabledBackground,
   },
   buttonText: {
-    color: "#FFF",
+    color: colors.textPrimary,
     fontSize: 14,
   },
   allocationText: {
-    color: "#FFA726",
+    color: colors.textPrimary,
     fontSize: 16,
     marginHorizontal: 8,
   },
   noAsteroidsText: {
-    color: "#FFF",
+    color: colors.warning,
     fontSize: 16,
     textAlign: "center",
     marginTop: 16,

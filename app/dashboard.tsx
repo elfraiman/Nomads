@@ -4,6 +4,7 @@ import BuildOperations from "@/components/ui/BuildPanel";
 import ResourceIcon from "@/components/ui/ResourceIcon";
 import CoreOperations from "@/components/ui/ResourcePanel";
 import { useGame } from "@/context/GameContext";
+import colors from "@/utils/colors";
 import { isGatherEnergyAchievementComplete } from "@/utils/gameUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -64,7 +65,7 @@ const UpgradeModule = ({
                                     <Text style={styles.upgradeButtonText}>Upgrade</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={onRemove} style={styles.deleteButton}>
-                                    <Ionicons name="trash" size={20} color="#fff" />
+                                    <Ionicons name="trash" size={20} color={colors.textPrimary} />
                                 </TouchableOpacity>
                             </View>
                             <Text style={styles.description}>{description}</Text>
@@ -117,7 +118,7 @@ const Dashboard = () => {
     return (
         <>
             <LinearGradient
-                colors={["#1A1C20", "#2B3035", "#3D444C"]}
+                colors={[colors.panelBackground, colors.disabledBackground]} // Very dark background with gradient
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.container}
@@ -126,7 +127,7 @@ const Dashboard = () => {
                     {/* Actions Section */}
                     <View style={styles.panel}>
                         <Text style={styles.panelTitle}>Actions</Text>
-                        <Button title="Generate Energy" color="#253947" onPress={handleGenerateEnergy} />
+                        <Button title="Generate Energy" color={colors.buttonGreen} onPress={handleGenerateEnergy} />
                     </View>
 
                     {/* Core Operations Section */}
@@ -197,6 +198,7 @@ const styles = StyleSheet.create({
         width: width,
         height: height,
         padding: 6,
+        paddingTop: 16,
     },
     scrollViewContent: {
         paddingBottom: 20,
@@ -205,38 +207,38 @@ const styles = StyleSheet.create({
         padding: 6,
     },
     description: {
-        color: "#FFC857", // Light orange text for descriptions
+        color: colors.textSecondary, // Light orange text for descriptions
         fontSize: 13,
         marginTop: 6,
     },
     highlight: {
-        color: "#FFD700", // Bright gold color for highlights
+        color: colors.secondary, // Bright gold color for highlights
         fontWeight: "bold",
     },
     panel: {
-        backgroundColor: "#1B1B1D", // Very dark background for panels
-        borderRadius: 8,
+        backgroundColor: colors.background, // Very dark background for panels
+        borderRadius: 0,
         padding: 16,
         marginTop: 16,
-        shadowColor: "#000",
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 5 },
         shadowOpacity: 0.5,
         shadowRadius: 10,
         elevation: 10,
     },
     panelTitle: {
-        color: "#FFBF00", // Bright orange-yellow for panel titles
+        color: colors.textPrimary, // Bright orange-yellow for panel titles
         fontSize: 16,
         fontWeight: "bold",
         marginBottom: 10,
         textTransform: "uppercase",
     },
     upgradeContainer: {
-        backgroundColor: "#222222", // Slightly lighter dark gray for contrast
+        backgroundColor: colors.panelBackground, // Slightly lighter dark gray for contrast
         padding: 16,
         margin: 6,
         borderRadius: 8,
-        borderColor: "#FFBF00", // Yellow border for contrast
+        borderColor: colors.border, // Yellow border for contrast
         borderWidth: 1,
     },
     costContainer: {
@@ -250,7 +252,7 @@ const styles = StyleSheet.create({
         marginLeft: 10,
     },
     costText: {
-        color: "#FFD700", // Bright gold color for resource costs
+        color: colors.textPrimary, // Bright gold color for resource costs
         fontSize: 14,
         marginLeft: 4,
     },
@@ -264,7 +266,7 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         paddingHorizontal: 15,
         borderRadius: 5,
-        backgroundColor: "#253947",
+        backgroundColor: colors.buttonGreen,
         borderWidth: 2,
         borderColor: "black",
     },
@@ -274,13 +276,13 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     deleteButton: {
-        backgroundColor: "#FF3E4D", // Bright red for delete buttons
+        backgroundColor: colors.error, // Bright red for delete buttons
         padding: 10,
         borderRadius: 5,
     },
     disabledButton: {
-        backgroundColor: "#555555", // A muted gray color for disabled state
-        borderColor: "#333333", // Darker border for contrast
+        backgroundColor: colors.disabledBackground, // A muted gray color for disabled state
+        borderColor: colors.disabledBorder, // Darker border for contrast
     },
     row: {
         flexDirection: "row",
@@ -294,9 +296,9 @@ const styles = StyleSheet.create({
     expandedContainer: {
         marginTop: 6,
         padding: 6,
-        backgroundColor: "#292B2E", // Slightly lighter dark background for expanded sections
+        backgroundColor: colors.panelBackground, // Slightly lighter dark background for expanded sections
         borderRadius: 8,
-        borderColor: "#FFD700", // Bright gold border for emphasis
+        borderColor: colors.border, // Bright gold border for emphasis
         borderWidth: 1,
     },
 });

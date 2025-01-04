@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import ResourceIcon from "./ResourceIcon";
 import { GameContextType, GameProvider } from '../../context/GameContext';
+import colors from "@/utils/colors";
 
 
 const miningDroneCost = { fuel: 500, solarPlasma: 800, energy: 1000 };
@@ -247,47 +248,43 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   buttonDisabled: {
-    backgroundColor: "#3A3A3A", // Muted gray for disabled state
-    borderColor: "#555555", // Subtle border for disabled buttons
+    backgroundColor: colors.disabledBackground, // Muted gray for disabled state
+    borderColor: colors.disabledBorder, // Subtle border for disabled buttons
   },
   expandedContainer: {
     marginTop: 6,
     padding: 10,
-    backgroundColor: "#2B3035", // Mid-tone from the gradient theme
-    borderRadius: 8,
+    backgroundColor: colors.panelBackground, // Mid-tone from the gradient theme
     borderWidth: 1,
-    borderColor: "#FFA726", // Orange highlight border
+    borderColor: colors.border, // Orange highlight border
   },
   buttonText: {
-    color: "white",
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: "bold",
   },
   description: {
-    color: "#FFD700", // Bright yellow for descriptive text
+    color: colors.textPrimary, // Bright yellow for descriptive text
     fontSize: 12,
   },
   iconContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginLeft: 6,
+    marginLeft: 10,
   },
   cardContent: {
     padding: 6,
   },
   gained: {
-    color: "#FFA726", // Orange for emphasis
+    color: colors.secondary, // Orange for emphasis
     textDecorationLine: "underline",
   },
   button: {
-    backgroundColor: "#253947",
-    borderRadius: 5,
+    backgroundColor: colors.buttonGreen,
     padding: 10,
     alignItems: "center",
     marginTop: 8,
     width: '90%',
-    borderWidth: 2,
-    borderColor: "black",
   },
 });
 

@@ -1,5 +1,6 @@
 import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
 import ResourceIcon, { ResourceType } from "./ResourceIcon";
+import colors from "@/utils/colors";
 
 const ResourceButton = ({
     title,
@@ -37,18 +38,15 @@ const ResourceButton = ({
 };
 const styles = StyleSheet.create({
     button: {
-        backgroundColor: "#253947",
-        borderRadius: 5,
+        backgroundColor: colors.buttonGreen,
         padding: 10,
         alignItems: "center",
         marginTop: 8,
         width: '90%',
-        borderWidth: 2,
-        borderColor: "black", // Orange border for highlight
     },
     buttonDisabled: {
-        backgroundColor: "#3A3A3A", // Muted gray for disabled state
-        borderColor: "#555555", // Subtle border for disabled buttons
+        backgroundColor: colors.disabledBackground, // Muted gray for disabled state
+        borderColor: colors.disabledBorder, // Subtle border for disabled buttons
     },
     buttonContent: {
         flexDirection: "row",
@@ -56,7 +54,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
     },
     buttonText: {
-        color: "white",
+        color: colors.textPrimary,
         fontSize: 16,
         fontWeight: "bold",
     },
@@ -66,7 +64,7 @@ const styles = StyleSheet.create({
         marginLeft: 10,
     },
     costText: {
-        color: "#FFA726", // Warm orange for cost text
+        color: colors.textPrimary, // Warm orange for cost text
         fontSize: 16,
         fontWeight: "bold",
         marginLeft: 5,
