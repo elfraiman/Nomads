@@ -14,6 +14,13 @@ import { ScrollView } from "react-native-gesture-handler";
 
 const { width, height } = Dimensions.get("window");
 
+const LockedPanel = ({ title, unlockHint }: { title: string; unlockHint: string }) => (
+    <View style={[styles.panel, styles.lockedPanel]}>
+        <Text style={styles.panelTitle}>{title}</Text>
+        <Text style={styles.lockedText}>{unlockHint}</Text>
+    </View>
+);
+
 const UpgradeModule = ({
     title,
     costs,
@@ -131,7 +138,9 @@ const Dashboard = () => {
                     </View>
 
                     {/* Core Operations Section */}
-                    {isGatherEnergyAchievementComplete(achievements) && (
+                    {!isGatherEnergyAchievementComplete(achievements) ? (
+                        <LockedPanel title="Locked" unlockHint="Gather Energy" />
+                    ) : (
                         <View style={styles.panel}>
                             <Text style={styles.panelTitle}>Core Operations</Text>
                             <View style={styles.cardContent}>
@@ -149,7 +158,11 @@ const Dashboard = () => {
 
 
                     {/* Ship building Section */}
-                    {isAchievementUnlocked("upgrade_core_operations_storage") && (
+                    {!isAchievementUnlocked("upgrade_core_operations_storage") ? (
+                        <LockedPanel
+                            title="Locked"
+                            unlockHint="Upgrade Core Operations Storage" />
+                    ) : (
                         <View style={styles.panel}>
                             <Text style={styles.panelTitle}>Drone crafting</Text>
                             <View style={styles.cardContent}>
@@ -167,7 +180,9 @@ const Dashboard = () => {
                     )}
 
                     {/* Module Upgrades Section */}
-                    {anyUpgradeUnlocked && (
+                    {!anyUpgradeUnlocked ? (
+                        <LockedPanel title="Locked" unlockHint="Unlock Module Upgrades" />
+                    ) : (
                         <View style={styles.panel}>
                             <Text style={styles.panelTitle}>Module Upgrades</Text>
                             {upgrades.map((upgrade) => (
@@ -269,6 +284,19 @@ const styles = StyleSheet.create({
         backgroundColor: colors.buttonGreen,
         borderWidth: 2,
         borderColor: "black",
+    },
+    lockedPanel: {
+        backgroundColor: colors.lockedBackground,
+        borderColor: colors.border,
+        borderWidth: 1,
+        padding: 16,
+        marginVertical: 10,
+    },
+    lockedText: {
+        color: colors.textSecondary,
+        fontSize: 14,
+        marginTop: 10,
+        textAlign: "center",
     },
     upgradeButtonText: {
         color: "white",

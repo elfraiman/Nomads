@@ -4,7 +4,7 @@ import Svg, { Rect } from "react-native-svg";
 import colors from "@/utils/colors";
 import ShipStatus from "@/components/ShipStatus";
 import { useGame } from "@/context/GameContext";
-import { initialPlayerStats, initialPirates, PlayerResources } from "@/utils/defaults";
+import { initialPlayerStats, IPirate, PlayerResources } from "@/utils/defaults";
 import ResourceIcon from "@/components/ui/ResourceIcon";
 
 const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
@@ -13,11 +13,17 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
   if (!game) return null;
 
+  const generateArrayOfEnemies = () => {
+    return [...Array(15).fill(planet.enemies[0]), planet.enemies[2], planet.enemies[3]]
+  }
+
+
+  const staticEnemies = generateArrayOfEnemies();
   const { resources, setResources } = game;
   const [player, setPlayer] = useState(initialPlayerStats);
-  const [enemies, setEnemies] = useState([...Array(15).fill(initialPirates[0]), initialPirates[2], initialPirates[3]])
+  const [enemies, setEnemies] = useState(staticEnemies);
   const [currentEnemyIndex, setCurrentEnemyIndex] = useState(0);
-  const [pirate, setPirate] = useState(initialPirates[currentEnemyIndex]);
+  const [pirate, setPirate] = useState(staticEnemies[currentEnemyIndex]);
   const [combatLog, setCombatLog] = useState<string[]>([]);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -61,7 +67,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
       const baseDamage = option.power * (1 - pirate.defense / 100);
       const damage = Math.floor(Math.max(baseDamage * randomMultiplier, 1));
 
-      setPirate((prev) => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
+      setPirate((prev: IPirate) => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
       setCombatLog((prev) => [...prev, `Player used ${option.name} and dealt ${damage} damage!`]);
     } else {
       setCombatLog((prev) => [...prev, `Player's ${option.name} missed!`]);
@@ -84,7 +90,12 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
       setEnemies((prev) => prev.filter((_, index) => index !== currentEnemyIndex));
       setCurrentEnemyIndex(nextIndex);
       setPirate(enemies[nextIndex]); // Update pirate immediately
-      setCombatLog((prev) => [...prev, `A new enemy has appeared: ${enemies[nextIndex].name}`]);
+
+      setCombatLog((prev) => [
+        ...prev,
+        `A ${enemies[nextIndex].name} emerges! Known as "${enemies[nextIndex].weaponOfChoice} specialists," these pirates are relentless in their tactics.`,
+      ]);
+
       setIsPlayerTurn(true); // Ensure buttons are re-enabled for the player's turn
     } else {
       setCombatLog((prev) => [...prev, "All enemies defeated! Combat complete."]);
@@ -129,6 +140,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
   // Whenever the combatLog changes, scroll to the end
   useEffect(() => {
+
     if (scrollViewRef.current) {
       scrollViewRef.current.scrollToEnd({ animated: true });
     }
@@ -144,11 +156,22 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
       style = styles.logTextMiss;
     } else if (log.includes("dealt")) {
       style = styles.logTextPirate;
+    } else if (log.includes("defeated")) {
+      style = styles.logTextVictory;
+    } else if (log.includes("destroyed")) {
+      style = styles.logTextVictory;
     }
+
+    const enhancedLog = log
+      .replace("Player used", "Captain, we deployed")
+      .replace("and dealt", ". Direct hit!")
+      .replace("dealt", "Warning! Enemy fire hit our ship,")
+      .replace("missed", "dissipates into the void");
+
 
     return (
       <Text key={index} style={[styles.logText, style]}>
-        {log}
+        {enhancedLog}
       </Text>
     );
   };
@@ -345,6 +368,13 @@ const styles = StyleSheet.create({
   },
   logTextGeneral: {
     color: colors.textPrimary, // General log color
+  },
+  logTextVictory: {
+    color: colors.successGradient[0], // Bright green to signify victory
+    fontWeight: "bold", // Make it stand out
+    fontSize: 14, // Keep it consistent with other log text
+    textAlign: "center", // Center align to emphasize the message
+    marginBottom: 4, // Add spacing between entries
   },
 });
 

@@ -46,6 +46,12 @@
         "projectId": "c597ed06-e918-4fcd-b4cc-8c62061ae11c"
       }
     },
-    "owner": "elfraiman"
+    "owner": "elfraiman",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/c597ed06-e918-4fcd-b4cc-8c62061ae11c"
+    }
   }
 }

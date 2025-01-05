@@ -1,4 +1,4 @@
-import { GameProvider } from '@/context/GameContext';
+import { GameProvider, useGame } from '@/context/GameContext';
 import colors from '@/utils/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { createDrawerNavigator } from '@react-navigation/drawer';
@@ -33,7 +33,7 @@ function ExplorationStack() {
 }
 
 
-export default function RootLayout() {
+function WrappedRootLayout() {
   const router = useRouter();
 
   const [loaded] = useFonts({
@@ -52,70 +52,90 @@ export default function RootLayout() {
   if (!loaded) {
     return null;
   }
+  const { isAchievementUnlocked } = useGame(); // Example: `{ exploration: true, droneManagement: false }`
+
 
   return (
-    <GameProvider>
-      <ThemeProvider value={DarkTheme}>
-        <StatusBar
-          barStyle="light-content" // Options: "light-content", "dark-content"
-          backgroundColor="black" // Android-specific
+
+    <ThemeProvider value={DarkTheme}>
+      <StatusBar
+        barStyle="light-content" // Options: "light-content", "dark-content"
+        backgroundColor="black" // Android-specific
+      />
+      <Drawer.Navigator
+        screenOptions={({ navigation }) => ({
+          drawerStyle: {
+            backgroundColor: colors.background,
+            width: 240,
+          },
+          drawerActiveTintColor: colors.primary,
+          drawerInactiveTintColor: '#ccc',
+          headerLeft: () => (
+            <Ionicons
+              name="menu-outline"
+              size={24}
+              color="#fff"
+              style={{ marginLeft: 10 }}
+              onPress={() => navigation.toggleDrawer()}
+            />
+          ),
+          headerStyle: {
+            backgroundColor: colors.background,
+            borderBottomWidth: 2,
+            borderBottomColor: colors.primary,
+            shadowColor: colors.glowEffect,
+            shadowOpacity: 0.8,
+            shadowRadius: 10,
+            elevation: 6,
+          },
+          headerTintColor: colors.textPrimary,
+          headerTitleAlign: 'center',
+          headerTitleStyle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: colors.textPrimary,
+            textTransform: 'uppercase',
+            letterSpacing: 2,
+            textShadowColor: colors.glowEffect,
+            textShadowOffset: { width: 0, height: 0 },
+            textShadowRadius: 8,
+          },
+        })}
+      >
+        {/* Dashboard is always available */}
+        <Drawer.Screen
+          name="dashboard"
+          component={Dashboard}
+          options={{
+            title: 'Dashboard',
+            drawerIcon: ({ color }) => <Ionicons name="bar-chart-outline" size={24} color={color} />,
+          }}
         />
-        <Drawer.Navigator
-          screenOptions={({ navigation }) => ({
-            drawerStyle: {
-              backgroundColor: colors.background,
-              width: 240,
-            },
-            drawerActiveTintColor: colors.primary,
-            drawerInactiveTintColor: '#ccc',
-            headerLeft: () => (
-              <Ionicons
-                name="menu-outline"
-                size={24}
-                color="#fff"
-                style={{ marginLeft: 10 }}
-                onPress={() => navigation.toggleDrawer()}
-              />
-            ),
-            headerStyle: {
-              backgroundColor: colors.background, // Darker background for the header
-              borderBottomWidth: 2,
-              borderBottomColor: colors.primary, // Futuristic border glow
-              shadowColor: colors.glowEffect,
-              shadowOpacity: 0.8,
-              shadowRadius: 10,
-              elevation: 6,
-            },
-            headerTintColor: colors.textPrimary, // Futuristic cyan color
-            headerTitleAlign: 'center',
-            headerTitleStyle: {
-              fontSize: 18,
-              fontWeight: 'bold',
-              color: colors.textPrimary,
-              textTransform: 'uppercase',
-              letterSpacing: 2,
-              textShadowColor: colors.glowEffect,
-              textShadowOffset: { width: 0, height: 0 },
-              textShadowRadius: 8,
-            },
-          })}
-        >
-          <Drawer.Screen
-            name="dashboard"
-            component={Dashboard}
-            options={{
-              title: 'Dashboard',
-              drawerIcon: ({ color }) => <Ionicons name="bar-chart-outline" size={24} color={color} />,
-            }}
-          />
+
+        {/* Conditional rendering for Exploration */}
+        {isAchievementUnlocked("build_scanning_drones") ? (
           <Drawer.Screen
             name="explorationStack"
-            component={ExplorationStack} // Use the stack for Exploration and Combat
+            component={ExplorationStack}
             options={{
               title: 'Exploration',
               drawerIcon: ({ color }) => <Ionicons name="planet-outline" size={24} color={color} />,
             }}
           />
+        ) : (
+          <Drawer.Screen
+            name="explorationLocked"
+            component={() => null}
+            options={{
+              title: 'Locked',
+              drawerIcon: ({ color }) => <Ionicons name="lock-closed-outline" size={24} color={color} />,
+              drawerItemStyle: { backgroundColor: colors.lockedBackground }, // Style for locked items
+            }}
+          />
+        )}
+
+        {/* Conditional rendering for Drone Management */}
+        {isAchievementUnlocked("build_mining_drones") ? (
           <Drawer.Screen
             name="droneManagement"
             component={DroneManagement}
@@ -124,9 +144,27 @@ export default function RootLayout() {
               drawerIcon: ({ color }) => <Ionicons name="airplane" size={24} color={color} />,
             }}
           />
-          <Stack.Screen name="CombatPage" component={CombatPage} />
-        </Drawer.Navigator>
-      </ThemeProvider>
-    </GameProvider >
+        ) : (
+          <Drawer.Screen
+            name="droneManagementLocked"
+            component={() => null}
+            options={{
+              title: 'Locked',
+              drawerIcon: ({ color }) => <Ionicons name="lock-closed-outline" size={24} color={color} />,
+              drawerItemStyle: { backgroundColor: colors.lockedBackground },
+            }}
+          />
+        )}
+      </Drawer.Navigator>
+    </ThemeProvider>
   );
 }
+
+
+const RootLayout = () => (
+  <GameProvider>
+    <WrappedRootLayout />
+  </GameProvider>
+);
+
+export default RootLayout

@@ -1,5 +1,5 @@
 import { PropsWithChildren, useState } from "react";
-import { StyleSheet, TouchableOpacity, Animated, View } from "react-native";
+import { StyleSheet, TouchableOpacity, Animated, View, Platform } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: colors.transparentBackground,
+    backgroundColor: Platform.OS === "ios" ? colors.iosTransparentBackground : colors.transparentBackground, // Solid color for iOS
     borderBottomColor: colors.border,
     paddingHorizontal: 12,
   },

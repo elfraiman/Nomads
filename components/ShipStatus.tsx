@@ -6,6 +6,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import ActiveGoal from "./ui/ActiveGoal";
 import ResourceIcon from "./ui/ResourceIcon";
 import colors from "@/utils/colors";
+import { Ionicons } from "@expo/vector-icons";
 
 const ShipStatus = () => {
     const game = useGame();
@@ -49,8 +50,20 @@ const ShipStatus = () => {
 
                 <View style={styles.otherResources}>
                     {/* Other Resources */}
+
+
                     {Object.entries(resources).map(([key, resource]) => {
-                        if (key === "energy" || resource.locked) return null;
+                        if (key === "energy") return null;
+
+                        if (resource.locked) {
+                            return (
+                                <View key={key} style={styles.resource}>
+                                    <Ionicons name="lock-closed" size={20} color={colors.disabledIcon} />
+                                    <Text style={styles.lockedText}>Locked</Text>
+                                </View>
+                            );
+                        }
+
                         return (
                             <View style={styles.resource} key={key}>
                                 <ResourceIcon type={key as keyof typeof resources} />
@@ -179,19 +192,10 @@ const styles = StyleSheet.create({
         fontSize: 14,
         marginLeft: 6,
     },
-    goalContainer: {
-        marginTop: 10,
-        paddingVertical: 10,
-        paddingHorizontal: 8,
-        backgroundColor: colors.panelBackground,
-        borderRadius: 5,
-        borderWidth: 1,
-        borderColor: colors.disabledBorder,
-    },
-    goalText: {
-        color: colors.primary,
-        fontSize: 14,
-        fontWeight: "bold",
+    lockedText: {
+        color: colors.textSecondary,
+
+        marginTop: 4,
     },
     shipsContainer: {
         position: "absolute",
@@ -203,20 +207,13 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
         overflow: "hidden",
     },
-    expanded: {
-        height: "auto",
-        paddingBottom: 40, // Ensure room for toggle button
-        top: -125,
-    },
     collapsed: {
         height: 38,
-
     },
     dronesContent: {
         flex: 1,
         alignItems: "center",
         justifyContent: "flex-start",
-
     },
     toggleButton: {
         padding: 10,
@@ -248,5 +245,6 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
     },
 });
+
 
 export default ShipStatus;

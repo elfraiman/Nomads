@@ -167,7 +167,7 @@ const achievements: IAchievement[] = [
         title: "Mining Operations",
         description: "Build 2 Mining Drones to start mining the asteroid you found.",
         shipGoals: {
-            miningDrones: 2,
+            miningDrones: 1,
         },
         progress: {
             ships: {
