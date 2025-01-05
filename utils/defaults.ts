@@ -152,3 +152,68 @@ export const initialGalaxies: IGalaxy[] = [
     ]
   },
 ];
+
+
+interface IPlayerStats {
+  health: number;
+  attackPower: number;
+  defense: number;
+  attackSpeed: number;
+}
+
+export const initialPlayerStats: IPlayerStats = {
+  health: 100,
+  attackPower: 15,
+  defense: 10,
+  attackSpeed: 2,
+};
+
+
+export interface IPirate {
+  name: string;
+  health: number;
+  maxHealth: number;
+  attack: number;
+  defense: number;
+  weaponOfChoice: string;
+  attackSpeed: number;
+}
+
+export const initialPirates: IPirate[] = [
+  {
+    name: "Missile Corvet Pirate",
+    health: 100,
+    maxHealth: 100,
+    attack: 10,
+    defense: 5,
+    weaponOfChoice: "Missile Launcher",
+    attackSpeed: 2,
+  },
+  {
+    name: "Laser Drone Pirate",
+    health: 100,
+    maxHealth: 100,
+    attack: 10,
+    defense: 3,
+    weaponOfChoice: "Laser Beam",
+    attackSpeed: 3,
+  },
+  {
+    name: "Plasma Marauder Pirate",
+    health: 120,
+    maxHealth: 120,
+    attack: 20,
+    defense: 7,
+    weaponOfChoice: "Plasma Cannon",
+    attackSpeed: 1,
+  },
+  {
+    name: "Titan Pirate",
+    health: 1000,
+    maxHealth: 1000,
+    attack: 25,
+    defense: 10,
+    weaponOfChoice: "Titan's Fist",
+    attackSpeed: 1,
+  },
+];

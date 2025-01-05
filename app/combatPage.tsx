@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { StyleSheet, Text, TouchableOpacity, View, Image, Alert, ScrollView } from "react-native";
-import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
+import React, { useEffect, useRef, useState } from "react";
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Svg, { Rect } from "react-native-svg";
 import colors from "@/utils/colors";
 import ShipStatus from "@/components/ShipStatus";
 import { useGame } from "@/context/GameContext";
+import { initialPlayerStats, initialPirates, PlayerResources } from "@/utils/defaults";
+import ResourceIcon from "@/components/ui/ResourceIcon";
 
 const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
   const { planet } = route.params;
@@ -12,132 +14,175 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
   if (!game) return null;
 
   const { resources, setResources } = game;
-
-  const initialPlayerStats = {
-    health: 100,
-    attackPower: 15,
-    defense: 10,
-  };
-
-  const initialPirateStats = {
-    health: Math.floor(Math.random() * 50) + 50,
-    attack: Math.floor(Math.random() * 10) + 10,
-    defense: Math.floor(Math.random() * 5),
-  };
-
-  const generatePirateStats = () => ({
-    health: Math.floor(Math.random() * 50) + 50,
-    attack: Math.floor(Math.random() * 10) + 10,
-    defense: Math.floor(Math.random() * 5),
-  });
-
-  const bossStats = {
-    health: 200,
-    attack: 25,
-    defense: 15,
-  };
-
   const [player, setPlayer] = useState(initialPlayerStats);
-  const [pirate, setPirate] = useState(generatePirateStats());
+  const [enemies, setEnemies] = useState([...Array(15).fill(initialPirates[0]), initialPirates[2], initialPirates[3]])
+  const [currentEnemyIndex, setCurrentEnemyIndex] = useState(0);
+  const [pirate, setPirate] = useState(initialPirates[currentEnemyIndex]);
   const [combatLog, setCombatLog] = useState<string[]>([]);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
-  const [piratesLeft, setPiratesLeft] = useState(5); // Number of pirates to defeat before the boss
-  const [isBossFight, setIsBossFight] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+
 
   const attackOptions = [
-    { name: "Energy Canon", cost: { type: "energy", amount: 10 }, power: 20 },
-    { name: "Solar Plasma Beam", cost: { type: "solarPlasma", amount: 15 }, power: 30 },
-    { name: "Dark Matter Missile", cost: { type: "darkMatter", amount: 20 }, power: 40 },
-    { name: "Penetrating Alloy Bullet", cost: { type: "alloy", amount: 5 }, power: 10 },
-    { name: "Cold Laser", cost: { type: "frozenHydrogen", amount: 10 }, power: 25 },
+    { name: "Energy Canon", cost: { type: "energy", amount: 80 }, power: 10, attackSpeed: 3 },
+    { name: "Heat seeking missile", cost: { type: "fuel", amount: 100 }, power: 35, attackSpeed: 3 },
+    { name: "Solar Plasma Beam", cost: { type: "solarPlasma", amount: 75 }, power: 25, attackSpeed: 2 },
+    { name: "Dark Matter Blast", cost: { type: "darkMatter", amount: 40 }, power: 30, attackSpeed: 2 },
+    { name: "Penetrating Alloy Bullet", cost: { type: "alloy", amount: 100 }, power: 50, attackSpeed: 1 },
+    { name: "Cold Laser", cost: { type: "frozenHydrogen", amount: 80 }, power: 40, attackSpeed: 1.5 },
   ];
+
+  const calculateHitChance = (attackerSpeed: number, defenderSpeed: number, baseHitChance: number = 0.8) => {
+    const speedDifference = defenderSpeed - attackerSpeed;
+    const adjustedHitChance = Math.max(baseHitChance - speedDifference * 0.05, 0.1); // Minimum hit chance of 10%
+    return Math.random() <= adjustedHitChance;
+  };
 
   const handleAttack = (option: typeof attackOptions[0]) => {
     const { type, amount } = option.cost;
 
-    // Check if player has enough resources
-    if ((resources[type]?.current || 0) < amount) {
+    if ((resources[type as keyof PlayerResources]?.current || 0) < amount) {
       setCombatLog((prev) => [...prev, `Not enough ${type} to use ${option.name}!`]);
       return;
     }
 
-    // Deduct resources and deal damage
     setResources((prev) => ({
       ...prev,
       [type]: {
-        ...prev[type],
-        current: Math.max((prev[type]?.current || 0) - amount, 0),
+        ...prev[type as keyof PlayerResources],
+        current: Math.max((prev[type as keyof PlayerResources]?.current || 0) - amount, 0),
       },
     }));
 
-    const damage = Math.max(option.power - pirate.defense, 0);
-    setPirate((prev) => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
-    setCombatLog((prev) => [...prev, `Player used ${option.name} and dealt ${damage} damage!`]);
+    const hit = calculateHitChance(player.attackSpeed, pirate.attackSpeed);
+
+    if (hit) {
+      const randomMultiplier = Math.random() * 0.4 + 0.8;
+      const baseDamage = option.power * (1 - pirate.defense / 100);
+      const damage = Math.floor(Math.max(baseDamage * randomMultiplier, 1));
+
+      setPirate((prev) => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
+      setCombatLog((prev) => [...prev, `Player used ${option.name} and dealt ${damage} damage!`]);
+    } else {
+      setCombatLog((prev) => [...prev, `Player's ${option.name} missed!`]);
+    }
+
     setIsPlayerTurn(false);
   };
 
+
   const handleEscape = () => {
-    Alert.alert("Escape", "Are you sure you want to escape?", [
+    Alert.alert("Escape", "Are you sure you want to escape? the planets pirate forces might recover.", [
       { text: "Cancel", style: "cancel" },
       { text: "Escape", onPress: () => navigation.goBack() },
     ]);
   };
 
-  const handlePirateDefeat = () => {
-    if (piratesLeft > 1) {
-      setPiratesLeft((prev) => prev - 1);
-      setPirate(generatePirateStats());
-      setCombatLog((prev) => [...prev, "A new pirate has appeared!"]);
+  const handleEnemyDefeat = () => {
+    if (currentEnemyIndex < enemies.length - 1) {
+      const nextIndex = currentEnemyIndex + 1;
+      setEnemies((prev) => prev.filter((_, index) => index !== currentEnemyIndex));
+      setCurrentEnemyIndex(nextIndex);
+      setPirate(enemies[nextIndex]); // Update pirate immediately
+      setCombatLog((prev) => [...prev, `A new enemy has appeared: ${enemies[nextIndex].name}`]);
+      setIsPlayerTurn(true); // Ensure buttons are re-enabled for the player's turn
     } else {
-      setIsBossFight(true);
-      setPirate(bossStats);
-      setCombatLog((prev) => [...prev, "The Boss has arrived!"]);
+      setCombatLog((prev) => [...prev, "All enemies defeated! Combat complete."]);
+      setTimeout(() => navigation.goBack(), 2000);
     }
   };
 
   useEffect(() => {
     if (!isPlayerTurn && pirate.health > 0) {
       const timeout = setTimeout(() => {
-        const damage = Math.max(pirate.attack - player.defense, 0);
-        setPlayer((prev) => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
-        setCombatLog((prev) => [...prev, `Pirate dealt ${damage} damage!`]);
+        const hit = calculateHitChance(pirate.attackSpeed, player.attackSpeed);
+
+        if (hit) {
+          const randomMultiplier = Math.random() * 0.4 + 0.8;
+          const baseDamage = pirate.attack * (1 - player.defense / 100);
+          const damage = Math.floor(Math.max(baseDamage * randomMultiplier, 1));
+
+          setPlayer((prev) => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
+          setCombatLog((prev) => [...prev, `${pirate.name} dealt ${damage.toFixed(1)} damage!`]);
+        } else {
+          setCombatLog((prev) => [...prev, `${pirate.name}'s attack missed!`]);
+        }
+
         setIsPlayerTurn(true);
       }, 1000);
+
       return () => clearTimeout(timeout);
     }
   }, [isPlayerTurn]);
 
+
+
   useEffect(() => {
     if (pirate.health === 0) {
-      if (isBossFight) {
-        setCombatLog((prev) => [...prev, "Boss defeated!"]);
-        setTimeout(() => navigation.goBack(), 2000);
-      } else {
-        handlePirateDefeat();
-      }
+      handleEnemyDefeat();
     } else if (player.health === 0) {
       setCombatLog((prev) => [...prev, "You have been defeated!"]);
       setTimeout(() => navigation.goBack(), 2000);
     }
   }, [pirate.health, player.health]);
 
+
+  // Whenever the combatLog changes, scroll to the end
+  useEffect(() => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollToEnd({ animated: true });
+    }
+  }, [combatLog]);
+
+
+  const renderLogEntry = (log: string, index: number) => {
+    let style = styles.logTextGeneral;
+
+    if (log.includes("Player used")) {
+      style = styles.logTextPlayer;
+    } else if (log.includes("missed")) {
+      style = styles.logTextMiss;
+    } else if (log.includes("dealt")) {
+      style = styles.logTextPirate;
+    }
+
+    return (
+      <Text key={index} style={[styles.logText, style]}>
+        {log}
+      </Text>
+    );
+  };
+
+
   return (
     <>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Text style={styles.header}>
-          {planet.name} - {isBossFight ? "Boss Fight" : `Combat (${piratesLeft} Left)`}
-        </Text>
+      <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={styles.header}>{planet.name} - {enemies.length} Enemies left</Text>
 
-        {/* Pirate Image */}
+        {/* Pirate Image and Health Bar */}
         <View style={styles.pirateImageContainer}>
           <Image
             source={{ uri: "https://via.placeholder.com/150" }}
             style={styles.pirateImage}
           />
           <Text style={styles.pirateName}>
-            {isBossFight ? "Boss" : "Pirate"}: {pirate.health}/{isBossFight ? bossStats.health : initialPirateStats.health} HP
+            {pirate.name}: {pirate.health}/{pirate.maxHealth} HP
           </Text>
+          <View style={styles.healthBarContainer}>
+            <Svg width="100%" height="20">
+              <Rect x="0" y="0" width="100%" height="20" fill={colors.disabledBackground} rx="5" />
+              <Rect
+                x="0"
+                y="0"
+                width={`${(pirate.health / pirate.maxHealth) * 100}%`}
+                height="20"
+                fill={colors.error}
+                rx="5"
+              />
+            </Svg>
+          </View>
         </View>
+
 
         {/* Health Bars */}
         <View style={styles.healthContainer}>
@@ -149,7 +194,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
               y="0"
               width={`${(player.health / 100) * 100}%`}
               height="20"
-              fill={colors.primary}
+              fill={colors.successGradient[1]}
               rx="5"
             />
           </Svg>
@@ -160,18 +205,9 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
           <Text style={styles.logHeader}>Combat Log</Text>
           <ScrollView
             style={styles.scrollableLog}
-            contentContainerStyle={styles.scrollableContent}
-            ref={(ref) => {
-              if (ref) {
-                ref.scrollToEnd({ animated: true });
-              }
-            }}
+            ref={scrollViewRef}
           >
-            {combatLog.map((log, index) => (
-              <Text key={index} style={styles.logText}>
-                {log}
-              </Text>
-            ))}
+            {combatLog.map((log, index) => renderLogEntry(log, index))}
           </ScrollView>
         </View>
 
@@ -186,7 +222,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
             >
               <Text style={styles.gridOptionText}>{option.name}</Text>
               <Text style={styles.gridCostText}>
-                - {option.cost.amount} {option.cost.type}
+                - {option.cost.amount} <ResourceIcon type={option.cost.type as keyof PlayerResources} size={14} />
               </Text>
             </TouchableOpacity>
           ))}
@@ -194,8 +230,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
             <Text style={styles.gridOptionText}>Escape</Text>
           </TouchableOpacity>
         </View>
-
-      </View>
+      </ScrollView>
       <ShipStatus />
     </>
   );
@@ -208,7 +243,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   scrollableLog: {
-    maxHeight: 100,
+    height: 100,
     backgroundColor: colors.transparentBackground,
     borderRadius: 8,
     padding: 8,
@@ -217,15 +252,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   logHeader: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: colors.textPrimary,
-    marginBottom: 8,
-  },
-  logText: {
-    color: colors.textSecondary,
     fontSize: 14,
-    marginBottom: 4,
+    color: colors.glowEffect,
+    marginBottom: 8,
   },
   header: {
     fontSize: 24,
@@ -239,8 +268,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   pirateImage: {
-    width: 120,
-    height: 120,
+    width: 80,
+    height: 80,
     borderRadius: 60,
     borderColor: colors.glowEffect,
     borderWidth: 2,
@@ -250,6 +279,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 18,
     fontWeight: "bold",
+  },
+  healthBarContainer: {
+    width: "80%", // Adjust width to fit nicely under the image
+    marginTop: 10,
   },
   healthContainer: {
     marginBottom: 16,
@@ -268,10 +301,12 @@ const styles = StyleSheet.create({
   },
   gridButton: {
     backgroundColor: colors.panelBackground,
-    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 6,
     margin: 6,
     alignItems: "center",
-    width: "40%",
+    width: "45%",
   },
   escapeButton: {
     backgroundColor: colors.error,
@@ -293,6 +328,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.transparentBackground,
     padding: 12,
     borderRadius: 8,
+  },
+  logText: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  logTextPlayer: {
+    color: colors.warning, // Use primary color for player's actions
+  },
+  logTextPirate: {
+    color: colors.error, // Use error color for pirate's actions
+  },
+  logTextMiss: {
+    color: colors.textSecondary, // Use secondary color for misses
+    fontStyle: "italic",
+  },
+  logTextGeneral: {
+    color: colors.textPrimary, // General log color
   },
 });
 
