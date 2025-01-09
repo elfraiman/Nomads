@@ -12,6 +12,24 @@ export interface IPlanet {
   image?: any;
   enemies: IPirate[];
 }
+export interface IPirate {
+  name: string;
+  health: number;
+  maxHealth: number;
+  faction: string;
+  attack: number;
+  defense: number;
+  weaponOfChoice: string;
+  attackSpeed: number;
+  lore: string;
+}
+
+interface IPlayerStats {
+  health: number;
+  attackPower: number;
+  defense: number;
+  attackSpeed: number;
+}
 
 export interface IGalaxy {
   id: number;
@@ -61,13 +79,13 @@ export interface PlayerResources {
 
 // Initial values for resources
 export const initialResources: PlayerResources = {
-  energy: { current: 85, max: 100, efficiency: 1, locked: false },
+  energy: { current: 85, max: 100, efficiency: 2, locked: false },
   fuel: { current: 0, max: 100, efficiency: 1.8, locked: false },
-  solarPlasma: { current: 0, max: 100, efficiency: 1.6, locked: true },
-  darkMatter: { current: 0, max: 100, efficiency: 1.2, locked: true },
-  frozenHydrogen: { current: 0, max: 100, efficiency: 0.9, locked: true },
-  alloys: { current: 0, max: 100, efficiency: 0.3, locked: true },
-  tokens: { current: 0, max: 100, efficiency: 1, locked: true },
+  solarPlasma: { current: 0, max: 100, efficiency: 1.6, locked: false },
+  darkMatter: { current: 0, max: 100, efficiency: 1.2, locked: false },
+  frozenHydrogen: { current: 0, max: 100, efficiency: 0.9, locked: false },
+  alloys: { current: 0, max: 100, efficiency: 0.3, locked: false },
+  tokens: { current: 0, max: 100, efficiency: 1, locked: false },
 };
 
 // Initial values for ships
@@ -299,12 +317,8 @@ export const initialGalaxies: IGalaxy[] = [
 ];
 
 
-interface IPlayerStats {
-  health: number;
-  attackPower: number;
-  defense: number;
-  attackSpeed: number;
-}
+export const miningDroneCost = { fuel: 500, solarPlasma: 800, energy: 850 };
+export const scanningDroneCost = { fuel: 100, solarPlasma: 100, energy: 200 };
 
 export const initialPlayerStats: IPlayerStats = {
   health: 100,
@@ -314,14 +328,11 @@ export const initialPlayerStats: IPlayerStats = {
 };
 
 
-export interface IPirate {
-  name: string;
-  health: number;
-  maxHealth: number;
-  faction: string;
-  attack: number;
-  defense: number;
-  weaponOfChoice: string;
-  attackSpeed: number;
-  lore: string;
-}
+export const shipWeaponModules = [
+  { name: "Energy Canon", cost: { type: "energy", amount: 80 }, power: 10, attackSpeed: 3 },
+  { name: "Heat seeking missile", cost: { type: "fuel", amount: 100 }, power: 35, attackSpeed: 3 },
+  { name: "Light Solar Blaster", cost: { type: "solarPlasma", amount: 75 }, power: 10, attackSpeed: 1 },
+  { name: "Dark Matter Blast", cost: { type: "darkMatter", amount: 40 }, power: 30, attackSpeed: 2 },
+  { name: "Penetrating Alloy Bullet", cost: { type: "alloy", amount: 100 }, power: 50, attackSpeed: 1 },
+  { name: "Cold Laser", cost: { type: "frozenHydrogen", amount: 80 }, power: 40, attackSpeed: 1.5 },
+];

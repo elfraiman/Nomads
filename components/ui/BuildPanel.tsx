@@ -1,4 +1,4 @@
-import { PlayerResources, Resource, Ships } from "@/utils/defaults";
+import { miningDroneCost, PlayerResources, Resource, scanningDroneCost, Ships } from "@/utils/defaults";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
@@ -8,8 +8,6 @@ import { GameContextType, GameProvider } from '../../context/GameContext';
 import colors from "@/utils/colors";
 
 
-const miningDroneCost = { fuel: 500, solarPlasma: 800, energy: 1000 };
-const scanningDroneCost = { fuel: 100, solarPlasma: 100, energy: 200 };
 
 
 const BuildPanel = ({
@@ -37,7 +35,7 @@ const BuildPanel = ({
     onBuild();
 
     const cooldownEndTime = Date.now() + cooldown * 1000;
-    await AsyncStorage.setItem("miningDroneCooldown", cooldownEndTime.toString());
+    await AsyncStorage.setItem("buildCooldown", cooldownEndTime.toString());
 
     setIsOnCooldown(true);
     setCooldownTimeLeft(cooldown);
@@ -47,7 +45,7 @@ const BuildPanel = ({
         if (prev <= 1) {
           clearInterval(interval);
           setIsOnCooldown(false);
-          AsyncStorage.removeItem("miningDroneCooldown");
+          AsyncStorage.removeItem("buildCooldown");
           return 0;
         }
         return prev - 1;
@@ -57,7 +55,7 @@ const BuildPanel = ({
 
   useEffect(() => {
     const checkCooldown = async () => {
-      const storedCooldown = await AsyncStorage.getItem("miningDroneCooldown");
+      const storedCooldown = await AsyncStorage.getItem("buildCooldown");
       if (storedCooldown) {
         const cooldownEndTime = parseInt(storedCooldown, 10);
         const remainingTime = Math.max(0, Math.floor((cooldownEndTime - Date.now()) / 1000));
@@ -71,7 +69,7 @@ const BuildPanel = ({
               if (prev <= 1) {
                 clearInterval(interval);
                 setIsOnCooldown(false);
-                AsyncStorage.removeItem("miningDroneCooldown");
+                AsyncStorage.removeItem("buildCooldown");
                 return 0;
               }
               return prev - 1;
@@ -217,7 +215,7 @@ const BuildOperations = ({
         cost={scanningDroneCost}
         description={`Manufacture a Scanning Drone to explore the galaxy.`}
         onBuild={buildScanningDrone}
-        cooldown={30} // 1-minute cooldown
+        cooldown={1} // 1-minute cooldown
       />
 
       {game.isAchievementUnlocked("find_an_asteroid") && (

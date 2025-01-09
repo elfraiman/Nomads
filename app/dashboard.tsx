@@ -102,6 +102,7 @@ const Dashboard = () => {
         updateShips,
         isAchievementUnlocked,
         ships,
+        weapons
     } = game;
 
     const handleGenerateEnergy = () => {
@@ -157,27 +158,6 @@ const Dashboard = () => {
                     )}
 
 
-                    {/* Ship building Section */}
-                    {!isAchievementUnlocked("upgrade_core_operations_storage") ? (
-                        <LockedPanel
-                            title="Locked"
-                            unlockHint="Upgrade Core Operations Storage" />
-                    ) : (
-                        <View style={styles.panel}>
-                            <Text style={styles.panelTitle}>Drone crafting</Text>
-                            <View style={styles.cardContent}>
-                                <Collapsible title="Worker drones">
-                                    <BuildOperations
-                                        game={game}
-                                        resources={resources}
-                                        ships={ships}
-                                        updateResources={updateResources}
-                                        updateShips={updateShips}
-                                    />
-                                </Collapsible>
-                            </View>
-                        </View>
-                    )}
 
                     {/* Module Upgrades Section */}
                     {!anyUpgradeUnlocked ? (
@@ -197,6 +177,56 @@ const Dashboard = () => {
                                     resources={resources}
                                 />
                             ))}
+                        </View>
+                    )}
+
+
+                    {/* Ship building Section */}
+                    {!isAchievementUnlocked("upgrade_core_operations_storage") ? (
+                        <LockedPanel
+                            title="Locked"
+                            unlockHint="Complete goals" />
+                    ) : (
+                        <View style={styles.panel}>
+                            <Text style={styles.panelTitle}>Drone crafting</Text>
+                            <View style={styles.cardContent}>
+                                <Collapsible title="Worker drones">
+                                    <BuildOperations
+                                        game={game}
+                                        resources={resources}
+                                        ships={ships}
+                                        updateResources={updateResources}
+                                        updateShips={updateShips}
+                                    />
+                                </Collapsible>
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Weapon building Section */}
+                    {!isAchievementUnlocked("build_mining_drones") ? (
+                        <LockedPanel
+                            title="Locked"
+                            unlockHint="Complete goals" />
+                    ) : (
+                        <View style={styles.panel}>
+                            <Text style={styles.panelTitle}>Weapon Modules</Text>
+                            <View style={styles.cardContent}>
+                                <Collapsible title="Light Weapons">
+                                    {weapons?.map((weapon) => (
+                                        <UpgradeModule
+                                            key={weapon.id}
+                                            title={weapon.title}
+                                            costs={weapon.costs}
+                                            onUpgrade={() => purchaseUpgrade(weapon.id)}
+                                            onRemove={() => downgradeUpgrade(weapon.id)}
+                                            description={weapon.description(weapon.level || 0)}
+                                            locked={!isUpgradeUnlocked(weapon.id)}
+                                            resources={resources}
+                                        />
+                                    ))}
+                                </Collapsible>
+                            </View>
                         </View>
                     )}
                 </ScrollView>

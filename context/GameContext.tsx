@@ -1,6 +1,7 @@
-import achievementsData, { IAchievement } from "@/data/achievements";
+import initialAchievements, { IAchievement } from "@/data/achievements";
 import { loadGameState, saveGameState } from "@/data/asyncStorage";
 import initialUpgradeList, { Upgrade, UpgradeCost } from "@/data/upgrades";
+import initialWeapons, { IWeapon } from "@/data/weapons";
 import { initialResources, Resource, PlayerResources, Ships, initialShips, IAsteroid, IGalaxy, initialGalaxies } from "@/utils/defaults";
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { AppState, AppStateStatus, Platform } from "react-native";
@@ -13,6 +14,7 @@ export interface GameContextType {
     miningDroneAllocation: Record<string, number>;
     foundAsteroids: IAsteroid[];
     galaxies: IGalaxy[];
+    weapons: IWeapon[];
 
     // Drones
     allocateMiningDrones: (asteroid: IAsteroid, count: number) => void;
@@ -52,12 +54,14 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider = ({ children }: { children: ReactNode }) => {
     const [resources, setResources] = useState<PlayerResources>(initialResources);
-    const [achievements, setAchievements] = useState<IAchievement[]>(achievementsData);
+    const [achievements, setAchievements] = useState<IAchievement[]>(initialAchievements);
     const [ships, setShips] = useState(initialShips);
     const [upgrades, setUpgrades] = useState<Upgrade[]>(initialUpgradeList);
     const [miningDroneAllocation, setMiningDroneAllocation] = useState<Record<string, number>>({});
     const [foundAsteroids, setFoundAsteroids] = useState<IAsteroid[]>([]);
     const [galaxies, setUnlockedGalaxies] = useState<IGalaxy[]>(initialGalaxies);
+    const [weapons, setWeapons] = useState<IWeapon[]>(initialWeapons);
+
 
     // Save state
     //
@@ -72,7 +76,21 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 baseCostMultiplier: upgrade.baseCostMultiplier,
             }));
 
-            await saveGameState({ resources, achievements, upgrades: serializableUpgrades, ships, allocatedDrones: { mining: miningDroneAllocation }, foundAsteroids, galaxies });
+            const serializableWeapons = weapons.map((weapon) => ({
+                id: weapon.id,
+                level: weapon.level,
+                costs: weapon.costs,
+                title: weapon.title,
+                description: weapon.description,
+                baseCostMultiplier: weapon.baseCostMultiplier,
+                weaponDetails: weapon.weaponDetails,
+            }));
+
+            await saveGameState({
+                resources, achievements, upgrades: serializableUpgrades,
+                ships, allocatedDrones: { mining: miningDroneAllocation }, foundAsteroids, galaxies,
+                weapons: serializableWeapons
+            });
         };
 
         const handleAppStateChange = async (nextAppState: AppStateStatus) => {
@@ -108,11 +126,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             const savedState = await loadGameState();
             if (savedState) {
                 setResources(savedState.resources || initialResources);
-                setAchievements(savedState.achievements || achievementsData);
+                setAchievements(savedState.achievements || initialAchievements);
                 setShips(savedState.ships || initialShips);
                 setFoundAsteroids(savedState.foundAsteroids || []);
                 setMiningDroneAllocation(savedState.allocatedDrones?.mining || {});
                 setUnlockedGalaxies(initialGalaxies);
+                setWeapons(savedState.weapons || initialWeapons);
 
                 const upgradesFromSaveFile = initialUpgradeList.map((defaultUpgrade) => {
                     const savedUpgrade = savedState.upgrades?.find((u) => u.id === defaultUpgrade.id);
@@ -173,7 +192,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const upgradeResourceEfficiency = (type: keyof PlayerResources, increment: number) => {
         setResources((prev) => ({
             ...prev,
-            [type]: { ...prev[type], efficiency: prev[type].efficiency + increment },
+            [type]: { ...prev[type], efficiency: Math.round(prev[type].efficiency + increment) },
         }));
     };
 
@@ -318,7 +337,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         );
     };
 
-    const isAchievementUnlocked = (id: string) => achievements.some((a) => a.id === id && a.completed);
+    const isAchievementUnlocked = (id: string) => {
+        if (achievements) {
+            return achievements.some((a) => a.id === id && a.completed);
+        }
+    }
 
     const isUpgradeUnlocked = (upgradeId: string): boolean => {
         return achievements.some(
@@ -539,7 +562,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 const reactorOptimizationUpgrade = upgrades.find((u) => u.id === "reactor_optimization");
                 const optimizationLevel = reactorOptimizationUpgrade?.level || 0;
                 if (optimizationLevel > 0) {
-                    const energyGenerationRate = Math.round(optimizationLevel * prevResources.energy.efficiency);
+                    const energyGenerationRate = (optimizationLevel * prevResources.energy.efficiency);
                     updatedResources.energy = {
                         ...updatedResources.energy,
                         current: Math.round(Math.min(

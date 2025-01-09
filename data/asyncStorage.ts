@@ -5,6 +5,7 @@ import { IAsteroid, IGalaxy, PlayerResources, Ships } from "@/utils/defaults";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Upgrade } from "./upgrades";
 import { IAchievement } from "./achievements";
+import { IWeapon } from "./weapons";
 
 export interface GameState {
     resources: PlayerResources;
@@ -16,6 +17,7 @@ export interface GameState {
     };
     foundAsteroids: IAsteroid[];
     galaxies: IGalaxy[];
+    weapons: IWeapon[];
 }
 
 const GAME_STATE_KEY = "GAME_STATE";

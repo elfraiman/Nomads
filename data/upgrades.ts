@@ -21,7 +21,7 @@ const initialUpgradeList: Upgrade[] = [
         id: "reactor_optimization",
         title: "Reactor Optimization",
         description: (level) =>
-            `Optimize your reactor's energy conversion efficiency. Each level enhances energy output by +${level + 1} unit(s) per second, reducing wastage and maximizing core performance.`,
+            `Optimize your reactor's energy conversion efficiency. Next level enhances energy output by ${1 * 1.85} unit(s) per second, reducing wastage and maximizing core performance.`,
         costs: [
             { resourceType: "energy", amount: 35 }
         ],

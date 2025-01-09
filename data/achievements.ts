@@ -30,7 +30,9 @@ const achievements: IAchievement[] = [
                 energy: 0,
             },
         },
-        story: `Your ship's systems spark to life as you gather the first units of energy. The reactor's hum grows steady, and you feel a sense of accomplishment. This is just the beginning of your journey to rebuild the ship's power core.`,
+        story: `The ship's systems spark to life as you gather the first units of Energy. The reactor's hum grows steady, and you feel a sense of accomplishment. This is just the beginning of your journey to rebuild the ship's power core.
+        
+        YOU CAN NOW REFINE ENERGY INTO FUEL`,
         unlocks: [""],
         completed: false,
         onComplete: () => {
@@ -49,7 +51,9 @@ const achievements: IAchievement[] = [
                 fuel: 0,
             },
         },
-        story: `The ship's tanks begin to fill with fuel, a lifeblood that promises movement and exploration. As the reserves increase, the navigation systems flicker to life, urging you to venture further into the unknown.`,
+        story: `The ship's tanks begin to fill with fuel, a lifeblood that promises movement and exploration. As the reserves increase, the navigation systems flicker to life, urging you to venture further into the unknown.
+        
+        YOU CAN NOW INCREASE YOUR REACTOR STORAGE`,
         completed: false,
         unlocks: ["reactor_storage"],
         onComplete: () => {
@@ -68,7 +72,9 @@ const achievements: IAchievement[] = [
                 reactor_storage: 0,
             },
         },
-        story: `With improved reactor storage, the ship feels alive. Power surges through the systems, and dormant modules begin to hum softly. The AI interface hints at greater upgrades awaiting your command.`,
+        story: `With improved reactor storage, the ship feels alive. Power surges through the systems, and dormant modules begin to hum softly. The interface hints at greater upgrades awaiting your command.
+        
+        YOU CAN NOW OPTIMIZE YOUR REACTOR`,
         unlocks: ["reactor_optimization"],
         completed: false,
         onComplete: () => {
@@ -87,7 +93,9 @@ const achievements: IAchievement[] = [
                 reactor_optimization: 0,
             },
         },
-        story: `Your reactor now operates at peak efficiency, generating energy with precision. The ship's AI acknowledges your success, suggesting new pathways to explore and new resources to uncover.`,
+        story: `Your reactor now operates at increased efficiency, generating resources with precision, but you also notice there's room for many more types of resources yet to be discovered
+       
+        YOU CAN NOW UPGRADE CORE OPERATIONS EFFICIENCY`,
         unlocks: ["core_operations_efficiency"],
         completed: false,
         onComplete: () => {
@@ -106,7 +114,10 @@ const achievements: IAchievement[] = [
                 core_operations_efficiency: 0,
             },
         },
-        story: `As core operations become streamlined, resource generation reaches unprecedented levels. The AI announces the detection of a nearby star, sparking a new era of exploration and discovery.`,
+        story: `As core operations become streamlined, resource generation reaches unprecedented levels. The ships systems are rebooting and our scanning radar is picking up a nearby Sun, rich in solar plasma. Harvesting this resource could unlock new upgrades and technologies. 
+        Luckily our ship is already equipped with a solar plasma collector that seems to function, though, not optimally.
+        
+        YOU CAN NOW HARVEST SOLAR PLASMA`,
         unlocks: ["core_operations_storage"],
         completed: false,
         onComplete: () => {
@@ -165,7 +176,7 @@ const achievements: IAchievement[] = [
     {
         id: "build_mining_drones",
         title: "Mining Operations",
-        description: "Build 2 Mining Drones to start mining the asteroid you found.",
+        description: "Build a Mining Drone to start mining the asteroid you found.",
         shipGoals: {
             miningDrones: 1,
         },
@@ -175,7 +186,7 @@ const achievements: IAchievement[] = [
             },
         },
         story: `Mining drones deploy seamlessly onto the asteroid’s surface, extracting vital resources. The ship's AI commends your ingenuity, hinting at the vast potential for automation.`,
-        unlocks: [""],
+        unlocks: ["light_plasma_blaster"],
         completed: false,
         onComplete: () => {
             console.log("Mining Operations achievement completed!");

@@ -4,11 +4,12 @@ import Svg, { Rect } from "react-native-svg";
 import colors from "@/utils/colors";
 import ShipStatus from "@/components/ShipStatus";
 import { useGame } from "@/context/GameContext";
-import { initialPlayerStats, IPirate, PlayerResources } from "@/utils/defaults";
+import { initialPlayerStats, IPirate, PlayerResources, shipWeaponModules } from "@/utils/defaults";
 import ResourceIcon from "@/components/ui/ResourceIcon";
+import { IWeapon } from '../data/weapons';
 
 const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
-  const { planet } = route.params;
+  const { planet, weapons } = route.params;
   const game = useGame();
 
   if (!game) return null;
@@ -29,26 +30,17 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
   const scrollViewRef = useRef<ScrollView>(null);
 
 
-  const attackOptions = [
-    { name: "Energy Canon", cost: { type: "energy", amount: 80 }, power: 10, attackSpeed: 3 },
-    { name: "Heat seeking missile", cost: { type: "fuel", amount: 100 }, power: 35, attackSpeed: 3 },
-    { name: "Solar Plasma Beam", cost: { type: "solarPlasma", amount: 75 }, power: 25, attackSpeed: 2 },
-    { name: "Dark Matter Blast", cost: { type: "darkMatter", amount: 40 }, power: 30, attackSpeed: 2 },
-    { name: "Penetrating Alloy Bullet", cost: { type: "alloy", amount: 100 }, power: 50, attackSpeed: 1 },
-    { name: "Cold Laser", cost: { type: "frozenHydrogen", amount: 80 }, power: 40, attackSpeed: 1.5 },
-  ];
-
   const calculateHitChance = (attackerSpeed: number, defenderSpeed: number, baseHitChance: number = 0.8) => {
     const speedDifference = defenderSpeed - attackerSpeed;
     const adjustedHitChance = Math.max(baseHitChance - speedDifference * 0.05, 0.1); // Minimum hit chance of 10%
     return Math.random() <= adjustedHitChance;
   };
 
-  const handleAttack = (option: typeof attackOptions[0]) => {
-    const { type, amount } = option.cost;
+  const handleAttack = (weapon: IWeapon) => {
+    const { type, amount } = weapon.weaponDetails.cost;
 
     if ((resources[type as keyof PlayerResources]?.current || 0) < amount) {
-      setCombatLog((prev) => [...prev, `Not enough ${type} to use ${option.name}!`]);
+      setCombatLog((prev) => [...prev, `Not enough ${type} to use ${weapon.weaponDetails.name}!`]);
       return;
     }
 
@@ -64,13 +56,13 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
     if (hit) {
       const randomMultiplier = Math.random() * 0.4 + 0.8;
-      const baseDamage = option.power * (1 - pirate.defense / 100);
+      const baseDamage = weapon.weaponDetails.power * (1 - pirate.defense / 100);
       const damage = Math.floor(Math.max(baseDamage * randomMultiplier, 1));
 
       setPirate((prev: IPirate) => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
-      setCombatLog((prev) => [...prev, `Player used ${option.name} and dealt ${damage} damage!`]);
+      setCombatLog((prev) => [...prev, `Player used ${weapon.weaponDetails.name} and dealt ${damage} damage!`]);
     } else {
-      setCombatLog((prev) => [...prev, `Player's ${option.name} missed!`]);
+      setCombatLog((prev) => [...prev, `Player's ${weapon.weaponDetails.name} missed!`]);
     }
 
     setIsPlayerTurn(false);
@@ -236,16 +228,16 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
         {/* Combat Options */}
         <View style={styles.optionsGridContainer}>
-          {attackOptions.map((option) => (
+          {weapons.map((weapon: IWeapon) => (
             <TouchableOpacity
-              key={option.name}
+              key={weapon.weaponDetails.name}
               disabled={!isPlayerTurn}
               style={styles.gridButton}
-              onPress={() => handleAttack(option)}
+              onPress={() => handleAttack(weapon)}
             >
-              <Text style={styles.gridOptionText}>{option.name}</Text>
+              <Text style={styles.gridOptionText}>{weapon.weaponDetails.name}</Text>
               <Text style={styles.gridCostText}>
-                - {option.cost.amount} <ResourceIcon type={option.cost.type as keyof PlayerResources} size={14} />
+                - {weapon.weaponDetails.cost.amount} <ResourceIcon type={weapon.weaponDetails.cost.type as keyof PlayerResources} size={14} />
               </Text>
             </TouchableOpacity>
           ))}

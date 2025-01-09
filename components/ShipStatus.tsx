@@ -21,7 +21,10 @@ const ShipStatus = () => {
         : 0;
 
     const getGenerationRate = () => {
-        const rate = upgrades.find((upgrade: Upgrade) => upgrade.id === "reactor_optimization")?.level;
+
+        let rate = upgrades.find((upgrade: Upgrade) => upgrade.id === "reactor_optimization")?.level;
+        if (rate) rate = rate * resources.energy.efficiency;
+
         return rate ?? 0;
     };
 
@@ -50,8 +53,6 @@ const ShipStatus = () => {
 
                 <View style={styles.otherResources}>
                     {/* Other Resources */}
-
-
                     {Object.entries(resources).map(([key, resource]) => {
                         if (key === "energy") return null;
 

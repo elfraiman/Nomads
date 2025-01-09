@@ -125,7 +125,7 @@ function WrappedRootLayout() {
         ) : (
           <Drawer.Screen
             name="explorationLocked"
-            component={() => null}
+            component={Dashboard}
             options={{
               title: 'Locked',
               drawerIcon: ({ color }) => <Ionicons name="lock-closed-outline" size={24} color={color} />,
@@ -147,7 +147,7 @@ function WrappedRootLayout() {
         ) : (
           <Drawer.Screen
             name="droneManagementLocked"
-            component={() => null}
+            component={Dashboard}
             options={{
               title: 'Locked',
               drawerIcon: ({ color }) => <Ionicons name="lock-closed-outline" size={24} color={color} />,
