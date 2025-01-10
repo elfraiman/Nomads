@@ -41,7 +41,7 @@ const resourceIcons: Record<ResourceType, { icon: React.ReactNode; defaultColor:
     },
     alloys: {
         icon: <MaterialCommunityIcons name="cube-outline" />,
-        defaultColor: '#8B8B8B',
+        defaultColor: '#C0C0C0',
     },
     darkMatter: {
         icon: <MaterialCommunityIcons name="alien-outline" />,

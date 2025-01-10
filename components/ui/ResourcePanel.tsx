@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import ResourceIcon from "@/components/ui/ResourceIcon";
 import { ResourceType } from "@/components/ui/ResourceIcon";
 import ResourceButton from "@/components/ui/ResourceButton";
-import { PlayerResources, Resource } from "@/utils/defaults";
+import { PlayerResources, IResource } from "@/utils/defaults";
 import colors from "@/utils/colors";
 
 interface ResourcePanelProps {
@@ -69,9 +69,9 @@ const ResourcePanel = ({
 
 interface CoreOperationsProps {
     resources: {
-        fuel: Resource;
-        solarPlasma: Resource & { locked: boolean };
-        energy: Resource;
+        fuel: IResource;
+        solarPlasma: IResource & { locked: boolean };
+        energy: IResource;
     };
     defaultResourceGenerationValue: {
         fuel: number;
@@ -85,7 +85,7 @@ const CoreOperations = ({
     defaultResourceGenerationValue,
     generateResource,
 }: CoreOperationsProps) => {
-    const returnPriceForResource = (resource: Resource, defaultPrice: number) => {
+    const returnPriceForResource = (resource: IResource, defaultPrice: number) => {
         return Math.round(resource.efficiency * defaultPrice);
     }
     return (
@@ -124,7 +124,7 @@ const CoreOperations = ({
                         generateResource(
                             "solarPlasma",
                             returnPriceForResource(resources.solarPlasma, 16),
-                            defaultResourceGenerationValue.solarPlasma * resources.solarPlasma.efficiency,
+                            defaultResourceGenerationValue.solarPlasma * 55,
                             0
                         )
                     }

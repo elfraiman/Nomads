@@ -13,6 +13,7 @@ import CombatPage from './combatPage';
 import Dashboard from './dashboard';
 import DroneManagement from './dronemanagment';
 import Exploration from './exploration';
+import WeaponManagementPage from './weaponsManagmentPage';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -148,6 +149,28 @@ function WrappedRootLayout() {
           <Drawer.Screen
             name="droneManagementLocked"
             component={Dashboard}
+            options={{
+              title: 'Locked',
+              drawerIcon: ({ color }) => <Ionicons name="lock-closed-outline" size={24} color={color} />,
+              drawerItemStyle: { backgroundColor: colors.lockedBackground },
+            }}
+          />
+        )}
+
+        {/* Conditional rendering for Drone Management */}
+        {isAchievementUnlocked("build_mining_drones") ? (
+          <Drawer.Screen
+            name="weaponsManagement"
+            component={WeaponManagementPage}
+            options={{
+              title: 'Weapons Management',
+              drawerIcon: ({ color }) => <Ionicons name="rocket-outline" size={24} color={color} />,
+            }}
+          />
+        ) : (
+          <Drawer.Screen
+            name="weaponsManagementLocked"
+            component={WeaponManagementPage}
             options={{
               title: 'Locked',
               drawerIcon: ({ color }) => <Ionicons name="lock-closed-outline" size={24} color={color} />,

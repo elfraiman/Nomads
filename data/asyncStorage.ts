@@ -1,14 +1,14 @@
 // src/data/gameState.ts
 
 
-import { IAsteroid, IGalaxy, PlayerResources, Ships } from "@/utils/defaults";
+import { IAsteroid, IGalaxy, IMainShip, PlayerResources, Ships } from "@/utils/defaults";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Upgrade } from "./upgrades";
 import { IAchievement } from "./achievements";
 import { IWeapon } from "./weapons";
 
 export interface GameState {
-    resources: PlayerResources;
+    mainShip: IMainShip;
     achievements: IAchievement[];
     upgrades: Upgrade[];
     ships: Ships;
@@ -21,8 +21,6 @@ export interface GameState {
 }
 
 const GAME_STATE_KEY = "GAME_STATE";
-
-
 
 // Save the entire game state
 export const saveGameState = async (state: GameState) => {

@@ -4,7 +4,9 @@ import BuildOperations from "@/components/ui/BuildPanel";
 import ResourceIcon from "@/components/ui/ResourceIcon";
 import CoreOperations from "@/components/ui/ResourcePanel";
 import { useGame } from "@/context/GameContext";
+import { IWeapon } from "@/data/weapons";
 import colors from "@/utils/colors";
+import { PlayerResources } from "@/utils/defaults";
 import { isGatherEnergyAchievementComplete } from "@/utils/gameUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -44,43 +46,45 @@ const UpgradeModule = ({
     );
 
     return (
-        !locked && (
-            <Collapsible title={title}>
-                <View style={styles.upgradeContainer}>
-                    {locked ? (
-                        <Text>Locked</Text>
-                    ) : (
-                        <>
-                            <View style={styles.costContainer}>
-                                <Text style={styles.costText}>Cost:</Text>
-                                {costs.map((cost, index) => (
-                                    <View key={index} style={styles.resourceContainer}>
-                                        <ResourceIcon type={cost.resourceType} size={20} />
-                                        <Text style={styles.costText}>{cost.amount}</Text>
-                                    </View>
-                                ))}
-                            </View>
-                            <View style={styles.buttonsContainer}>
-                                <TouchableOpacity
-                                    onPress={onUpgrade}
-                                    style={[
-                                        styles.upgradeButton,
-                                        !canAfford && styles.disabledButton,
-                                    ]}
-                                    disabled={!canAfford}
-                                >
-                                    <Text style={styles.upgradeButtonText}>Upgrade</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={onRemove} style={styles.deleteButton}>
-                                    <Ionicons name="trash" size={20} color={colors.textPrimary} />
-                                </TouchableOpacity>
-                            </View>
-                            <Text style={styles.description}>{description}</Text>
-                        </>
-                    )}
-                </View>
-            </Collapsible>
-        )
+        <Collapsible title={title}>
+            <View style={styles.upgradeContainer}>
+                {locked ? (
+                    <LockedPanel
+                        title="Locked"
+                        unlockHint="Complete goals" />
+                ) : (
+                    <>
+                        <View style={styles.costContainer}>
+                            <Text style={styles.costText}>Cost:</Text>
+                            {costs.map((cost, index) => (
+                                <View key={index} style={styles.resourceContainer}>
+                                    <ResourceIcon type={cost.resourceType} size={20} />
+                                    <Text style={styles.costText}>{cost.amount}</Text>
+                                </View>
+                            ))}
+                        </View>
+
+                        <View style={styles.buttonsContainer}>
+                            <TouchableOpacity
+                                onPress={onUpgrade}
+                                style={[
+                                    styles.upgradeButton,
+                                    !canAfford && styles.disabledButton,
+                                ]}
+                                disabled={!canAfford}
+                            >
+                                <Text style={styles.upgradeButtonText}>Upgrade</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={onRemove} style={styles.deleteButton}>
+                                <Ionicons name="trash" size={20} color={colors.textPrimary} />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.description}>{description}</Text>
+                    </>
+                )}
+            </View>
+        </Collapsible>
+
     );
 };
 
@@ -110,6 +114,54 @@ const Dashboard = () => {
         updateResources("energy", { current: newEnergy });
     };
 
+
+    const weaponCategories = weapons.reduce<Record<string, IWeapon[]>>((categories, weapon) => {
+        const type = weapon.weaponDetails.type;
+
+        if (!categories[type]) {
+            categories[type] = [];
+        }
+
+        categories[type].push(weapon);
+
+        return categories;
+    }, {});
+
+    const craftWeapon = (weaponId: string) => {
+        const weapon = weapons.find((w) => w.id === weaponId);
+        if (!weapon) return;
+
+        // Check if the player has enough resources
+        const canAfford = weapon.costs.every(
+            (cost) => resources[cost.resourceType as keyof PlayerResources]?.current >= cost.amount
+        );
+
+        if (!canAfford) {
+            alert("Not enough resources to craft this weapon!");
+            return;
+        }
+
+        // Deduct resources
+        weapon.costs.forEach((cost) => {
+            const currentResource = resources[cost.resourceType as keyof PlayerResources];
+            if (currentResource) {
+                updateResources(cost.resourceType as keyof PlayerResources, {
+                    current: currentResource.current - cost.amount,
+                    max: currentResource.max,
+                });
+            }
+        });
+
+        // Add the crafted weapon to the player's inventory
+        weapons.map((w) =>
+            w.id === weaponId
+                ? game.updateWeapons(
+                    w.id,
+                    1,
+                )
+                : w
+        );
+    };
 
     const anyUpgradeUnlocked = useMemo(() => upgrades.some((upgrade) => isUpgradeUnlocked(upgrade.id)), [achievements, upgrades]);
 
@@ -203,32 +255,61 @@ const Dashboard = () => {
                         </View>
                     )}
 
-                    {/* Weapon building Section */}
-                    {!isAchievementUnlocked("build_mining_drones") ? (
+                    {/* Weapon Crafting Section */}
+                    {!isAchievementUnlocked("upgrade_core_operations_storage") ? (
                         <LockedPanel
                             title="Locked"
-                            unlockHint="Complete goals" />
+                            unlockHint="Complete goals to unlock Weapon Crafting"
+                        />
                     ) : (
                         <View style={styles.panel}>
                             <Text style={styles.panelTitle}>Weapon Modules</Text>
                             <View style={styles.cardContent}>
-                                <Collapsible title="Light Weapons">
-                                    {weapons?.map((weapon) => (
-                                        <UpgradeModule
-                                            key={weapon.id}
-                                            title={weapon.title}
-                                            costs={weapon.costs}
-                                            onUpgrade={() => purchaseUpgrade(weapon.id)}
-                                            onRemove={() => downgradeUpgrade(weapon.id)}
-                                            description={weapon.description(weapon.level || 0)}
-                                            locked={!isUpgradeUnlocked(weapon.id)}
-                                            resources={resources}
-                                        />
-                                    ))}
-                                </Collapsible>
+                                {Object.entries(weaponCategories).map(([type, weapons]) => (
+                                    <Collapsible key={type} title={`${type.toUpperCase()} Weapons`}>
+                                        {weapons.map((weapon) => {
+                                            // Check if the player can afford the weapon
+                                            const canAfford = weapon.costs.every(
+                                                (cost) =>
+                                                    resources[cost.resourceType as keyof PlayerResources]?.current >= cost.amount
+                                            );
+
+
+                                            return (
+                                                <View key={weapon.id} style={styles.weaponItem}>
+                                                    <Text style={styles.weaponName}>{weapon.title}</Text>
+                                                    <Text style={styles.description}>
+                                                        {weapon.description(weapon.amount || 0)}
+                                                    </Text>
+                                                    <View style={styles.costContainer}>
+                                                        {weapon.costs.map((cost, index) => (
+                                                            <View key={index} style={styles.resourceContainer}>
+                                                                <ResourceIcon type={cost.resourceType as keyof PlayerResources} size={20} />
+                                                                <Text style={styles.costText}>{cost.amount}</Text>
+                                                            </View>
+                                                        ))}
+                                                    </View>
+                                                    <View style={styles.buttonsContainer}>
+                                                        <TouchableOpacity
+                                                            onPress={() => craftWeapon(weapon.id)}
+                                                            style={[
+                                                                styles.craftButton,
+                                                                !canAfford && styles.disabledButton,
+                                                            ]}
+                                                            disabled={!canAfford}
+                                                        >
+                                                            <Text style={styles.craftButtonText}>Craft</Text>
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                </View>
+                                            );
+                                        })}
+                                    </Collapsible>
+                                ))}
                             </View>
                         </View>
                     )}
+
                 </ScrollView>
             </LinearGradient>
             <ShipStatus />
@@ -249,12 +330,40 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
     },
     cardContent: {
-        padding: 6,
+        paddingVertical: 8,
+    },
+    weaponItem: {
+        marginVertical: 6,
+        backgroundColor: colors.background,
+        padding: 10,
     },
     description: {
-        color: colors.textSecondary, // Light orange text for descriptions
-        fontSize: 13,
-        marginTop: 6,
+        fontSize: 14,
+        color: colors.textSecondary,
+        marginBottom: 8,
+    },
+    weaponName: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: colors.textPrimary,
+        marginBottom: 8,
+    },
+    craftButton: {
+        backgroundColor: colors.buttonGreen,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        alignItems: "center",
+    },
+    repairButton: {
+        backgroundColor: colors.buttonGreen,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        alignItems: "center",
+    },
+    craftButtonText: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "white",
     },
     highlight: {
         color: colors.secondary, // Bright gold color for highlights
@@ -262,7 +371,6 @@ const styles = StyleSheet.create({
     },
     panel: {
         backgroundColor: colors.background, // Very dark background for panels
-        borderRadius: 0,
         padding: 16,
         marginTop: 16,
         shadowColor: colors.shadow,
@@ -282,7 +390,6 @@ const styles = StyleSheet.create({
         backgroundColor: colors.panelBackground, // Slightly lighter dark gray for contrast
         padding: 16,
         margin: 6,
-        borderRadius: 8,
         borderColor: colors.border, // Yellow border for contrast
         borderWidth: 1,
     },
@@ -355,7 +462,6 @@ const styles = StyleSheet.create({
         marginTop: 6,
         padding: 6,
         backgroundColor: colors.panelBackground, // Slightly lighter dark background for expanded sections
-        borderRadius: 8,
         borderColor: colors.border, // Bright gold border for emphasis
         borderWidth: 1,
     },

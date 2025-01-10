@@ -10,7 +10,7 @@ const colors = {
   transparentBackground: "rgba(26, 26, 61, 0.7)", // Semi-transparent space panel
   iosTransparentBackground: "rgba(38, 38, 78, 1)", // iOS semi-transparent space panel
   successGradient: ["#32FF7E", "#056B42"], // Bright Green Gradient
-  buttonGreen: "#248f64", // Bright Green
+  buttonGreen: "#14715e", // Bright Green
   error: "#FF3860", // Vibrant Red for errors
   warning: "#FFDD33", // Bright Yellow
   info: "#4CB5F5", // Electric Blue
@@ -21,7 +21,7 @@ const colors = {
   disabled: "#3A3A3A", // Muted gray for disabled state
   disabledBorder: "#555555", // Subtle border for disabled buttons
   disabledText: "#555555", // Muted gray for disabled text
-  disabledBackground: "#3A3A3A", // Muted gray for disabled backgrounds
+  disabledBackground: "#282828", // Muted gray for disabled backgrounds
   lockedBackground: "#1a1a1a1b", // Dark gray for locked content
   disabledIcon: "#7e7c7c95",
 };

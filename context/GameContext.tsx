@@ -2,7 +2,7 @@ import initialAchievements, { IAchievement } from "@/data/achievements";
 import { loadGameState, saveGameState } from "@/data/asyncStorage";
 import initialUpgradeList, { Upgrade, UpgradeCost } from "@/data/upgrades";
 import initialWeapons, { IWeapon } from "@/data/weapons";
-import { initialResources, Resource, PlayerResources, Ships, initialShips, IAsteroid, IGalaxy, initialGalaxies } from "@/utils/defaults";
+import { IResource, PlayerResources, Ships, initialShips, IAsteroid, IGalaxy, initialGalaxies, IMainShip, initialMainShip } from "@/utils/defaults";
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { AppState, AppStateStatus, Platform } from "react-native";
 
@@ -15,14 +15,21 @@ export interface GameContextType {
     foundAsteroids: IAsteroid[];
     galaxies: IGalaxy[];
     weapons: IWeapon[];
+    mainShip: IMainShip;
+
+
+    // Combat
+    updateMainShip: (updatedMainShip: IMainShip) => void;
+    updateWeapons: (weaponId: string, newAmount: number) => void;
+    manufactureWeapon: (weaponId: string) => void;
+    setMainShip: (mainShip: IMainShip) => void;
 
     // Drones
     allocateMiningDrones: (asteroid: IAsteroid, count: number) => void;
 
     // Resource management functions
-    updateResources: (type: keyof PlayerResources, changes: Partial<Resource>) => void;
+    updateResources: (type: keyof PlayerResources, changes: Partial<IResource>) => void;
     upgradeResourceEfficiency: (type: keyof PlayerResources, increment: number) => void;
-    setResources: React.Dispatch<React.SetStateAction<PlayerResources>>;
 
     // Upgrade management functions
     purchaseUpgrade: (id: string) => void;
@@ -53,7 +60,6 @@ export interface GameContextType {
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider = ({ children }: { children: ReactNode }) => {
-    const [resources, setResources] = useState<PlayerResources>(initialResources);
     const [achievements, setAchievements] = useState<IAchievement[]>(initialAchievements);
     const [ships, setShips] = useState(initialShips);
     const [upgrades, setUpgrades] = useState<Upgrade[]>(initialUpgradeList);
@@ -61,7 +67,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const [foundAsteroids, setFoundAsteroids] = useState<IAsteroid[]>([]);
     const [galaxies, setUnlockedGalaxies] = useState<IGalaxy[]>(initialGalaxies);
     const [weapons, setWeapons] = useState<IWeapon[]>(initialWeapons);
-
+    const [mainShip, setMainShip] = useState<IMainShip>(initialMainShip);
 
     // Save state
     //
@@ -78,7 +84,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
             const serializableWeapons = weapons.map((weapon) => ({
                 id: weapon.id,
-                level: weapon.level,
+                amount: weapon.amount,
                 costs: weapon.costs,
                 title: weapon.title,
                 description: weapon.description,
@@ -87,9 +93,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             }));
 
             await saveGameState({
-                resources, achievements, upgrades: serializableUpgrades,
-                ships, allocatedDrones: { mining: miningDroneAllocation }, foundAsteroids, galaxies,
-                weapons: serializableWeapons
+                mainShip, achievements, upgrades: serializableUpgrades,
+                ships, allocatedDrones: { mining: miningDroneAllocation },
+                foundAsteroids, galaxies, weapons: serializableWeapons,
             });
         };
 
@@ -118,20 +124,19 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 subscription.remove();
             };
         }
-    }, [resources, achievements, upgrades, ships, foundAsteroids, miningDroneAllocation]);
+    }, [mainShip, achievements, upgrades, ships, foundAsteroids, miningDroneAllocation]);
 
     // Load game state on initial render
     useEffect(() => {
         const loadState = async () => {
             const savedState = await loadGameState();
             if (savedState) {
-                setResources(savedState.resources || initialResources);
                 setAchievements(savedState.achievements || initialAchievements);
                 setShips(savedState.ships || initialShips);
                 setFoundAsteroids(savedState.foundAsteroids || []);
                 setMiningDroneAllocation(savedState.allocatedDrones?.mining || {});
                 setUnlockedGalaxies(initialGalaxies);
-                setWeapons(savedState.weapons || initialWeapons);
+                setMainShip(savedState.mainShip || initialMainShip);
 
                 const upgradesFromSaveFile = initialUpgradeList.map((defaultUpgrade) => {
                     const savedUpgrade = savedState.upgrades?.find((u) => u.id === defaultUpgrade.id);
@@ -143,6 +148,16 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     };
                 })
 
+                const weaponsFromSaveFile = initialWeapons.map((defaultWeapon) => {
+                    const savedWeapon = savedState.weapons?.find((u) => u.id === defaultWeapon.id);
+
+                    return {
+                        ...defaultWeapon,
+                        amount: savedWeapon?.amount || 0,
+                        costs: savedWeapon?.costs || defaultWeapon.costs,
+                    };
+                })
+
 
                 // Check for unlocked upgrades and apply special effects
                 // might need to find a new way to do this rather then here
@@ -151,6 +166,19 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     if (upgrade.level > 0) {
                         if (upgrade.id === "reactor_storage") {
                         } else if (upgrade.id === 'core_operations_storage') {
+                            setMainShip((prev) => {
+                                const updatedResources = Object.fromEntries(
+                                    Object.entries(prev.resources).map(([key, value]) => [
+                                        key,
+                                        key === "energy" ? value : { ...value, max: value.max + (upgrade.level * 200) },
+                                    ])
+                                ) as PlayerResources;
+
+                                return {
+                                    ...prev,
+                                    resources: updatedResources,
+                                };
+                            });
                         }
                     }
                 });
@@ -158,6 +186,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 setUpgrades(
                     upgradesFromSaveFile
                 );
+
+                setWeapons(weaponsFromSaveFile)
             }
         };
 
@@ -166,17 +196,20 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     // Resource updates
-    const updateResources = (type: keyof PlayerResources, changes: Partial<Resource>) => {
-        setResources((prev) => ({
+    const updateResources = (type: keyof PlayerResources, changes: Partial<IResource>) => {
+        setMainShip((prev) => ({
             ...prev,
-            [type]: {
-                ...prev[type],
-                ...changes,
-                current: Math.min(changes.current ?? prev[type].current, prev[type].max),
+            resources: {
+                ...prev.resources,
+                [type]: {
+                    ...prev.resources[type],
+                    ...changes,
+                    current: Math.min(changes.current ?? prev.resources[type].current, prev.resources[type].max),
+                },
             },
         }));
 
-        updateAchievProgressFromResources({ [type]: { current: changes.current ?? resources[type].current } });
+        updateAchievProgressFromResources({ [type]: { current: changes.current ?? mainShip.resources[type].current } });
     };
 
     const allocateMiningDrones = (asteroid: IAsteroid, count: number) => {
@@ -190,11 +223,55 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const upgradeResourceEfficiency = (type: keyof PlayerResources, increment: number) => {
-        setResources((prev) => ({
+        setMainShip((prev) => ({
             ...prev,
-            [type]: { ...prev[type], efficiency: Math.round(prev[type].efficiency + increment) },
+            resources: {
+                ...prev.resources,
+                [type]: { ...prev.resources[type], efficiency: Math.round(prev.resources[type].efficiency + increment) },
+            },
         }));
     };
+
+    // Ship & Weapons
+    // Update the `mainShip` with new stats or equipped weapons
+    const updateMainShip = (updatedMainShip: IMainShip) => {
+        setMainShip(updatedMainShip);
+    };
+
+    // Update weapon inventory amounts
+    const updateWeapons = (weaponId: string, newAmount: number) => {
+        setWeapons((prev) =>
+            prev.map((weapon) =>
+                weapon.id === weaponId ? { ...weapon, amount: newAmount } : weapon
+            )
+        );
+    };
+    // Manufacture a weapon (increase its amount in inventory)
+    const manufactureWeapon = (weaponId: string) => {
+        const weapon = weapons.find((w) => w.id === weaponId);
+        if (!weapon) return;
+
+        const canAfford = weapon.costs.every(
+            (cost) => mainShip.resources[cost.resourceType as keyof PlayerResources]?.current >= cost.amount
+        );
+
+        if (canAfford) {
+            // Deduct resources
+            const updatedResources = { ...mainShip.resources };
+            weapon.costs.forEach((cost) => {
+                updatedResources[cost.resourceType as keyof PlayerResources].current -= cost.amount;
+            });
+
+            setMainShip((prev) => ({
+                ...prev,
+                resources: updatedResources,
+            }));
+
+            // Increase weapon amount
+            updateWeapons(weaponId, weapon.amount + 1);
+        }
+    };
+    // Update we
 
     // Achievements
     //
@@ -205,7 +282,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 if (achievement.completed || !achievement.resourceGoals || !achievement.progress) return achievement;
 
                 // Combine updatedResources with the current state of all resources
-                const combinedResources = { ...resources, ...updatedResources } as any;
+                const combinedResources = { ...mainShip.resources, ...updatedResources } as any;
 
                 // Update progress for each resource goal
                 const updatedProgress = { ...achievement.progress?.resources };
@@ -271,9 +348,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     // When we achieve upgrade core operations efficiency we unlock solar plasma
                     //
                     if (achievement.id === 'upgrade_core_operations_efficiency') {
-                        setResources((prev) => ({
+                        setMainShip((prev) => ({
                             ...prev,
-                            solarPlasma: { ...prev.solarPlasma, locked: false },
+                            resources: {
+                                ...prev.resources,
+                                solarPlasma: { ...prev.resources.solarPlasma, locked: false },
+                            }
+
                         }));
                     }
                     alert(`Achievement Unlocked: ${achievement.title}\n\n${achievement.story}`);
@@ -340,6 +421,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const isAchievementUnlocked = (id: string) => {
         if (achievements) {
             return achievements.some((a) => a.id === id && a.completed);
+        } else {
+            return false;
         }
     }
 
@@ -360,7 +443,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
         // Check if the player can afford the upgrade
         const canAfford = upgrade.costs.every((cost: UpgradeCost) => {
-            const resource = resources[cost.resourceType];
+            const resource = mainShip.resources[cost.resourceType];
             return resource && resource.current >= cost.amount;
         });
 
@@ -373,7 +456,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         //
         upgrade.costs.forEach((cost: UpgradeCost) => {
             updateResources(cost.resourceType, {
-                current: resources[cost.resourceType].current - cost.amount,
+                current: mainShip.resources[cost.resourceType].current - cost.amount,
             });
         });
 
@@ -396,28 +479,34 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
         // Apply special effects for this upgrade
         if (id === "reactor_storage") {
-            updateResources("energy", { max: resources.energy.max + 100 });
+            updateResources("energy", { max: mainShip.resources.energy.max + 100 });
         } else if (id === "core_operations_storage") {
-            setResources((prev) => {
+            setMainShip((prev) => {
                 const updatedResources = Object.fromEntries(
-                    Object.entries(prev).map(([key, value]) => [
+                    Object.entries(prev.resources).map(([key, value]) => [
                         key,
                         key === "energy" ? value : { ...value, max: value.max + 200 },
                     ])
                 ) as PlayerResources;
 
-                return updatedResources;
+                return {
+                    ...prev,
+                    resources: updatedResources,
+                };
             });
         } else if (id === "core_operations_efficiency") {
-            setResources((prev) => {
+            setMainShip((prev) => {
                 const updatedResources = Object.fromEntries(
-                    Object.entries(prev).map(([key, value]) => [
+                    Object.entries(prev.resources).map(([key, value]) => [
                         key,
                         { ...value, efficiency: Math.round(value.efficiency * 1.05) },
                     ])
                 ) as PlayerResources;
 
-                return updatedResources;
+                return {
+                    ...prev,
+                    resources: updatedResources,
+                };
             });
         }
 
@@ -447,8 +536,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 const refundAmount = Math.floor(cost.amount * refundPercentage);
                 updateResources(cost.resourceType, {
                     current: Math.min(
-                        resources[cost.resourceType].max,
-                        resources[cost.resourceType].current + refundAmount
+                        mainShip.resources[cost.resourceType].max,
+                        mainShip.resources[cost.resourceType].current + refundAmount
                     ),
                 });
             });
@@ -467,7 +556,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
             // Revert any special effects caused by the upgrade
             if (id === "reactor_storage") {
-                updateResources("energy", { max: resources.energy.max - 100 });
+                updateResources("energy", { max: mainShip.resources.energy.max - 100 });
             }
         } else {
             alert("No upgrades to downgrade!");
@@ -475,13 +564,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     };
 
     // Reset resources to initial state
-    const resetResources = () => setResources(initialResources);
+    const resetResources = () => setMainShip({ ...mainShip, resources: initialMainShip.resources });
 
     // Repair ship logic
     const repairShip = () => {
-        if (resources.energy.current >= 20) {
-            updateResources("energy", { current: resources.energy.current - 20 });
-            updateResources("fuel", { current: resources.fuel.current + 10 });
+        if (mainShip.resources.energy.current >= 20) {
+            updateResources("energy", { current: mainShip.resources.energy.current - 20 });
+            updateResources("fuel", { current: mainShip.resources.fuel.current + 10 });
         } else {
             alert("Not enough energy to repair the ship!");
         }
@@ -494,21 +583,21 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         output: number,
         cooldown: number
     ) => {
-        if (resources.energy.current < energyCost) {
+        if (mainShip.resources.energy.current < energyCost) {
             alert("Not enough energy!");
             return;
         }
         // Deduct energy
         if (energyCost > 0) {
-            updateResources("energy", { current: resources.energy.current - energyCost });
+            updateResources("energy", { current: mainShip.resources.energy.current - energyCost });
         }
 
         // Calculate actual output using efficiency multiplier
-        const actualOutput = Math.round(output * resources[type].efficiency);
+        const actualOutput = Math.round(output * mainShip.resources[type].efficiency);
 
         // Add resource after cooldown
         setTimeout(() => {
-            const updatedAmount = Math.min(resources[type].max, resources[type].current + actualOutput);
+            const updatedAmount = Math.min(mainShip.resources[type].max, mainShip.resources[type].current + actualOutput);
 
             updateResources(type, { current: updatedAmount });
 
@@ -554,15 +643,16 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     // Auto ticker for resources
     useEffect(() => {
         const interval = setInterval(() => {
-            setResources((prevResources) => {
-                let updatedResources = { ...prevResources };
+            setMainShip((prevMainShip) => {
+                let updatedResources = { ...prevMainShip.resources };
+                let updatedMainShip = { ...prevMainShip, resources: updatedResources };
 
                 // Auto-generate energy based on reactor optimization level
                 //
                 const reactorOptimizationUpgrade = upgrades.find((u) => u.id === "reactor_optimization");
                 const optimizationLevel = reactorOptimizationUpgrade?.level || 0;
                 if (optimizationLevel > 0) {
-                    const energyGenerationRate = (optimizationLevel * prevResources.energy.efficiency);
+                    const energyGenerationRate = (optimizationLevel * prevMainShip.resources.energy.efficiency);
                     updatedResources.energy = {
                         ...updatedResources.energy,
                         current: Math.round(Math.min(
@@ -578,7 +668,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     const asteroid = foundAsteroids.find((a) => a.id.toString() === asteroidId);
                     const asteroidResourceType = asteroid?.resource as keyof PlayerResources;
 
-                    if (asteroid && prevResources[asteroidResourceType]) {
+                    if (asteroid && prevMainShip.resources[asteroidResourceType]) {
                         if (asteroid.maxResources > 0) {
                             const resourcesToMine = Math.min(count, asteroid.maxResources);
 
@@ -596,25 +686,30 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                         }
                     }
                 });
-
-                return updatedResources;
+                return updatedMainShip;
             });
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [miningDroneAllocation, upgrades, setResources, mineAsteroid, foundAsteroids]);
+    }, [miningDroneAllocation, upgrades, setMainShip, mineAsteroid, foundAsteroids]);
 
     return (
         <GameContext.Provider
             value={{
-                resources,
+                resources: mainShip.resources,
                 achievements,
                 upgrades,
                 ships,
+                mainShip,
                 miningDroneAllocation,
                 foundAsteroids,
                 galaxies,
+                weapons,
                 updateResources,
+                updateMainShip,
+                updateWeapons,
+                manufactureWeapon,
+                setMainShip,
                 upgradeResourceEfficiency,
                 purchaseUpgrade,
                 downgradeUpgrade,
@@ -631,7 +726,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 updateAchievToCompleted,
                 updateAchievProgressForShips,
                 setUnlockedGalaxies,
-                setResources,
             }}
         >
             {children}

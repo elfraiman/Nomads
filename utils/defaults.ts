@@ -1,3 +1,4 @@
+import { IWeapon } from "@/data/weapons";
 import { Dimensions } from "react-native";
 
 export interface IPosition {
@@ -60,7 +61,7 @@ export interface Ships {
   // titans: number;
 }
 
-export interface Resource {
+export interface IResource {
   current: number;
   max: number;
   efficiency: number;
@@ -68,25 +69,15 @@ export interface Resource {
 }
 
 export interface PlayerResources {
-  energy: Resource;
-  fuel: Resource;
-  solarPlasma: Resource;
-  darkMatter: Resource;
-  frozenHydrogen: Resource;
-  alloys: Resource;
-  tokens: Resource;
+  energy: IResource;
+  fuel: IResource;
+  solarPlasma: IResource;
+  darkMatter: IResource;
+  frozenHydrogen: IResource;
+  alloys: IResource;
+  tokens: IResource;
 }
 
-// Initial values for resources
-export const initialResources: PlayerResources = {
-  energy: { current: 85, max: 100, efficiency: 2, locked: false },
-  fuel: { current: 0, max: 100, efficiency: 1.8, locked: false },
-  solarPlasma: { current: 0, max: 100, efficiency: 1.6, locked: false },
-  darkMatter: { current: 0, max: 100, efficiency: 1.2, locked: false },
-  frozenHydrogen: { current: 0, max: 100, efficiency: 0.9, locked: false },
-  alloys: { current: 0, max: 100, efficiency: 0.3, locked: false },
-  tokens: { current: 0, max: 100, efficiency: 1, locked: false },
-};
 
 // Initial values for ships
 export const initialShips: Ships = {
@@ -316,15 +307,46 @@ export const initialGalaxies: IGalaxy[] = [
     }, */
 ];
 
-
 export const miningDroneCost = { fuel: 500, solarPlasma: 800, energy: 850 };
 export const scanningDroneCost = { fuel: 100, solarPlasma: 100, energy: 200 };
 
-export const initialPlayerStats: IPlayerStats = {
-  health: 100,
-  attackPower: 15,
-  defense: 10,
-  attackSpeed: 2,
+export interface IMainShip {
+  id: string;
+  name: string;
+  baseStats: {
+    health: number;
+    maxHealth: number;
+    attackPower: number;
+    defense: number;
+    attackSpeed: number;
+  };
+  equippedWeapons: IWeapon[]; // Array of equipped weapons
+  maxWeaponSlots: number; // Total weapon slots available
+  resources: PlayerResources;
+}
+
+// Add `mainShip` to GameContext
+export const initialMainShip: IMainShip = {
+  id: "main_ship",
+  name: "Players Ship",
+  baseStats: {
+    health: 500,
+    maxHealth: 500,
+    attackPower: 20,
+    defense: 15,
+    attackSpeed: 1.5,
+  },
+  equippedWeapons: [],
+  maxWeaponSlots: 5, // Example: 5 slots available initially
+  resources: {
+    energy: { current: 85, max: 100, efficiency: 2, locked: false },
+    fuel: { current: 0, max: 100, efficiency: 1.8, locked: false },
+    solarPlasma: { current: 0, max: 100, efficiency: 1.6, locked: false },
+    darkMatter: { current: 0, max: 100, efficiency: 1.2, locked: false },
+    frozenHydrogen: { current: 0, max: 100, efficiency: 0.9, locked: false },
+    alloys: { current: 0, max: 100, efficiency: 0.3, locked: false },
+    tokens: { current: 0, max: 100, efficiency: 1, locked: false },
+  }
 };
 
 

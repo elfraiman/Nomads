@@ -1,4 +1,4 @@
-import { miningDroneCost, PlayerResources, Resource, scanningDroneCost, Ships } from "@/utils/defaults";
+import { miningDroneCost, PlayerResources, IResource, scanningDroneCost, Ships } from "@/utils/defaults";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
@@ -143,7 +143,7 @@ const BuildOperations = ({
 }: {
   resources: PlayerResources;
   ships: Ships;
-  updateResources: (type: keyof PlayerResources, changes: Partial<Resource>) => void;
+  updateResources: (type: keyof PlayerResources, changes: Partial<IResource>) => void;
   updateShips: (shipType: keyof Ships, amount: number) => void;
   game: GameContextType;
 }) => {
