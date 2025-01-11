@@ -127,7 +127,7 @@ const Dashboard = () => {
         return categories;
     }, {});
 
-    const craftWeapon = (weaponId: string) => {
+    const craftWeaponModule = (weaponId: string) => {
         const weapon = weapons.find((w) => w.id === weaponId);
         if (!weapon) return;
 
@@ -291,7 +291,7 @@ const Dashboard = () => {
                                                     </View>
                                                     <View style={styles.buttonsContainer}>
                                                         <TouchableOpacity
-                                                            onPress={() => craftWeapon(weapon.id)}
+                                                            onPress={() => craftWeaponModule(weapon.id)}
                                                             style={[
                                                                 styles.craftButton,
                                                                 !canAfford && styles.disabledButton,

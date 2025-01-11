@@ -1,12 +1,12 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Alert, Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Svg, { Rect } from "react-native-svg";
-import colors from "@/utils/colors";
 import ShipStatus from "@/components/ShipStatus";
+import ResourceIcon from "@/components/ui/ResourceIcon";
 import { useGame } from "@/context/GameContext";
 import { IWeapon } from "@/data/weapons";
+import colors from "@/utils/colors";
 import { IMainShip, IPirate, PlayerResources } from "@/utils/defaults";
-import ResourceIcon from "@/components/ui/ResourceIcon";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Svg, { Rect } from "react-native-svg";
 
 const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
   const { planet } = route.params;
@@ -49,13 +49,23 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
   const scrollViewRef = useRef<ScrollView>(null);
 
+  const calculateHitChance = (weaponAccuracy: number, defenderAttackSpeed: number) => {
+    // Derive evasion from the defender's attack speed
+    const defenderEvasion = Math.min(defenderAttackSpeed * 5, 90); // Scale and clamp to max 90%
 
+    // Ensure accuracy is within reasonable bounds
+    const effectiveAccuracy = Math.min(Math.max(weaponAccuracy, 10), 100); // Clamp between 10% and 100%
 
-  const calculateHitChance = (attackerSpeed: number, defenderSpeed: number) => {
-    const speedDifference = defenderSpeed - attackerSpeed;
-    const adjustedHitChance = Math.max(0.8 - speedDifference * 0.05, 0.1); // Minimum hit chance 10%
-    return Math.random() <= adjustedHitChance;
+    // Calculate hit chance considering weapon accuracy and defender evasion
+    const adjustedHitChance = effectiveAccuracy - defenderEvasion;
+
+    // Ensure the hit chance is never below 10% or above 100%
+    const finalHitChance = Math.max(adjustedHitChance / 100, 0.1); // Convert to 0.0 - 1.0 scale
+
+    // Perform hit calculation
+    return Math.random() <= finalHitChance;
   };
+
 
 
   const spawnNextPirate = () => {
@@ -119,15 +129,22 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
         newMainShip = { ...mainShip, resources: updatedResources };
 
         // Calculate hit chance and apply damage
-        if (Math.random() <= 0.8) {
-          const damage = Math.floor(weaponCooldown.weaponDetails.power * (1 - pirate.defense / 100));
+        const hit = calculateHitChance(weaponCooldown.weaponDetails.accuracy, pirate.attackSpeed);
+
+        if (hit) {
+          const damage = Math.floor(
+            weaponCooldown.weaponDetails.power * (1 - pirate.defense / 100)
+          );
           totalDamage += damage;
           setCombatLog((prev) => [
             ...prev,
             `${weaponCooldown.weaponDetails.name} hit for ${damage} damage!`,
           ]);
         } else {
-          setCombatLog((prev) => [...prev, `${weaponCooldown.weaponDetails.name} missed!`]);
+          setCombatLog((prev) => [
+            ...prev,
+            `${weaponCooldown.weaponDetails.name} missed!`,
+          ]);
         }
 
         // Handle durability reduction
@@ -156,6 +173,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
     setWeaponCooldowns(updatedWeaponCooldowns.filter((w): w is NonNullable<typeof w> => w !== null));
 
     setMainShip(newMainShip);
+
     setPirate((prev: IPirate) => ({
       ...prev,
       health: Math.max(prev.health - totalDamage, 0),
@@ -180,17 +198,33 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
   useEffect(() => {
     const interval = setInterval(() => {
       if (pirate.health > 0) {
-        const damage = Math.max(pirate.attack - mainShip.baseStats.defense, 1);
-        setMainShip((prev: IMainShip) => ({
-          ...prev,
-          baseStats: { ...prev.baseStats, health: Math.max(prev.baseStats.health - damage, 0) },
-        }));
-        setCombatLog((prev) => [...prev, `${pirate.name} hit for ${damage} damage!`]);
+        // Derive pirate accuracy based on its attack speed
+        const pirateAccuracy = Math.min(pirate.attackSpeed * 10, 100); // Scale attack speed into an accuracy percentage
+
+        // Calculate evasion for the player's main ship based on defense
+        const playerEvasion = Math.min(mainShip.baseStats.defense * 2, 90); // Scale defense to evasion percentage, capped at 90%
+
+        // Determine if the pirate's attack hits
+        const isHit = Math.random() <= Math.max((pirateAccuracy - playerEvasion) / 100, 0.4); // Ensure min 40% hit chance
+
+        if (isHit) {
+          const damage = Math.max(pirate.attack - mainShip.baseStats.defense, 1);
+
+          setMainShip((prev: IMainShip) => ({
+            ...prev,
+            baseStats: { ...prev.baseStats, health: Math.max(prev.baseStats.health - damage, 0) },
+          }));
+
+          setCombatLog((prev) => [...prev, `${pirate.name} hit for ${damage} damage!`]);
+        } else {
+          setCombatLog((prev) => [...prev, `${pirate.name}'s attack missed!`]);
+        }
       }
     }, 1000);
 
     return () => clearInterval(interval);
   }, [pirate.health, mainShip.baseStats.defense]);
+
 
 
   useEffect(() => {

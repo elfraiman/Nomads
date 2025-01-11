@@ -316,9 +316,7 @@ export interface IMainShip {
   baseStats: {
     health: number;
     maxHealth: number;
-    attackPower: number;
     defense: number;
-    attackSpeed: number;
   };
   equippedWeapons: IWeapon[]; // Array of equipped weapons
   maxWeaponSlots: number; // Total weapon slots available
@@ -332,9 +330,7 @@ export const initialMainShip: IMainShip = {
   baseStats: {
     health: 500,
     maxHealth: 500,
-    attackPower: 20,
     defense: 15,
-    attackSpeed: 1.5,
   },
   equippedWeapons: [],
   maxWeaponSlots: 5, // Example: 5 slots available initially

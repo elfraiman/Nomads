@@ -22,7 +22,7 @@ export interface GameContextType {
     updateMainShip: (updatedMainShip: IMainShip) => void;
     updateWeapons: (weaponId: string, newAmount: number) => void;
     manufactureWeapon: (weaponId: string) => void;
-    setMainShip: (mainShip: IMainShip) => void;
+    setMainShip: React.Dispatch<React.SetStateAction<IMainShip>>
 
     // Drones
     allocateMiningDrones: (asteroid: IAsteroid, count: number) => void;

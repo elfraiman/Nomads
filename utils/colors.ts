@@ -1,6 +1,6 @@
 // src/utils/colors.ts
 const colors = {
-  primary: "#0FF0FC", // Neon Cyan
+  primary: "#0da6ae", // Neon Cyan
   secondary: "#FF4500", // Neon Orange
   background: "#0D0D2B", // Deep Space Blue
   panelBackground: "#1A1A3D", // Slightly lighter for panels
