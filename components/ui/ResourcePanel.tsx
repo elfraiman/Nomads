@@ -6,6 +6,7 @@ import { ResourceType } from "@/components/ui/ResourceIcon";
 import ResourceButton from "@/components/ui/ResourceButton";
 import { PlayerResources, IResource } from "@/utils/defaults";
 import colors from "@/utils/colors";
+import { useGame } from "@/context/GameContext";
 
 interface ResourcePanelProps {
     resourceType: ResourceType;
@@ -68,11 +69,6 @@ const ResourcePanel = ({
 };
 
 interface CoreOperationsProps {
-    resources: {
-        fuel: IResource;
-        solarPlasma: IResource & { locked: boolean };
-        energy: IResource;
-    };
     defaultResourceGenerationValue: {
         fuel: number;
         solarPlasma: number;
@@ -81,13 +77,17 @@ interface CoreOperationsProps {
 }
 
 const CoreOperations = ({
-    resources,
     defaultResourceGenerationValue,
     generateResource,
 }: CoreOperationsProps) => {
+
+    const { resources } = useGame();
+
     const returnPriceForResource = (resource: IResource, defaultPrice: number) => {
         return Math.round(resource.efficiency * defaultPrice);
     }
+
+
     return (
         <View style={styles.cardContent}>
             <ResourcePanel
@@ -102,7 +102,7 @@ const CoreOperations = ({
                     generateResource(
                         "fuel",
                         returnPriceForResource(resources.fuel, 10),
-                        defaultResourceGenerationValue.fuel * resources.fuel.efficiency,
+                        defaultResourceGenerationValue.fuel,
                         0
                     )
                 }
@@ -110,6 +110,7 @@ const CoreOperations = ({
                     defaultResourceGenerationValue.fuel * resources.fuel.efficiency
                 )} `}
             />
+
 
             {!resources.solarPlasma.locked && (
                 <ResourcePanel
@@ -124,7 +125,7 @@ const CoreOperations = ({
                         generateResource(
                             "solarPlasma",
                             returnPriceForResource(resources.solarPlasma, 16),
-                            defaultResourceGenerationValue.solarPlasma * 55,
+                            defaultResourceGenerationValue.solarPlasma,
                             0
                         )
                     }

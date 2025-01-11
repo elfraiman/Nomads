@@ -7,6 +7,7 @@ import { IMainShip, IPirate, PlayerResources } from "@/utils/defaults";
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Svg, { Rect } from "react-native-svg";
+import { ImageBackground } from "react-native";
 
 const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
   const { planet } = route.params;
@@ -251,174 +252,179 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
   return (
     <>
-      <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-        <Text style={styles.header}>{planet.name} - Enemies Left: {enemies.length - currentEnemyIndex}</Text>
-        <View style={styles.pirateImageContainer}>
-          <Text style={styles.pirateName}>{pirate.name}: {pirate.health}/{pirate.maxHealth} HP</Text>
-          <View style={styles.healthBarContainer}>
+      <ImageBackground
+        source={require("@/assets/images/space-bg.png")} // Replace with your image path
+        style={styles.backgroundImage}
+      >
+        <ScrollView style={[styles.container, { backgroundColor: "transparent" }]}>
+          <Text style={styles.header}>{planet.name} - Enemies Left: {enemies.length - currentEnemyIndex}</Text>
+          <View style={styles.pirateImageContainer}>
+            <Text style={styles.pirateName}>{pirate.name}: {pirate.health}/{pirate.maxHealth} HP</Text>
+            <View style={styles.healthBarContainer}>
+              <Svg width="100%" height="20">
+                <Rect x="0" y="0" width="100%" height="20" fill={colors.disabledBackground} />
+                <Rect x="0" y="0" width={`${(pirate.health / pirate.maxHealth) * 100}%`} height="20" fill={colors.error} />
+              </Svg>
+            </View>
+          </View>
+          {/* Button to spawn next pirate */}
+          {pirate.health === 0 && currentEnemyIndex < enemies.length - 1 && (
+            <TouchableOpacity style={styles.spawnButton} onPress={spawnNextPirate}>
+              <Text style={styles.spawnButtonText}>Spawn Next Pirate</Text>
+            </TouchableOpacity>
+          )}
+
+          <View style={styles.healthContainer}>
+            <Text style={styles.healthText}>Main Ship Health: {mainShip.baseStats.health}</Text>
             <Svg width="100%" height="20">
               <Rect x="0" y="0" width="100%" height="20" fill={colors.disabledBackground} />
-              <Rect x="0" y="0" width={`${(pirate.health / pirate.maxHealth) * 100}%`} height="20" fill={colors.error} />
+              <Rect x="0" y="0" width={`${(mainShip.baseStats.health / mainShip.baseStats.maxHealth) * 100}%`} height="20" fill={colors.successGradient[0]} />
             </Svg>
           </View>
-        </View>
-        {/* Button to spawn next pirate */}
-        {pirate.health === 0 && currentEnemyIndex < enemies.length - 1 && (
-          <TouchableOpacity style={styles.spawnButton} onPress={spawnNextPirate}>
-            <Text style={styles.spawnButtonText}>Spawn Next Pirate</Text>
-          </TouchableOpacity>
-        )}
 
-        <View style={styles.healthContainer}>
-          <Text style={styles.healthText}>Main Ship Health: {mainShip.baseStats.health}</Text>
-          <Svg width="100%" height="20">
-            <Rect x="0" y="0" width="100%" height="20" fill={colors.disabledBackground} />
-            <Rect x="0" y="0" width={`${(mainShip.baseStats.health / mainShip.baseStats.maxHealth) * 100}%`} height="20" fill={colors.successGradient[0]} />
-          </Svg>
-        </View>
+          <View style={styles.logContainer}>
+            <Text style={styles.logHeader}>Combat Log</Text>
+            <ScrollView ref={scrollViewRef}>
+              {combatLog.map((log, index) => {
+                let style = styles.logTextGeneral;
 
-        <View style={styles.logContainer}>
-          <Text style={styles.logHeader}>Combat Log</Text>
-          <ScrollView ref={scrollViewRef}>
-            {combatLog.map((log, index) => {
-              let style = styles.logTextGeneral;
+                if (log.includes("hit for")) {
+                  // Extract weapon type from the log and map it to a resource
+                  const matchedWeapon = mainShip.equippedWeapons.find((weapon) =>
+                    log.includes(weapon.weaponDetails.name)
+                  );
 
-              if (log.includes("hit for")) {
-                // Extract weapon type from the log and map it to a resource
-                const matchedWeapon = mainShip.equippedWeapons.find((weapon) =>
-                  log.includes(weapon.weaponDetails.name)
-                );
-
-                if (matchedWeapon) {
-                  const resourceType = matchedWeapon.weaponDetails.cost.type;
-                  style = {
-                    ...styles.logText,
-                    color: resourceColors[resourceType] || colors.textPrimary, // Default to primary if no match
-                  };
+                  if (matchedWeapon) {
+                    const resourceType = matchedWeapon.weaponDetails.cost.type;
+                    style = {
+                      ...styles.logText,
+                      color: resourceColors[resourceType] || colors.textPrimary, // Default to primary if no match
+                    };
+                  }
+                } else if (log.includes("missed")) {
+                  style = styles.logTextMiss; // Misses
+                } else if (log.includes("New enemy") || log.includes("defeated")) {
+                  style = styles.logTextVictory; // Victory messages
+                } else if (log.includes("Not enough") || log.includes("was defeated")) {
+                  style = styles.logTextWarning; // Warnings or negative events
+                } else if (log.includes("hit for")) {
+                  style = styles.logTextPirate; // Pirate's attacks
                 }
-              } else if (log.includes("missed")) {
-                style = styles.logTextMiss; // Misses
-              } else if (log.includes("New enemy") || log.includes("defeated")) {
-                style = styles.logTextVictory; // Victory messages
-              } else if (log.includes("Not enough") || log.includes("was defeated")) {
-                style = styles.logTextWarning; // Warnings or negative events
-              } else if (log.includes("hit for")) {
-                style = styles.logTextPirate; // Pirate's attacks
-              }
+
+                return (
+                  <Text key={index} style={[styles.logText, style]}>
+                    {log}
+                  </Text>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+
+          <View style={styles.optionsGridContainer}>
+            {/* ... (keep existing code until weaponItem section) ... */}
+            {Object.entries(weaponGroups).map(([type, weapons]) => {
+              const fireableWeapons = weapons.filter((weapon) => {
+                const { type: resourceType, amount } = weapon.weaponDetails.cost;
+                return (
+                  (mainShip.resources[resourceType as keyof PlayerResources]?.current || 0) >= amount
+                );
+              });
+
+              const totalCost = fireableWeapons.reduce((acc, weapon) => {
+                const { type: resourceType, amount } = weapon.weaponDetails.cost;
+                acc[resourceType] = (acc[resourceType] || 0) + amount;
+                return acc;
+              }, {} as { [key: string]: number });
 
               return (
-                <Text key={index} style={[styles.logText, style]}>
-                  {log}
-                </Text>
+                <View key={type} style={styles.weaponGroup}>
+                  <Text style={styles.groupTitle}>{type.toUpperCase()}</Text>
+                  <View style={styles.weaponList}>
+                    {weapons.map((weapon) => {
+                      const weaponCooldown = weaponCooldowns.find((w) => w.id === weapon.id);
+                      const cooldown = weaponCooldown?.cooldown || 0;
+                      const animation = weaponCooldown?.animation;
+                      const durabilityPercentage = (weapon.weaponDetails.durability / weapon.weaponDetails.maxDurability) * 100;
+
+                      const canFire =
+                        (mainShip.resources[weapon.weaponDetails.cost.type as keyof PlayerResources]?.current || 0) >=
+                        weapon.weaponDetails.cost.amount;
+
+                      return (
+                        <View key={weapon.id} style={styles.weaponItem}>
+                          <View style={styles.weaponHeader}>
+                            <Text style={styles.weaponName}>{weapon.weaponDetails.name}</Text>
+                            <Text style={[
+                              styles.durabilityText,
+                              durabilityPercentage < 25 ? styles.durabilityLow : null
+                            ]}>
+                              {weapon.weaponDetails.durability}/{weapon.weaponDetails.maxDurability}
+                            </Text>
+                          </View>
+                          <View style={styles.durabilityBar}>
+                            <View style={[
+                              styles.durabilityFill,
+                              { width: `${durabilityPercentage}%` },
+                              durabilityPercentage < 25 ? styles.durabilityLowFill : null
+                            ]} />
+                          </View>
+                          <View style={styles.cooldownContainer}>
+                            {cooldown > 0 ? (
+                              <>
+                                <Animated.View
+                                  style={[
+                                    styles.cooldownBar,
+                                    {
+                                      width: animation?.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: ["0%", "100%"],
+                                      }),
+                                      backgroundColor: resourceColors[weapon.weaponDetails.cost.type] || colors.warning,
+                                    },
+                                  ]}
+                                />
+                                <Text style={styles.cooldownText}>{cooldown}s</Text>
+                              </>
+                            ) : canFire ? (
+                              <Text style={styles.readyText}>Ready</Text>
+                            ) : (
+                              <Text style={styles.noResourceText}>No Resources</Text>
+                            )}
+                          </View>
+                          <View style={styles.resourceCostItem}>
+                            <ResourceIcon type={weapon.weaponDetails.cost.type as keyof PlayerResources} size={16} />
+                            <Text style={styles.resourceAmountText}>{weapon.weaponDetails.cost.amount}</Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                  <TouchableOpacity
+                    disabled={!isPlayerTurn || fireableWeapons.length === 0}
+                    style={[
+                      styles.attackButton,
+                      fireableWeapons.length === 0 && styles.disabledButton,
+                    ]}
+                    onPress={() => handleAttackByType(type)}
+                  >
+                    <View style={styles.resourceCosts}>
+                      <Text style={styles.attackButtonText}>Fire</Text>
+                      {Object.entries(totalCost).map(([resourceType, amount]) => (
+                        <View key={resourceType} style={styles.resourceCostItem}>
+                          <ResourceIcon type={resourceType as keyof PlayerResources} size={16} />
+                          <Text style={styles.resourceAmountText}>{amount}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </TouchableOpacity>
+                </View>
               );
             })}
-          </ScrollView>
-        </View>
+          </View>
 
-
-        <View style={styles.optionsGridContainer}>
-          {/* ... (keep existing code until weaponItem section) ... */}
-          {Object.entries(weaponGroups).map(([type, weapons]) => {
-            const fireableWeapons = weapons.filter((weapon) => {
-              const { type: resourceType, amount } = weapon.weaponDetails.cost;
-              return (
-                (mainShip.resources[resourceType as keyof PlayerResources]?.current || 0) >= amount
-              );
-            });
-
-            const totalCost = fireableWeapons.reduce((acc, weapon) => {
-              const { type: resourceType, amount } = weapon.weaponDetails.cost;
-              acc[resourceType] = (acc[resourceType] || 0) + amount;
-              return acc;
-            }, {} as { [key: string]: number });
-
-            return (
-              <View key={type} style={styles.weaponGroup}>
-                <Text style={styles.groupTitle}>{type.toUpperCase()}</Text>
-                <View style={styles.weaponList}>
-                  {weapons.map((weapon) => {
-                    const weaponCooldown = weaponCooldowns.find((w) => w.id === weapon.id);
-                    const cooldown = weaponCooldown?.cooldown || 0;
-                    const animation = weaponCooldown?.animation;
-                    const durabilityPercentage = (weapon.weaponDetails.durability / weapon.weaponDetails.maxDurability) * 100;
-
-                    const canFire =
-                      (mainShip.resources[weapon.weaponDetails.cost.type as keyof PlayerResources]?.current || 0) >=
-                      weapon.weaponDetails.cost.amount;
-
-                    return (
-                      <View key={weapon.id} style={styles.weaponItem}>
-                        <View style={styles.weaponHeader}>
-                          <Text style={styles.weaponName}>{weapon.weaponDetails.name}</Text>
-                          <Text style={[
-                            styles.durabilityText,
-                            durabilityPercentage < 25 ? styles.durabilityLow : null
-                          ]}>
-                            {weapon.weaponDetails.durability}/{weapon.weaponDetails.maxDurability}
-                          </Text>
-                        </View>
-                        <View style={styles.durabilityBar}>
-                          <View style={[
-                            styles.durabilityFill,
-                            { width: `${durabilityPercentage}%` },
-                            durabilityPercentage < 25 ? styles.durabilityLowFill : null
-                          ]} />
-                        </View>
-                        <View style={styles.cooldownContainer}>
-                          {cooldown > 0 ? (
-                            <>
-                              <Animated.View
-                                style={[
-                                  styles.cooldownBar,
-                                  {
-                                    width: animation?.interpolate({
-                                      inputRange: [0, 1],
-                                      outputRange: ["0%", "100%"],
-                                    }),
-                                    backgroundColor: resourceColors[weapon.weaponDetails.cost.type] || colors.warning,
-                                  },
-                                ]}
-                              />
-                              <Text style={styles.cooldownText}>{cooldown}s</Text>
-                            </>
-                          ) : canFire ? (
-                            <Text style={styles.readyText}>Ready</Text>
-                          ) : (
-                            <Text style={styles.noResourceText}>No Resources</Text>
-                          )}
-                        </View>
-                        <View style={styles.resourceCostItem}>
-                          <ResourceIcon type={weapon.weaponDetails.cost.type as keyof PlayerResources} size={16} />
-                          <Text style={styles.resourceAmountText}>{weapon.weaponDetails.cost.amount}</Text>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-                <TouchableOpacity
-                  disabled={!isPlayerTurn || fireableWeapons.length === 0}
-                  style={[
-                    styles.attackButton,
-                    fireableWeapons.length === 0 && styles.disabledButton,
-                  ]}
-                  onPress={() => handleAttackByType(type)}
-                >
-                  <View style={styles.resourceCosts}>
-                    <Text style={styles.attackButtonText}>Fire</Text>
-                    {Object.entries(totalCost).map(([resourceType, amount]) => (
-                      <View key={resourceType} style={styles.resourceCostItem}>
-                        <ResourceIcon type={resourceType as keyof PlayerResources} size={16} />
-                        <Text style={styles.resourceAmountText}>{amount}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </TouchableOpacity>
-              </View>
-            );
-          })}
-        </View>
-
-      </ScrollView>
+        </ScrollView>
+      </ImageBackground>
       <ShipStatus />
     </>
   );
@@ -427,12 +433,17 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    resizeMode: "cover", // To cover the entire screen
+  },
   container: {
     flex: 1,
     padding: 16,
   },
+
   spawnButton: {
-    backgroundColor: colors.buttonGreen,
+    backgroundColor: colors.primary,
     padding: 10,
     alignItems: "center",
     marginBottom: 16,
@@ -678,7 +689,7 @@ const styles = StyleSheet.create({
   },
   attackButton: {
     padding: 8,
-    backgroundColor: colors.buttonGreen,
+    backgroundColor: colors.primary,
     alignItems: "center",
   },
 

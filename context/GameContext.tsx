@@ -4,7 +4,7 @@ import initialUpgradeList, { Upgrade, UpgradeCost } from "@/data/upgrades";
 import initialWeapons, { IWeapon } from "@/data/weapons";
 import { IResource, PlayerResources, Ships, initialShips, IAsteroid, IGalaxy, initialGalaxies, IMainShip, initialMainShip } from "@/utils/defaults";
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { AppState, AppStateStatus, Platform } from "react-native";
+import { Alert, AppState, AppStateStatus, Platform } from "react-native";
 
 export interface GameContextType {
     resources: PlayerResources; // Tracks resource states like energy, fuel, etc.
@@ -271,7 +271,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             updateWeapons(weaponId, weapon.amount + 1);
         }
     };
-    // Update we
 
     // Achievements
     //
@@ -357,7 +356,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
                         }));
                     }
-                    alert(`Achievement Unlocked: ${achievement.title}\n\n${achievement.story}`);
+
+                    Alert.alert(`Achievement Unlocked: ${achievement.title}\n\n${achievement.story}`);
                     return { ...achievement, completed: true, progress: { upgrades: updatedProgress } };
                 }
 
@@ -462,6 +462,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
         // Increment the upgrade level and update the costs for the next level
         const newLevel = upgrade.level + 1;
+
         setUpgrades((prevUpgrades) =>
             prevUpgrades.map((upgrade) =>
                 upgrade.id === id
@@ -495,11 +496,17 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 };
             });
         } else if (id === "core_operations_efficiency") {
+            console.log("Upgrade core operations efficiency");
             setMainShip((prev) => {
+                const efficiencyMultiplier = 1.05;  // 5% increase per level
+                const upgradeLevel = upgrade.level;
                 const updatedResources = Object.fromEntries(
                     Object.entries(prev.resources).map(([key, value]) => [
                         key,
-                        { ...value, efficiency: Math.round(value.efficiency * 1.05) },
+                        {
+                            ...value,
+                            efficiency: Math.round(value.efficiency * Math.pow(efficiencyMultiplier, upgradeLevel))
+                        },
                     ])
                 ) as PlayerResources;
 
@@ -523,6 +530,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         updateAchievProgressForShips(shipType, amount);
     };
 
+    // TO:DO Downgrading
     const downgradeUpgrade = (id: string) => {
         const upgrade = initialUpgradeList.find((u: Upgrade) => u.id === id);
         if (!upgrade) return;
@@ -587,6 +595,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             alert("Not enough energy!");
             return;
         }
+
         // Deduct energy
         if (energyCost > 0) {
             updateResources("energy", { current: mainShip.resources.energy.current - energyCost });

@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   controlButton: {
-    backgroundColor: colors.buttonGreen,
+    backgroundColor: colors.primary,
     padding: 8,
     borderRadius: 4,
     marginHorizontal: 4,

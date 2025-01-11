@@ -57,8 +57,7 @@ function WrappedRootLayout() {
 
 
   return (
-
-    <ThemeProvider value={DarkTheme}>
+    <>
       <StatusBar
         barStyle="light-content" // Options: "light-content", "dark-content"
         backgroundColor="black" // Android-specific
@@ -179,15 +178,18 @@ function WrappedRootLayout() {
           />
         )}
       </Drawer.Navigator>
-    </ThemeProvider>
+    </>
   );
 }
 
 
 const RootLayout = () => (
-  <GameProvider>
-    <WrappedRootLayout />
-  </GameProvider>
+
+  <ThemeProvider value={DarkTheme}>
+    <GameProvider>
+      <WrappedRootLayout />
+    </GameProvider>
+  </ThemeProvider>
 );
 
 export default RootLayout

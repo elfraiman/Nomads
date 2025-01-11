@@ -37,7 +37,7 @@ const initialUpgradeList: Upgrade[] = [
             { resourceType: "energy", amount: 50 },
             { resourceType: "fuel", amount: 50 }
         ],
-        baseCostMultiplier: 1.20,
+        baseCostMultiplier: 1.10,
         level: 1,
     },
     {
@@ -57,7 +57,7 @@ const initialUpgradeList: Upgrade[] = [
         id: "core_operations_efficiency",
         title: "Core Operations Efficiency",
         description: (level: number) =>
-            `Refine and streamline the ship's core operational subsystems, increasing their output efficiency by ${5}% to a total of ${(level + 1) * 5} Precision fuel allocation and advanced diagnostics minimize energy waste.`,
+            `Refine and streamline the ship's core operational subsystems, increasing their output efficiency by ${5}% to a total of ${(level + 1) * 5}%. The advanced diagnostics minimize energy waste.`,
         costs: [
             { resourceType: "energy", amount: 50 },
             { resourceType: "fuel", amount: 100 },

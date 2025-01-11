@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
   button: {
-    backgroundColor: colors.buttonGreen,
+    backgroundColor: colors.primary,
     padding: 10,
     alignItems: "center",
     marginTop: 8,

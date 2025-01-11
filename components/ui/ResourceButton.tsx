@@ -38,7 +38,7 @@ const ResourceButton = ({
 };
 const styles = StyleSheet.create({
     button: {
-        backgroundColor: colors.buttonGreen,
+        backgroundColor: colors.primary,
         padding: 10,
         alignItems: "center",
         marginTop: 8,

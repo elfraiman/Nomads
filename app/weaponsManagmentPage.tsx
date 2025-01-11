@@ -118,7 +118,7 @@ const WeaponManagementPage = () => {
         <View style={styles.section}>
           <Text style={styles.sectionHeader}>Selected Weapon Details</Text>
           {weapons.filter(w => w.id === selectedWeapon).map(weapon => (
-            <View key={weapon.id} style={styles.weaponDetails}>
+            <View key={weapon.uniqueId ?? weapon.id + 1} style={styles.weaponDetails}>
               <ImageBackground source={weapon.icon} style={styles.detailsIcon} imageStyle={styles.weaponCardImage}>
                 <View style={styles.weaponCardOverlay}>
                   <Text style={styles.weaponTitle}>{weapon.title}</Text>

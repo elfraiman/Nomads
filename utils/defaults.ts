@@ -337,7 +337,7 @@ export const initialMainShip: IMainShip = {
   resources: {
     energy: { current: 85, max: 100, efficiency: 2, locked: false },
     fuel: { current: 0, max: 100, efficiency: 1.8, locked: false },
-    solarPlasma: { current: 0, max: 100, efficiency: 1.6, locked: false },
+    solarPlasma: { current: 0, max: 100, efficiency: 1.6, locked: true },
     darkMatter: { current: 0, max: 100, efficiency: 1.2, locked: false },
     frozenHydrogen: { current: 0, max: 100, efficiency: 0.9, locked: false },
     alloys: { current: 0, max: 100, efficiency: 0.3, locked: false },

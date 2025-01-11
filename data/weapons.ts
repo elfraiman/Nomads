@@ -109,6 +109,7 @@ const lasers: IWeapon[] = [
   {
     id: "light_pulse_laser",
     title: "Light Pulse Laser",
+    icon: require("@/assets/images/lasers/light-pulse-laser.png"),
     description: (level: number) =>
       `Designed for precision strikes, the Light Pulse Laser emits rapid pulses of focused light energy, perfect for surgical hits on smaller targets.`,
     costs: [
@@ -128,6 +129,7 @@ const lasers: IWeapon[] = [
   {
     id: "medium_beam_laser",
     title: "Medium Beam Laser",
+    icon: require("@/assets/images/lasers/medium-pulse-laser.png"),
     description: (level: number) =>
       `The Medium Beam Laser combines range with firepower, delivering sustained beams capable of cutting through advanced shielding systems.`,
     costs: [
@@ -147,6 +149,7 @@ const lasers: IWeapon[] = [
   {
     id: "heavy_beam_laser",
     title: "Heavy Beam Laser",
+    icon: require("@/assets/images/lasers/heavy-pulse-laser.png"),
     description: (level: number) =>
       `Unleashing unparalleled energy, the Heavy Beam Laser provides devastating beams capable of annihilating reinforced capital ships.`,
     costs: [
@@ -169,6 +172,7 @@ const missiles: IWeapon[] = [
   {
     id: "light_rocket_launcher",
     title: "Light Rocket Launcher",
+    icon: require("@/assets/images/missiles/light-rocket-launcher.png"),
     description: (level: number) =>
       `A versatile rocket launcher for high-speed crafts, the Light Rocket Launcher excels in delivering quick and accurate explosive payloads.`,
     costs: [
@@ -188,6 +192,7 @@ const missiles: IWeapon[] = [
   {
     id: "medium_missile_launcher",
     title: "Medium Missile Launcher",
+    icon: require("@/assets/images/missiles/medium-missile-launcher.png"),
     description: (level: number) =>
       `Designed for cruisers, the Medium Missile Launcher delivers precision-guided warheads with enhanced damage and speed.`,
     costs: [
@@ -207,6 +212,7 @@ const missiles: IWeapon[] = [
   {
     id: "heavy_torpedo_launcher",
     title: "Heavy Torpedo Launcher",
+    icon: require("@/assets/images/missiles/large-missile-launcher.png"),
     description: (level: number) =>
       `The Heavy Torpedo Launcher is engineered to deliver massive explosive force, ideal for devastating capital-class ships.`,
     costs: [
@@ -229,6 +235,7 @@ const railguns: IWeapon[] = [
   {
     id: "light_railgun",
     title: "Light Railgun",
+    icon: require("@/assets/images/railguns/light-railgun.png"),
     description: (level: number) =>
       `Employing electromagnetic force, the Light Railgun launches projectiles with pinpoint accuracy over long distances.`,
     costs: [
@@ -248,6 +255,7 @@ const railguns: IWeapon[] = [
   {
     id: "medium_railgun",
     title: "Medium Railgun",
+    icon: require("@/assets/images/railguns/medium-railgun.png"),
     description: (level: number) =>
       `The Medium Railgun combines precision with destructive power, perfect for anti-frigate and anti-cruiser operations.`,
     costs: [
@@ -267,6 +275,7 @@ const railguns: IWeapon[] = [
   {
     id: "heavy_railgun",
     title: "Heavy Railgun",
+    icon: require("@/assets/images/railguns/large-railgun.png"),
     description: (level: number) =>
       `A pinnacle of kinetic weaponry, the Heavy Railgun is engineered to destroy even the most heavily armored targets.`,
     costs: [
