@@ -9,9 +9,10 @@ const colors = {
   border: "#36367c", // Space Gray with a hint of blue
   transparentBackground: "rgba(26, 26, 61, 0.7)", // Semi-transparent space panel
   iosTransparentBackground: "rgba(38, 38, 78, 1)", // iOS semi-transparent space panel
-  successGradient: ["#32FF7E", "#056B42"], // Bright Green Gradient
+  successGradient: ["#25d365", "#056B42"], // Bright Green Gradient
   buttonGreen: "#14715e", // Bright Green
   error: "#FF3860", // Vibrant Red for errors
+  redButton: "#b6213f", // Bright Red,
   warning: "#FFDD33", // Bright Yellow
   info: "#4CB5F5", // Electric Blue
   hudBlue: "#1F4068", // Dark Blue for HUD elements

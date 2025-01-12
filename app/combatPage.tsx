@@ -17,11 +17,14 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
   const { mainShip, setMainShip } = game;
 
-  const generateEnemies = () => [
-    ...Array(15).fill(planet.enemies[0]),
-    planet.enemies[2],
-    planet.enemies[3],
-  ];
+
+  const generateEnemies = () => {
+    const randomEnemies = Array.from({ length: planet.pirateCount }, () => ({
+      ...planet.enemies[Math.floor(Math.random() * planet.enemies.length)],
+    }));
+    return [...randomEnemies, planet.enemies[2], planet.enemies[3]];
+  };
+
 
   const resourceColors: { [key: string]: string } = {
     energy: "#FFD93D", // Example: Yellow for energy
@@ -32,12 +35,15 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
     alloys: "#C0C0C0", // Silver for alloys
   };
 
+
   const [enemies, setEnemies] = useState(generateEnemies());
   const [currentEnemyIndex, setCurrentEnemyIndex] = useState(0);
   const [pirate, setPirate] = useState(enemies[0]);
-  const [combatLog, setCombatLog] = useState<string[]>([]);
-  const [isPlayerTurn, setIsPlayerTurn] = useState(true);
+  const [combatLog, setCombatLog] = useState<{ text: string; color?: string }[]>([]);
   const [weaponGroups, setWeaponGroups] = useState<{ [key: string]: IWeapon[] }>({});
+  const [canEscape, setCanEscape] = useState(true);
+  const [lastEscapeAttempt, setLastEscapeAttempt] = useState(0);
+  const [hasEscaped, setHasEscaped] = useState(false);
   const [weaponCooldowns, setWeaponCooldowns] = useState(
     mainShip.equippedWeapons.map((weapon) => ({
       id: weapon.id,
@@ -68,15 +74,14 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
   };
 
 
-
   const spawnNextPirate = () => {
     if (currentEnemyIndex < enemies.length - 1) {
-      const nextIndex = currentEnemyIndex + 1;
+      const nextIndex = currentEnemyIndex;
       setCurrentEnemyIndex(nextIndex);
       setPirate(enemies[nextIndex]);
-      setCombatLog((prev) => [...prev, `New enemy: ${enemies[nextIndex].name} appeared!`]);
+      setCombatLog((prev) => [...prev, { text: `New enemy: ${enemies[nextIndex].name} appeared!` }]);
     } else {
-      setCombatLog((prev) => [...prev, "All enemies defeated!"]);
+      setCombatLog((prev) => [...prev, { text: "All enemies defeated!", color: colors.successGradient[0] }]);
     }
   };
 
@@ -99,7 +104,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
   const handleAttackByType = (weaponsType: string) => {
     const weapons = weaponGroups[weaponsType];
     if (!weapons || weapons.length === 0) {
-      setCombatLog((prev) => [...prev, `No weapons of type ${weaponsType} equipped!`]);
+      setCombatLog((prev) => [...prev, { text: `No weapons of type ${weaponsType} equipped!`, color: colors.warning }]);
       return;
     }
 
@@ -114,7 +119,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
         if (currentResource < cost.amount) {
           setCombatLog((prev) => [
             ...prev,
-            `Not enough ${cost.type} to fire ${weaponCooldown.weaponDetails.name}!`,
+            { text: `Not enough ${cost.type} to fire ${weaponCooldown.weaponDetails.name}!`, color: colors.secondary },
           ]);
           return weaponCooldown;
         }
@@ -139,12 +144,12 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
           totalDamage += damage;
           setCombatLog((prev) => [
             ...prev,
-            `${weaponCooldown.weaponDetails.name} hit for ${damage} damage!`,
+            { text: `${weaponCooldown.weaponDetails.name} hit for ${damage} damage!`, color: resourceColors[weaponCooldown.weaponDetails.cost.type] },
           ]);
         } else {
           setCombatLog((prev) => [
             ...prev,
-            `${weaponCooldown.weaponDetails.name} missed!`,
+            { text: `${weaponCooldown.weaponDetails.name} missed!`, color: colors.textSecondary },
           ]);
         }
 
@@ -153,7 +158,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
         if (newDurability <= 0) {
           setCombatLog((prev) => [
             ...prev,
-            `${weaponCooldown.weaponDetails.name} has broken!`,
+            { text: `${weaponCooldown.weaponDetails.name} has broken!`, color: colors.secondary },
           ]);
           newMainShip.equippedWeapons = newMainShip.equippedWeapons.filter(
             (w) => w.id !== weaponCooldown.id
@@ -181,7 +186,9 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
     }));
   };
 
-
+  // Makes sure we update the weapons when the player changes them
+  // in the management 
+  ///
   useEffect(() => {
     // Group weapons by type
     const groupedWeapons = mainShip.equippedWeapons.reduce((groups: { [key: string]: IWeapon[] }, weapon) => {
@@ -196,14 +203,16 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
     setWeaponGroups(groupedWeapons);
   }, [mainShip.equippedWeapons, game.weapons]);
 
+  // Pirate attack
+  //
   useEffect(() => {
     const interval = setInterval(() => {
-      if (pirate.health > 0) {
+      if (pirate?.health > 0 && !hasEscaped) {
         // Derive pirate accuracy based on its attack speed
         const pirateAccuracy = Math.min(pirate.attackSpeed * 10, 100); // Scale attack speed into an accuracy percentage
 
         // Calculate evasion for the player's main ship based on defense
-        const playerEvasion = Math.min(mainShip.baseStats.defense * 2, 90); // Scale defense to evasion percentage, capped at 90%
+        const playerEvasion = Math.min(mainShip.baseStats.defense * 2, 80); // Scale defense to evasion percentage, capped at 80%
 
         // Determine if the pirate's attack hits
         const isHit = Math.random() <= Math.max((pirateAccuracy - playerEvasion) / 100, 0.4); // Ensure min 40% hit chance
@@ -216,17 +225,22 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
             baseStats: { ...prev.baseStats, health: Math.max(prev.baseStats.health - damage, 0) },
           }));
 
-          setCombatLog((prev) => [...prev, `${pirate.name} hit for ${damage} damage!`]);
+          setCombatLog((prev) => [...prev, { text: `${pirate.name} hit for ${damage} damage!`, color: colors.error }]);
         } else {
-          setCombatLog((prev) => [...prev, `${pirate.name}'s attack missed!`]);
+          setCombatLog((prev) => [...prev, { text: `${pirate.name}'s attack missed!`, color: colors.textSecondary }]);
         }
+      } else if (hasEscaped) {
+        setPirate({ name: "Escaped", health: 0, maxHealth: 0, attack: 0, defense: 0, attackSpeed: 0 });
+        clearInterval(interval);
+      } else if (pirate?.health <= 0) {
+        setCombatLog((prev) => [...prev, { text: `${pirate.name} has been defeated!`, color: colors.successGradient[0] }]);
+        setEnemies((prev) => prev.filter((_, index) => index !== currentEnemyIndex));
+        clearInterval(interval);
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [pirate.health, mainShip.baseStats.defense]);
-
-
+  }, [pirate?.health, mainShip.baseStats.defense, hasEscaped]);
 
   useEffect(() => {
     if (scrollViewRef.current) {
@@ -257,22 +271,19 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
         style={styles.backgroundImage}
       >
         <ScrollView style={[styles.container, { backgroundColor: "transparent" }]}>
-          <Text style={styles.header}>{planet.name} - Enemies Left: {enemies.length - currentEnemyIndex}</Text>
-          <View style={styles.pirateImageContainer}>
-            <Text style={styles.pirateName}>{pirate.name}: {pirate.health}/{pirate.maxHealth} HP</Text>
-            <View style={styles.healthBarContainer}>
-              <Svg width="100%" height="20">
-                <Rect x="0" y="0" width="100%" height="20" fill={colors.disabledBackground} />
-                <Rect x="0" y="0" width={`${(pirate.health / pirate.maxHealth) * 100}%`} height="20" fill={colors.error} />
-              </Svg>
-            </View>
-          </View>
-          {/* Button to spawn next pirate */}
-          {pirate.health === 0 && currentEnemyIndex < enemies.length - 1 && (
-            <TouchableOpacity style={styles.spawnButton} onPress={spawnNextPirate}>
-              <Text style={styles.spawnButtonText}>Spawn Next Pirate</Text>
-            </TouchableOpacity>
-          )}
+          {hasEscaped ? (<Text style={styles.header}>ESCAPED</Text>) :
+            <>
+              <Text style={styles.header}>{planet.name} - Enemies Left: {enemies.length - currentEnemyIndex}</Text>
+              <View style={styles.pirateImageContainer}>
+                <Text style={styles.pirateName}>{pirate.name}: {pirate.health}/{pirate.maxHealth} HP</Text>
+                <View style={styles.healthBarContainer}>
+                  <Svg width="100%" height="20">
+                    <Rect x="0" y="0" width="100%" height="20" fill={colors.disabledBackground} />
+                    <Rect x="0" y="0" width={`${(pirate.health / pirate.maxHealth) * 100}%`} height="20" fill={colors.error} />
+                  </Svg>
+                </View>
+              </View>
+            </>}
 
           <View style={styles.healthContainer}>
             <Text style={styles.healthText}>Main Ship Health: {mainShip.baseStats.health}</Text>
@@ -282,42 +293,22 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
             </Svg>
           </View>
 
+          {/* Button to spawn next pirate */}
+          {currentEnemyIndex < enemies.length - 1 && (
+            <TouchableOpacity style={styles.spawnButton} onPress={spawnNextPirate}>
+              <Text style={styles.spawnButtonText}>Spawn Next Pirate</Text>
+            </TouchableOpacity>
+          )}
           <View style={styles.logContainer}>
             <Text style={styles.logHeader}>Combat Log</Text>
             <ScrollView ref={scrollViewRef}>
-              {combatLog.map((log, index) => {
-                let style = styles.logTextGeneral;
-
-                if (log.includes("hit for")) {
-                  // Extract weapon type from the log and map it to a resource
-                  const matchedWeapon = mainShip.equippedWeapons.find((weapon) =>
-                    log.includes(weapon.weaponDetails.name)
-                  );
-
-                  if (matchedWeapon) {
-                    const resourceType = matchedWeapon.weaponDetails.cost.type;
-                    style = {
-                      ...styles.logText,
-                      color: resourceColors[resourceType] || colors.textPrimary, // Default to primary if no match
-                    };
-                  }
-                } else if (log.includes("missed")) {
-                  style = styles.logTextMiss; // Misses
-                } else if (log.includes("New enemy") || log.includes("defeated")) {
-                  style = styles.logTextVictory; // Victory messages
-                } else if (log.includes("Not enough") || log.includes("was defeated")) {
-                  style = styles.logTextWarning; // Warnings or negative events
-                } else if (log.includes("hit for")) {
-                  style = styles.logTextPirate; // Pirate's attacks
-                }
-
-                return (
-                  <Text key={index} style={[styles.logText, style]}>
-                    {log}
-                  </Text>
-                );
-              })}
+              {combatLog.map((entry, index) => (
+                <Text key={index} style={[styles.logText, entry.color ? { color: entry.color } : null]}>
+                  {entry.text}
+                </Text>
+              ))}
             </ScrollView>
+
           </View>
 
 
@@ -401,7 +392,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
                     })}
                   </View>
                   <TouchableOpacity
-                    disabled={!isPlayerTurn || fireableWeapons.length === 0}
+                    disabled={fireableWeapons.length === 0}
                     style={[
                       styles.attackButton,
                       fireableWeapons.length === 0 && styles.disabledButton,
@@ -425,6 +416,67 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
         </ScrollView>
       </ImageBackground>
+
+
+      {hasEscaped ? (
+        <TouchableOpacity
+          style={[
+            styles.escapeButton,
+            , {
+              position: 'relative',
+              bottom: 0,
+              left: 0,
+              width: 145,
+              padding: 10,
+              backgroundColor: colors.primary
+            }
+          ]}
+          onPressIn={() => navigation.goBack()}
+        >
+          <Text style={styles.escapeButtonText}>Back</Text>
+        </TouchableOpacity>
+      ) : (<TouchableOpacity
+        style={[
+          styles.escapeButton,
+          , {
+            position: 'relative',
+            bottom: 0,
+            left: 0,
+            width: 145,
+            padding: 10,
+            backgroundColor: canEscape ? colors.redButton : colors.disabledBackground
+          }
+        ]}
+        onPressIn={() => {
+          if (!canEscape) return;
+
+          const escapeChance = Math.random();
+          setLastEscapeAttempt(Date.now());
+
+          if (escapeChance <= 0.50) {
+            setCombatLog(prev => [...prev, { text: "Escape successful!", color: colors.successGradient[0] }]);
+            setEnemies([]);
+            setHasEscaped(true);
+
+            // navigation.goBack();
+          } else {
+            setCombatLog(prev => [...prev, { text: "Failed to escape! ", color: colors.warning }]);
+            setCanEscape(false);
+            setTimeout(() => setCanEscape(true), 6000);
+          }
+        }}
+        disabled={!canEscape}
+      >
+        <Text style={styles.escapeButtonText}>
+          {canEscape ? "Attempt Escape" : "Failed to escape! "}
+          {!canEscape && (
+            <Text style={styles.escapeButtonText}>
+              {Math.ceil((6000 - (Date.now() - lastEscapeAttempt)) / 1000)}s
+            </Text>
+          )}
+        </Text>
+      </TouchableOpacity>)}
+
       <ShipStatus />
     </>
   );
@@ -441,7 +493,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-
+  escapeButtonText: {
+    color: colors.textPrimary,
+  },
   spawnButton: {
     backgroundColor: colors.primary,
     padding: 10,
@@ -476,12 +530,6 @@ const styles = StyleSheet.create({
   },
   durabilityLow: {
     color: colors.error,
-  },
-  scrollableLog: {
-    height: 100,
-    backgroundColor: colors.transparentBackground,
-    padding: 8,
-    maxHeight: 160,
   },
   scrollableContent: {
     flexGrow: 1,
@@ -530,7 +578,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   healthContainer: {
-    marginBottom: 16,
+    marginVertical: 10,
+
   },
   healthText: {
     color: colors.textPrimary,
@@ -548,6 +597,8 @@ const styles = StyleSheet.create({
   },
   escapeButton: {
     backgroundColor: colors.error,
+    padding: 10,
+    alignItems: "center",
   },
   gridOptionText: {
     color: colors.textPrimary,
@@ -562,13 +613,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   logContainer: {
-    backgroundColor: colors.transparentBackground,
+    backgroundColor: colors.panelBackground,
     padding: 10,
     maxHeight: 160,
   },
   logText: {
-    color: colors.textPrimary,
     fontSize: 14,
+    color: colors.textPrimary, // Default color
     marginBottom: 4,
   },
   logTextPlayer: {

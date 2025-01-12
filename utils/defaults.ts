@@ -12,6 +12,7 @@ export interface IPlanet {
   position: IPosition;
   image?: any;
   enemies: IPirate[];
+  pirateCount: number;
 }
 export interface IPirate {
   name: string;
@@ -25,12 +26,6 @@ export interface IPirate {
   lore: string;
 }
 
-interface IPlayerStats {
-  health: number;
-  attackPower: number;
-  defense: number;
-  attackSpeed: number;
-}
 
 export interface IGalaxy {
   id: number;
@@ -246,10 +241,10 @@ export const initialGalaxies: IGalaxy[] = [
     image: require("../assets/images/galaxy.webp"),
     found: true,
     planets: [
-      { id: 1, name: "Planet A1", position: { x: 150, y: height / 6 }, image: require("../assets/images/planet1.png"), enemies: nebulaMarauderPirates },
-      { id: 2, name: "Planet A2", position: { x: 350, y: height / 4.8 }, image: require("../assets/images/planet2.png"), enemies: voidCorsairsPirates },
-      { id: 3, name: "Planet A3", position: { x: 80, y: height / 2.9 }, image: require("../assets/images/planet3.png"), enemies: starScavengersPirates },
-      { id: 4, name: "Planet A4", position: { x: 300, y: height / 2 }, image: require("../assets/images/planet4.png"), enemies: titanVanguardPirates },
+      { id: 1, name: "Planet A1", position: { x: 150, y: height / 6 }, image: require("../assets/images/planet1.png"), enemies: nebulaMarauderPirates, pirateCount: 12 },
+      { id: 2, name: "Planet A2", position: { x: 350, y: height / 4.8 }, image: require("../assets/images/planet2.png"), enemies: voidCorsairsPirates, pirateCount: 14 },
+      { id: 3, name: "Planet A3", position: { x: 80, y: height / 2.9 }, image: require("../assets/images/planet3.png"), enemies: starScavengersPirates, pirateCount: 16 },
+      { id: 4, name: "Planet A4", position: { x: 300, y: height / 2 }, image: require("../assets/images/planet4.png"), enemies: titanVanguardPirates, pirateCount: 18 },
     ],
     asteroids: [
       { galaxyId: 1, id: 1, name: "Asteroid Ignis", resource: "fuel" as keyof PlayerResources, findChance: 0.2, maxResources: 1000 },

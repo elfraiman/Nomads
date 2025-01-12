@@ -273,7 +273,6 @@ const Dashboard = () => {
                                                 (cost) =>
                                                     resources[cost.resourceType as keyof PlayerResources]?.current >= cost.amount
                                             );
-
                                             return (
                                                 <View key={weapon.id} style={styles.weaponItem}>
                                                     <ImageBackground
@@ -311,7 +310,6 @@ const Dashboard = () => {
                                                             </View>
                                                         </View>
                                                     </ImageBackground>
-
                                                 </View>
                                             );
                                         })}

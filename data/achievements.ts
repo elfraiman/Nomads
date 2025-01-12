@@ -192,6 +192,17 @@ const achievements: IAchievement[] = [
             console.log("Mining Operations achievement completed!");
         },
     },
+    {
+        id: "enter_a_planet",
+        title: "Planetary Exploration",
+        description: "Enter a planet's orbit.. but, be careful..",
+        story: `You've encountered Pirates for the first time.`,
+        unlocks: [""],
+        completed: false,
+        onComplete: () => {
+            console.log("Asteroid Hunter achievement completed!");
+        },
+    },
 ];
 
 export default achievements;

@@ -1,14 +1,13 @@
-import { IAsteroid, IGalaxy, IPlanet, PlayerResources } from "@/utils/defaults";
-import React, { useEffect, useMemo, useState } from "react";
-import { StyleSheet, View, Text, TouchableOpacity, Dimensions } from "react-native";
-import { Svg, Circle, G, Defs, RadialGradient, Stop, Text as SvgText, Image as SvgImage } from "react-native-svg";
-import { useGame } from "@/context/GameContext"; // Assuming a game context
-import ResourceIcon from "@/components/ui/ResourceIcon";
 import ShipStatus from "@/components/ShipStatus";
+import ResourceIcon from "@/components/ui/ResourceIcon";
+import { useGame } from "@/context/GameContext"; // Assuming a game context
 import achievements from "@/data/achievements";
 import colors from "@/utils/colors";
-import { NavigationProp, useNavigation, useRoute } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "react-native-screens/lib/typescript/native-stack/types";
+import { IAsteroid, IGalaxy, IPlanet, PlayerResources } from "@/utils/defaults";
+import { NavigationProp, useNavigation } from "@react-navigation/native";
+import React, { useEffect, useMemo, useState } from "react";
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Circle, Defs, G, Polygon, RadialGradient, Stop, Svg, Image as SvgImage, Text as SvgText } from "react-native-svg";
 
 
 const { width: fullWidth, height: fullHeight } = Dimensions.get("window");
@@ -45,6 +44,59 @@ const generateRandomStars = (count: number) => {
 export type RootStackParamList = {
     Exploration: undefined;
     CombatPage: { planet: IPlanet };
+};
+
+
+const AnimatedPirates = ({ planet }: { planet: IPlanet }) => {
+    // Generate pirates' attributes only once
+    const pirates = useMemo(
+        () =>
+            Array.from({ length: planet.pirateCount }).map(() => {
+                const angle = Math.random() * 360; // Random starting angle
+                const radius = 30 + Math.random() * 20; // Base radius with some variation
+                const speed = 20 + Math.random() * 10; // Duration between 20-30 seconds
+                const clockwise = Math.random() > 0.5 ? 1 : -1; // Random rotation direction
+                return { angle, radius, speed, clockwise };
+            }),
+        [planet.pirateCount] // Recalculate only if pirate count changes
+    );
+
+    return (
+        <G>
+            {pirates.map((pirate, index) => {
+                // Calculate initial position
+                const startAngle = pirate.angle * pirate.clockwise;
+                const x = planet.position.x + pirate.radius * Math.cos((startAngle * Math.PI) / 180);
+                const y = planet.position.y + pirate.radius * Math.sin((startAngle * Math.PI) / 180);
+
+                return (
+                    <G key={`${planet.id}-pirate-${index}`}>
+                        {/* Pirate Arrow Icon */}
+                        <G
+                            transform={`translate(${x}, ${y}) rotate(${startAngle})`} // Position and orient the arrow
+                        >
+                            <Polygon
+                                points="0, 2, 0, -9 6, 0" // Triangle shape for the arrow
+                                fill="red"
+                                opacity={0.8}
+                            />
+                        </G>
+
+                        {/* Animation */}
+                        <animateTransform
+                            attributeName="transform"
+                            type="rotate"
+                            from={`${startAngle} ${planet.position.x} ${planet.position.y}`}
+                            to={`${startAngle + 360 * pirate.clockwise} ${planet.position.x} ${planet.position.y}`}
+                            dur={`${pirate.speed}s`}
+                            repeatCount="indefinite"
+                            additive="sum"
+                        />
+                    </G>
+                );
+            })}
+        </G>
+    );
 };
 
 
@@ -209,17 +261,20 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                     {/* Render planets */}
                     {galaxy.planets.map((planet: IPlanet) => (
                         <React.Fragment key={planet.id}>
+                            {/* Planet Image */}
                             <SvgImage
-                                key={planet.id}
                                 href={planet.image}
                                 x={planet.position.x - 30}
                                 y={planet.position.y - 40}
                                 width={60}
                                 height={60}
                                 onPress={() => navigator.navigate("CombatPage", { planet })}
-                                onPressIn={() => navigator.navigate("CombatPage", { planet })}
                             />
 
+                            {/* Animated Pirates */}
+                            <AnimatedPirates planet={planet} />
+
+                            {/* Planet Name */}
                             <SvgText
                                 x={planet.position.x}
                                 y={planet.position.y + 35}
@@ -231,6 +286,7 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                             </SvgText>
                         </React.Fragment>
                     ))}
+
                 </Svg>
 
                 {/* Scan Button */}
@@ -240,7 +296,7 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                             styles.scanButtonContainer,
                             (isScanning || scanCooldown > 0 || !canAffordScan()) ? styles.disabledButton : null,
                         ]}
-                        onPress={handleScan}
+                        onPress={() => handleScan}
                         disabled={isScanning || scanCooldown > 0 || !canAffordScan()}
                     >
                         {/* Scan Cost */}
