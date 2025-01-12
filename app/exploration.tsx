@@ -259,7 +259,7 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                     ))}
 
                     {/* Render planets */}
-                    {galaxy.planets.map((planet: IPlanet) => (
+                    {galaxy.planets.filter((p: IPlanet) => !p.locked).map((planet: IPlanet) => (
                         <React.Fragment key={planet.id}>
                             {/* Planet Image */}
                             <SvgImage
@@ -268,7 +268,12 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                                 y={planet.position.y - 40}
                                 width={60}
                                 height={60}
-                                onPress={() => navigator.navigate("CombatPage", { planet })}
+                                onPress={() => {
+                                    if (planet.pirateCount > 0) {
+                                        navigator.navigate("CombatPage", { planet });
+                                    }
+
+                                }}
                             />
 
                             {/* Animated Pirates */}
@@ -355,8 +360,6 @@ const ExplorationMap = () => {
             />
         );
     }
-
-
 
     return (
         <View style={styles.container}>

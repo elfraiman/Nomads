@@ -16,9 +16,11 @@ const WeaponManagementPage = () => {
   const equipWeapon = (weaponId: string) => {
     const weapon = weapons.find((w) => w.id === weaponId);
 
-    if (!weapon || mainShip.equippedWeapons.length >= mainShip.maxWeaponSlots || weapon.amount <= 0) return;
+    if (!weapon || mainShip.equippedWeapons.length >= mainShip.maxWeaponSlots || weapon.amount <= 0) {
+      return;
+    }
 
-    // Create a unique weapon object with durability
+    // Create a unique weapon object for equippedWeapons without the `amount` property
     const uniqueEquippedWeapon = {
       ...weapon,
       uniqueId: `${weapon.id}-${Date.now()}`, // Generate a unique identifier
@@ -27,6 +29,9 @@ const WeaponManagementPage = () => {
         durability: weapon.weaponDetails.maxDurability, // Reset durability when equipped
       },
     };
+
+
+    uniqueEquippedWeapon.amount - 1; // Remove `amount` from the equipped weapon object
 
     // Deduct 1 from the weapon's inventory count
     updateWeapons(weaponId, weapon.amount - 1);
@@ -50,8 +55,12 @@ const WeaponManagementPage = () => {
     }));
 
     // Return the weapon to the inventory
-    updateWeapons(unequippedWeapon.id, unequippedWeapon.amount + 1);
+    const weaponInInventory = weapons.find((w) => w.id === unequippedWeapon.id);
+    const newAmount = weaponInInventory ? weaponInInventory.amount + 1 : 1;
+
+    updateWeapons(unequippedWeapon.id, newAmount);
   };
+
 
   const destroyWeapon = (uniqueId: string) => {
     Alert.alert(
@@ -117,8 +126,8 @@ const WeaponManagementPage = () => {
       {selectedWeapon && (
         <View style={styles.section}>
           <Text style={styles.sectionHeader}>Selected Weapon Details</Text>
-          {weapons.filter(w => w.id === selectedWeapon).map(weapon => (
-            <View key={weapon.uniqueId ?? weapon.id + 1} style={styles.weaponDetails}>
+          {weapons.filter(w => w.id === selectedWeapon).map((weapon, index) => (
+            <View key={index} style={styles.weaponDetails}>
               <ImageBackground source={weapon.icon} style={styles.detailsIcon} imageStyle={styles.weaponCardImage}>
                 <View style={styles.weaponCardOverlay}>
                   <Text style={styles.weaponTitle}>{weapon.title}</Text>
@@ -155,9 +164,9 @@ const WeaponManagementPage = () => {
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Available Weapons</Text>
         <View style={styles.availableWeapons}>
-          {availableWeapons.map((weapon) => (
+          {availableWeapons.map((weapon, index) => (
             <TouchableOpacity
-              key={weapon.id}
+              key={index}
               style={[
                 styles.weaponCard,
                 selectedWeapon === weapon.id && styles.selectedWeaponCard,

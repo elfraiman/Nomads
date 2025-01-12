@@ -82,20 +82,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 baseCostMultiplier: upgrade.baseCostMultiplier,
             }));
 
-            const serializableWeapons = weapons.map((weapon) => ({
-                id: weapon.id,
-                amount: weapon.amount,
-                costs: weapon.costs,
-                title: weapon.title,
-                description: weapon.description,
-                baseCostMultiplier: weapon.baseCostMultiplier,
-                weaponDetails: weapon.weaponDetails,
-            }));
 
             await saveGameState({
                 mainShip, achievements, upgrades: serializableUpgrades,
                 ships, allocatedDrones: { mining: miningDroneAllocation },
-                foundAsteroids, galaxies, weapons: serializableWeapons,
+                foundAsteroids, galaxies, weapons,
             });
         };
 
@@ -124,7 +115,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 subscription.remove();
             };
         }
-    }, [mainShip, achievements, upgrades, ships, foundAsteroids, miningDroneAllocation]);
+    }, [mainShip, achievements, upgrades, ships, foundAsteroids, miningDroneAllocation, galaxies, weapons]);
 
     // Load game state on initial render
     useEffect(() => {
@@ -135,7 +126,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 setShips(savedState.ships || initialShips);
                 setFoundAsteroids(savedState.foundAsteroids || []);
                 setMiningDroneAllocation(savedState.allocatedDrones?.mining || {});
-                setUnlockedGalaxies(initialGalaxies);
+                setUnlockedGalaxies(savedState.galaxies || initialGalaxies);
                 setMainShip(savedState.mainShip || initialMainShip);
 
                 const upgradesFromSaveFile = initialUpgradeList.map((defaultUpgrade) => {
@@ -166,19 +157,19 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     if (upgrade.level > 0) {
                         if (upgrade.id === "reactor_storage") {
                         } else if (upgrade.id === 'core_operations_storage') {
-                            setMainShip((prev) => {
-                                const updatedResources = Object.fromEntries(
-                                    Object.entries(prev.resources).map(([key, value]) => [
-                                        key,
-                                        key === "energy" ? value : { ...value, max: value.max + (upgrade.level * 200) },
-                                    ])
-                                ) as PlayerResources;
-
-                                return {
-                                    ...prev,
-                                    resources: updatedResources,
-                                };
-                            });
+                            /*     setMainShip((prev) => {
+                                    const updatedResources = Object.fromEntries(
+                                        Object.entries(prev.resources).map(([key, value]) => [
+                                            key,
+                                            key === "energy" ? value : { ...value, max: value.max + (upgrade.level * 200) },
+                                        ])
+                                    ) as PlayerResources;
+    
+                                    return {
+                                        ...prev,
+                                        resources: updatedResources,
+                                    };
+                                }); */
                         }
                     }
                 });
@@ -238,7 +229,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         setMainShip(updatedMainShip);
     };
 
-    // Update weapon inventory amounts
     const updateWeapons = (weaponId: string, newAmount: number) => {
         setWeapons((prev) =>
             prev.map((weapon) =>
@@ -246,6 +236,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             )
         );
     };
+
     // Manufacture a weapon (increase its amount in inventory)
     const manufactureWeapon = (weaponId: string) => {
         const weapon = weapons.find((w) => w.id === weaponId);

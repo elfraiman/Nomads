@@ -88,6 +88,41 @@ const UpgradeModule = ({
     );
 };
 
+const ShopItem = ({
+    title,
+    cost,
+    onPurchase,
+    description,
+    locked,
+    tokens,
+}: {
+    title: string;
+    cost: number;
+    onPurchase: () => void;
+    description: string;
+    locked: boolean;
+    tokens: number;
+}) => {
+    const canAfford = tokens >= cost;
+
+    return (
+        <Collapsible title={title}>
+            <View style={styles.shopItemContainer}>
+                <Text style={styles.description}>{description}</Text>
+                <View style={styles.costContainer}>
+                    <Text style={styles.costText}>Cost: {cost} Tokens</Text>
+                </View>
+                <TouchableOpacity
+                    onPress={onPurchase}
+                    style={[styles.purchaseButton, !canAfford && styles.disabledButton]}
+                    disabled={!canAfford}
+                >
+                    <Text style={styles.purchaseButtonText}>Purchase</Text>
+                </TouchableOpacity>
+            </View>
+        </Collapsible>
+    );
+};
 
 const Dashboard = () => {
     const game = useGame();
@@ -104,6 +139,8 @@ const Dashboard = () => {
         downgradeUpgrade,
         achievements,
         updateShips,
+        mainShip,
+        setMainShip,
         isAchievementUnlocked,
         ships,
         weapons
@@ -153,15 +190,16 @@ const Dashboard = () => {
         });
 
         // Add the crafted weapon to the player's inventory
-        weapons.map((w) =>
-            w.id === weaponId
-                ? game.updateWeapons(
-                    w.id,
-                    1,
-                )
-                : w
-        );
+        const existingWeapon = weapons.find((w) => w.id === weaponId);
+        if (existingWeapon) {
+            // Update the weapon count by adding 1 to the current amount
+            game.updateWeapons(
+                existingWeapon.id,
+                existingWeapon.amount + 1 // Add 1 to the current amount
+            );
+        }
     };
+
 
     const anyUpgradeUnlocked = useMemo(() => upgrades.some((upgrade) => isUpgradeUnlocked(upgrade.id)), [achievements, upgrades]);
 
@@ -174,6 +212,31 @@ const Dashboard = () => {
         alloys: 2,
     };
 
+    const purchaseWeaponSlot = () => {
+        const currentTokens = mainShip.resources.tokens.current; // Access tokens from mainShip
+
+        if (currentTokens < 100) {
+            alert("Not enough tokens to purchase this upgrade!");
+            return;
+        }
+
+        const newSlotCount = mainShip.maxWeaponSlots + 1;
+
+        // Deduct tokens and apply the upgrade
+        setMainShip((prev) => ({
+            ...prev,
+            maxWeaponSlots: newSlotCount,
+            resources: {
+                ...prev.resources,
+                tokens: {
+                    ...prev.resources.tokens,
+                    current: currentTokens - 100, // Deduct the cost
+                },
+            },
+        }));
+
+        alert(`Weapon Module Slots increased to ${newSlotCount}!`);
+    };
 
     return (
         <>
@@ -320,6 +383,27 @@ const Dashboard = () => {
                         </View>
                     )}
 
+                    {/* The Shop Section */}
+                    {!isAchievementUnlocked("upgrade_core_operations_storage") ? (
+                        <LockedPanel
+                            title="Locked"
+                            unlockHint="The Shop is locked until you complete goals"
+                        />
+                    ) : (
+                        <View style={styles.panel}>
+                            <Text style={styles.panelTitle}>The Shop</Text>
+                            <ShopItem
+                                title="Extra Weapon Module Slot"
+                                cost={100}
+                                onPurchase={purchaseWeaponSlot}
+                                description="Expand your ship's weapon capabilities by adding an additional module slot."
+                                locked={false} // Future upgrades could have conditions to unlock
+                                tokens={mainShip.resources.tokens.current}
+                            />
+                        </View>
+                    )}
+
+
                 </ScrollView>
             </LinearGradient>
             <ShipStatus />
@@ -344,6 +428,30 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         borderWidth: 1,
         borderColor: colors.border,
+    },
+    shopItemContainer: {
+        backgroundColor: colors.panelBackground,
+        padding: 16,
+        marginVertical: 10,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    purchaseButton: {
+        backgroundColor: colors.primary,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        alignItems: "center",
+        marginTop: 10,
+    },
+    purchaseButtonText: {
+        color: "white",
+        fontWeight: "bold",
+    },
+    tokensText: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: colors.textPrimary,
+        marginBottom: 10,
     },
     weaponItemImageStyle: {
         resizeMode: "cover", // Ensures the image fills the card

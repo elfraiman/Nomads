@@ -22,7 +22,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
     const randomEnemies = Array.from({ length: planet.pirateCount }, () => ({
       ...planet.enemies[Math.floor(Math.random() * planet.enemies.length)],
     }));
-    return [...randomEnemies, planet.enemies[2], planet.enemies[3]];
+    return [...randomEnemies, planet.enemies[1], planet.enemies[2]];
   };
 
 
@@ -44,6 +44,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
   const [canEscape, setCanEscape] = useState(true);
   const [lastEscapeAttempt, setLastEscapeAttempt] = useState(0);
   const [hasEscaped, setHasEscaped] = useState(false);
+  const [isFiring, setIsFiring] = useState(false);
   const [weaponCooldowns, setWeaponCooldowns] = useState(
     mainShip.equippedWeapons.map((weapon) => ({
       id: weapon.id,
@@ -73,18 +74,59 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
     return Math.random() <= finalHitChance;
   };
 
+  const unlockNextPlanet = () => {
+    const galaxyIndex = game.galaxies.findIndex((g) => g.id === planet.galaxyId);
+    if (galaxyIndex === -1) return;
+
+    const updatedGalaxies = game.galaxies.map((galaxy) => {
+      if (galaxy.id !== planet.galaxyId) return galaxy;
+
+      // Update the planets for the correct galaxy
+      const updatedPlanets = galaxy.planets.map((p) => {
+        if (p.id === planet.id) {
+          // Clear pirateCount for the defeated planet
+          return { ...p, pirateCount: 0 };
+        }
+        if (p.id === planet.id + 1) {
+          // Unlock the next planet
+          return { ...p, locked: false };
+        }
+        return p;
+      });
+
+      return { ...galaxy, planets: updatedPlanets };
+    });
+
+    // Update the game state
+    game.setUnlockedGalaxies(updatedGalaxies);
+
+    // Add messages to the combat log
+    setCombatLog((prev) => [
+      ...prev,
+      { text: `Planet ${planet.name} cleared of all pirates!`, color: colors.successGradient[0] },
+      { text: `Next planet unlocked!`, color: colors.primary },
+    ]);
+  };
+
 
   const spawnNextPirate = () => {
     if (currentEnemyIndex < enemies.length - 1) {
-      const nextIndex = currentEnemyIndex;
+      const nextIndex = currentEnemyIndex + 1;
       setCurrentEnemyIndex(nextIndex);
       setPirate(enemies[nextIndex]);
-      setCombatLog((prev) => [...prev, { text: `New enemy: ${enemies[nextIndex].name} appeared!` }]);
+      setCombatLog((prev) => [
+        ...prev,
+        { text: `New enemy: ${enemies[nextIndex].name} appeared!`, color: colors.warning },
+      ]);
     } else {
-      setCombatLog((prev) => [...prev, { text: "All enemies defeated!", color: colors.successGradient[0] }]);
+      setPirate(null); // No more pirates
+      setCombatLog((prev) => [
+        ...prev,
+        { text: "All enemies defeated! Unlocking next planet.", color: colors.successGradient[0] },
+      ]);
+      unlockNextPlanet();
     }
   };
-
   const startCooldownAnimation = (weaponId: string, duration: number) => {
     const weaponCooldown = weaponCooldowns.find((w) => w.id === weaponId);
     if (weaponCooldown) {
@@ -102,12 +144,28 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
   };
 
   const handleAttackByType = (weaponsType: string) => {
+    if (isFiring) return; // Prevent spamming
+    setIsFiring(true);
+
+    // Check if any weapon in the group can fire
     const weapons = weaponGroups[weaponsType];
     if (!weapons || weapons.length === 0) {
       setCombatLog((prev) => [...prev, { text: `No weapons of type ${weaponsType} equipped!`, color: colors.warning }]);
+      setIsFiring(false);
       return;
     }
 
+    const fireableWeapons = weapons.filter((weapon) => {
+      const cooldown = weaponCooldowns.find((w) => w.id === weapon.id)?.cooldown || 0;
+      return cooldown === 0;
+    });
+
+    if (fireableWeapons.length === 0) {
+      setIsFiring(false);
+      return;
+    }
+
+    // Fire logic as before
     let newMainShip = mainShip;
     let totalDamage = 0;
 
@@ -121,6 +179,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
             ...prev,
             { text: `Not enough ${cost.type} to fire ${weaponCooldown.weaponDetails.name}!`, color: colors.secondary },
           ]);
+
           return weaponCooldown;
         }
 
@@ -132,14 +191,16 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
             current: currentResource - cost.amount,
           },
         };
+
         newMainShip = { ...mainShip, resources: updatedResources };
 
         // Calculate hit chance and apply damage
         const hit = calculateHitChance(weaponCooldown.weaponDetails.accuracy, pirate.attackSpeed);
 
         if (hit) {
+          const randomMultiplier = Math.random() * 0.4 + 0.8; // Random between 0.8 and 1.2
           const damage = Math.floor(
-            weaponCooldown.weaponDetails.power * (1 - pirate.defense / 100)
+            weaponCooldown.weaponDetails.power * randomMultiplier * (1 - pirate.defense / 100)
           );
           totalDamage += damage;
           setCombatLog((prev) => [
@@ -154,6 +215,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
         }
 
         // Handle durability reduction
+        //
         const newDurability = durability - 1;
         if (newDurability <= 0) {
           setCombatLog((prev) => [
@@ -171,20 +233,21 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
         startCooldownAnimation(weaponCooldown.id, weaponCooldown.weaponDetails.cooldown);
         return { ...weaponCooldown, cooldown: weaponCooldown.weaponDetails.cooldown };
       }
+
       return weaponCooldown.cooldown > 0
-        ? { ...weaponCooldown, cooldown: weaponCooldown.cooldown - 1 }
+        ? { ...weaponCooldown, cooldown: Math.round(weaponCooldown.cooldown - 1) }
         : weaponCooldown;
     });
 
     setWeaponCooldowns(updatedWeaponCooldowns.filter((w): w is NonNullable<typeof w> => w !== null));
-
     setMainShip(newMainShip);
-
     setPirate((prev: IPirate) => ({
       ...prev,
       health: Math.max(prev.health - totalDamage, 0),
     }));
+    setIsFiring(false);
   };
+
 
   // Makes sure we update the weapons when the player changes them
   // in the management 
@@ -202,20 +265,18 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
     setWeaponGroups(groupedWeapons);
   }, [mainShip.equippedWeapons, game.weapons]);
-
   // Pirate attack
-  //
   useEffect(() => {
     const interval = setInterval(() => {
-      if (pirate?.health > 0 && !hasEscaped) {
-        // Derive pirate accuracy based on its attack speed
-        const pirateAccuracy = Math.min(pirate.attackSpeed * 10, 100); // Scale attack speed into an accuracy percentage
+      if (!pirate || hasEscaped) {
+        clearInterval(interval); // Stop the interval if no pirate or the player has escaped
+        return;
+      }
 
-        // Calculate evasion for the player's main ship based on defense
-        const playerEvasion = Math.min(mainShip.baseStats.defense * 2, 80); // Scale defense to evasion percentage, capped at 80%
-
-        // Determine if the pirate's attack hits
-        const isHit = Math.random() <= Math.max((pirateAccuracy - playerEvasion) / 100, 0.4); // Ensure min 40% hit chance
+      if (pirate.health > 0) {
+        const pirateAccuracy = Math.min(pirate.attackSpeed * 10, 100);
+        const playerEvasion = Math.min(mainShip.baseStats.defense * 2, 80);
+        const isHit = Math.random() <= Math.max((pirateAccuracy - playerEvasion) / 100, 0.4);
 
         if (isHit) {
           const damage = Math.max(pirate.attack - mainShip.baseStats.defense, 1);
@@ -229,18 +290,21 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
         } else {
           setCombatLog((prev) => [...prev, { text: `${pirate.name}'s attack missed!`, color: colors.textSecondary }]);
         }
-      } else if (hasEscaped) {
-        setPirate({ name: "Escaped", health: 0, maxHealth: 0, attack: 0, defense: 0, attackSpeed: 0 });
-        clearInterval(interval);
-      } else if (pirate?.health <= 0) {
-        setCombatLog((prev) => [...prev, { text: `${pirate.name} has been defeated!`, color: colors.successGradient[0] }]);
+      } else {
+        setCombatLog((prev) => [
+          ...prev,
+          { text: `${pirate.name} has been defeated!`, color: colors.successGradient[0] },
+        ]);
+
         setEnemies((prev) => prev.filter((_, index) => index !== currentEnemyIndex));
+        spawnNextPirate();
         clearInterval(interval);
       }
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [pirate?.health, mainShip.baseStats.defense, hasEscaped]);
+    return () => clearInterval(interval); // Clean up interval on unmount
+  }, [pirate, mainShip.baseStats.defense, hasEscaped, currentEnemyIndex, enemies.length]);
+
 
   useEffect(() => {
     if (scrollViewRef.current) {
@@ -271,7 +335,9 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
         style={styles.backgroundImage}
       >
         <ScrollView style={[styles.container, { backgroundColor: "transparent" }]}>
-          {hasEscaped ? (<Text style={styles.header}>ESCAPED</Text>) :
+          {hasEscaped ? (
+            <Text style={styles.header}>ESCAPED</Text>
+          ) : pirate ? (
             <>
               <Text style={styles.header}>{planet.name} - Enemies Left: {enemies.length - currentEnemyIndex}</Text>
               <View style={styles.pirateImageContainer}>
@@ -283,7 +349,10 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
                   </Svg>
                 </View>
               </View>
-            </>}
+            </>
+          ) : (
+            <Text style={styles.header}>All enemies defeated! Planet cleared.</Text>
+          )}
 
           <View style={styles.healthContainer}>
             <Text style={styles.healthText}>Main Ship Health: {mainShip.baseStats.health}</Text>
@@ -293,12 +362,6 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
             </Svg>
           </View>
 
-          {/* Button to spawn next pirate */}
-          {currentEnemyIndex < enemies.length - 1 && (
-            <TouchableOpacity style={styles.spawnButton} onPress={spawnNextPirate}>
-              <Text style={styles.spawnButtonText}>Spawn Next Pirate</Text>
-            </TouchableOpacity>
-          )}
           <View style={styles.logContainer}>
             <Text style={styles.logHeader}>Combat Log</Text>
             <ScrollView ref={scrollViewRef}>
@@ -314,7 +377,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
           <View style={styles.optionsGridContainer}>
             {/* ... (keep existing code until weaponItem section) ... */}
-            {Object.entries(weaponGroups).map(([type, weapons]) => {
+            {Object.entries(weaponGroups).map(([type, weapons], index) => {
               const fireableWeapons = weapons.filter((weapon) => {
                 const { type: resourceType, amount } = weapon.weaponDetails.cost;
                 return (
@@ -329,10 +392,10 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
               }, {} as { [key: string]: number });
 
               return (
-                <View key={type} style={styles.weaponGroup}>
+                <View key={index} style={styles.weaponGroup}>
                   <Text style={styles.groupTitle}>{type.toUpperCase()}</Text>
                   <View style={styles.weaponList}>
-                    {weapons.map((weapon) => {
+                    {weapons.map((weapon, index) => {
                       const weaponCooldown = weaponCooldowns.find((w) => w.id === weapon.id);
                       const cooldown = weaponCooldown?.cooldown || 0;
                       const animation = weaponCooldown?.animation;
@@ -343,7 +406,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
                         weapon.weaponDetails.cost.amount;
 
                       return (
-                        <View key={weapon.id} style={styles.weaponItem}>
+                        <View key={index} style={styles.weaponItem}>
                           <View style={styles.weaponHeader}>
                             <Text style={styles.weaponName}>{weapon.weaponDetails.name}</Text>
                             <Text style={[
@@ -392,10 +455,10 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
                     })}
                   </View>
                   <TouchableOpacity
-                    disabled={fireableWeapons.length === 0}
+                    disabled={fireableWeapons.length === 0 || isFiring}
                     style={[
                       styles.attackButton,
-                      fireableWeapons.length === 0 && styles.disabledButton,
+                      (fireableWeapons.length === 0 || isFiring) && styles.disabledButton,
                     ]}
                     onPress={() => handleAttackByType(type)}
                   >
@@ -418,7 +481,8 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
       </ImageBackground>
 
 
-      {hasEscaped ? (
+      {hasEscaped || !pirate ? (
+
         <TouchableOpacity
           style={[
             styles.escapeButton,
@@ -615,7 +679,8 @@ const styles = StyleSheet.create({
   logContainer: {
     backgroundColor: colors.panelBackground,
     padding: 10,
-    maxHeight: 160,
+    maxHeight: 140,
+    minHeight: 140,
   },
   logText: {
     fontSize: 14,
