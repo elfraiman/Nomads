@@ -16,6 +16,7 @@ export interface IWeapon {
     type: "blaster" | "laser" | "missile" | "railgun";
     durability: number; // Current durability
     maxDurability: number; // Maximum durability
+    category: "Small" | "Medium" | "Large";
   };
   amount: number;
 }
@@ -56,6 +57,7 @@ const blasters: IWeapon[] = [
       cooldown: 1.5,
       cost: { type: "solarPlasma", amount: 50 },
       type: "blaster" as "blaster",
+      category: "Small" as "Small",
     },
     amount: 0,
   },
@@ -77,6 +79,7 @@ const blasters: IWeapon[] = [
       cooldown: 2.5,
       cost: { type: "solarPlasma", amount: 90 },
       type: "blaster" as "blaster",
+      category: "Medium" as "Medium",
     },
     amount: 0,
   },
@@ -98,6 +101,7 @@ const blasters: IWeapon[] = [
       cooldown: 4,
       cost: { type: "solarPlasma", amount: 150 },
       type: "blaster" as "blaster",
+      category: "Large" as "Large",
     },
     amount: 0,
   },
@@ -120,6 +124,7 @@ const lasers: IWeapon[] = [
       cooldown: 1.2,
       cost: { type: "fuel", amount: 35 },
       type: "laser" as "laser",
+      category: "Small" as "Small"
     },
     amount: 0,
   },
@@ -139,6 +144,7 @@ const lasers: IWeapon[] = [
       cooldown: 2.2,
       cost: { type: "fuel", amount: 75 },
       type: "laser" as "laser",
+      category: "Medium" as "Medium",
     },
     amount: 0,
   },
@@ -158,6 +164,7 @@ const lasers: IWeapon[] = [
       cooldown: 3.5,
       cost: { type: "fuel", amount: 120 },
       type: "laser" as "laser",
+      category: "Large" as "Large",
     },
     amount: 0,
   },
@@ -180,6 +187,7 @@ const missiles: IWeapon[] = [
       cooldown: 4,
       cost: { type: "frozenHydrogen", amount: 40 },
       type: "missile" as "missile",
+      category: "Small" as "Small",
     },
     amount: 0,
   },
@@ -199,6 +207,7 @@ const missiles: IWeapon[] = [
       cooldown: 8,
       cost: { type: "frozenHydrogen", amount: 80 },
       type: "missile" as "missile",
+      category: "Medium" as "Medium",
     },
     amount: 0,
   },
@@ -218,6 +227,7 @@ const missiles: IWeapon[] = [
       cooldown: 12,
       cost: { type: "frozenHydrogen", amount: 150 },
       type: "missile" as "missile",
+      category: "Large" as "Large",
     },
     amount: 0,
   },
@@ -240,6 +250,7 @@ const railguns: IWeapon[] = [
       cooldown: 3,
       cost: { type: "alloys", amount: 60 },
       type: "railgun" as "railgun",
+      category: "Small" as "Small",
     },
     amount: 0,
   },
@@ -259,6 +270,7 @@ const railguns: IWeapon[] = [
       cooldown: 6,
       cost: { type: "alloys", amount: 120 },
       type: "railgun" as "railgun",
+      category: "Medium" as "Medium",
     },
     amount: 0,
   },
@@ -278,6 +290,7 @@ const railguns: IWeapon[] = [
       cooldown: 10,
       cost: { type: "alloys", amount: 250 },
       type: "railgun" as "railgun",
+      category: "Large" as "Large",
     },
     amount: 0,
   },

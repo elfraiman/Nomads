@@ -26,6 +26,7 @@ export interface IPirate {
   weaponOfChoice: string;
   attackSpeed: number;
   lore: string;
+  category: "Corvette" | "Cruiser" | "Battleship" | "Dreadnought" | "Titan"; // New field
 }
 
 
@@ -101,6 +102,7 @@ export const nebulaMarauderPirates: IPirate[] = [
     weaponOfChoice: "Missile Launcher",
     attackSpeed: 2,
     lore: "Swift and aggressive, these corvettes fire devastating volleys of missiles to overwhelm their prey.",
+    category: "Corvette",
   },
   {
     name: "Laser Interceptor",
@@ -112,6 +114,7 @@ export const nebulaMarauderPirates: IPirate[] = [
     weaponOfChoice: "Laser Arrays",
     attackSpeed: 2,
     lore: "Specialized in hit-and-run tactics, their laser arrays slice through unshielded hulls.",
+    category: "Cruiser",
   },
   {
     name: "Nebula Ravager",
@@ -123,7 +126,32 @@ export const nebulaMarauderPirates: IPirate[] = [
     weaponOfChoice: "Plasma Torpedoes",
     attackSpeed: 4,
     lore: "A heavily modified cruiser armed with plasma torpedoes for high damage against larger ships.",
+    category: "Dreadnought"
   },
+  {
+    name: "Titan Breaker",
+    faction: "Nebula Marauders",
+    health: 650,
+    maxHealth: 650,
+    attack: 50,
+    defense: 25,
+    weaponOfChoice: "Heavy Plasma Cannon",
+    attackSpeed: 6,
+    lore: "A massive battleship designed to take on even the largest enemy vessels.",
+    category: "Battleship"
+  },
+  {
+    name: "Nebula Titan",
+    faction: "Nebula Marauders",
+    health: 1200,
+    maxHealth: 1200,
+    attack: 70,
+    defense: 35,
+    weaponOfChoice: "Graviton Beam",
+    attackSpeed: 12,
+    lore: "The pride of the Nebula Marauders, this titan-class vessel can tear apart space-time itself.",
+    category: "Titan"
+  }
 ];
 
 export const voidCorsairsPirates: IPirate[] = [
@@ -137,6 +165,7 @@ export const voidCorsairsPirates: IPirate[] = [
     weaponOfChoice: "Cloaking Disruptor",
     attackSpeed: 2.5,
     lore: "Equipped with cloaking devices, these raiders strike from the shadows and vanish before retaliation.",
+    category: "Corvette",
   },
   {
     name: "Ion Saboteur",
@@ -148,6 +177,7 @@ export const voidCorsairsPirates: IPirate[] = [
     weaponOfChoice: "Ion Cannons",
     attackSpeed: 2.5,
     lore: "Saboteurs who disable ships with precision ion cannon strikes, leaving them vulnerable.",
+    category: "Cruiser",
   },
   {
     name: "Corsair Warlord",
@@ -159,7 +189,32 @@ export const voidCorsairsPirates: IPirate[] = [
     weaponOfChoice: "Void Lance",
     attackSpeed: 3,
     lore: "A feared commander, the Warlord's Void Lance unleashes devastating energy beams.",
+    category: "Dreadnought",
   },
+  {
+    name: "Void Destroyer",
+    faction: "Void Corsairs",
+    health: 800,
+    maxHealth: 800,
+    attack: 70,
+    defense: 30,
+    weaponOfChoice: "Quantum Disruptor",
+    attackSpeed: 4,
+    lore: "A formidable battleship equipped with advanced quantum disruptors to annihilate enemies.",
+    category: "Battleship",
+  },
+  {
+    name: "Corsair Titan",
+    faction: "Void Corsairs",
+    health: 1500,
+    maxHealth: 1500,
+    attack: 100,
+    defense: 50,
+    weaponOfChoice: "Singularity Cannon",
+    attackSpeed: 5,
+    lore: "The ultimate weapon of the Void Corsairs, capable of creating singularities to consume entire fleets.",
+    category: "Titan",
+  }
 ]
 
 export const starScavengersPirates: IPirate[] = [
@@ -173,6 +228,7 @@ export const starScavengersPirates: IPirate[] = [
     weaponOfChoice: "Scrap Cannons",
     attackSpeed: 3.5,
     lore: "Light fighters armed with improvised weapons, salvaged from abandoned stations.",
+    category: "Corvette",
   },
   {
     name: "Repurposed Frigate",
@@ -184,6 +240,7 @@ export const starScavengersPirates: IPirate[] = [
     weaponOfChoice: "Railgun",
     attackSpeed: 2.5,
     lore: "A once-derelict frigate outfitted with a powerful railgun salvaged from an orbital station.",
+    category: "Cruiser",
   },
   {
     name: "Scavenger Overseer",
@@ -195,7 +252,32 @@ export const starScavengersPirates: IPirate[] = [
     weaponOfChoice: "Overcharged Plasma Array",
     attackSpeed: 2,
     lore: "Leading the scavenger fleet, the Overseer wields experimental plasma arrays for heavy destruction.",
+    category: "Dreadnought",
   },
+  {
+    name: "Junkyard Marauder",
+    faction: "Star Scavengers",
+    health: 700,
+    maxHealth: 700,
+    attack: 80,
+    defense: 25,
+    weaponOfChoice: "Salvaged Beam Cannon",
+    attackSpeed: 4.5,
+    lore: "A powerful battleship cobbled together from the wreckage of countless battles, armed with a devastating beam cannon.",
+    category: "Battleship",
+  },
+  {
+    name: "Scavenger Colossus",
+    faction: "Star Scavengers",
+    health: 1600,
+    maxHealth: 1600,
+    attack: 120,
+    defense: 60,
+    weaponOfChoice: "Repurposed Graviton Projector",
+    attackSpeed: 9.5,
+    lore: "The ultimate creation of the Star Scavengers, this titan-class ship uses a graviton projector to crush its enemies.",
+    category: "Titan",
+  }
 ]
 
 export const titanVanguardPirates: IPirate[] = [
@@ -209,6 +291,7 @@ export const titanVanguardPirates: IPirate[] = [
     weaponOfChoice: "Magnetic Pulse Cannon",
     attackSpeed: 2.5,
     lore: "A massive enforcer vessel that uses magnetic pulses to disrupt enemy systems before obliteration.",
+    category: "Corvette",
   },
   {
     name: "Shieldbreaker Cruiser",
@@ -220,6 +303,7 @@ export const titanVanguardPirates: IPirate[] = [
     weaponOfChoice: "EMP Missiles",
     attackSpeed: 2,
     lore: "This cruiser specializes in disabling shields and systems before delivering the final blow.",
+    category: "Cruiser",
   },
   {
     name: "Titan Dreadnought",
@@ -229,9 +313,34 @@ export const titanVanguardPirates: IPirate[] = [
     attack: 90,
     defense: 30,
     weaponOfChoice: "Dreadnought Cannon",
-    attackSpeed: 1.5,
+    attackSpeed: 3.5,
     lore: "A behemoth of unmatched power, the Titan Dreadnought strikes fear into anyone who dares to challenge it.",
+    category: "Dreadnought",
   },
+  {
+    name: "Vanguard Battleship",
+    faction: "Titan Vanguard",
+    health: 2000,
+    maxHealth: 2000,
+    attack: 120,
+    defense: 50,
+    weaponOfChoice: "Heavy Ion Cannon",
+    attackSpeed: 6,
+    lore: "A colossal battleship that dominates the battlefield with its heavy ion cannons.",
+    category: "Battleship",
+  },
+  {
+    name: "Titan Colossus",
+    faction: "Titan Vanguard",
+    health: 3000,
+    maxHealth: 3000,
+    attack: 150,
+    defense: 70,
+    weaponOfChoice: "Graviton Annihilator",
+    attackSpeed: 10,
+    lore: "The ultimate titan-class ship of the Titan Vanguard, equipped with a graviton annihilator to crush any opposition.",
+    category: "Titan",
+  }
 ]
 
 
@@ -339,6 +448,16 @@ export const initialMainShip: IMainShip = {
     alloys: { current: 0, max: 100, efficiency: 0.3, locked: false },
     tokens: { current: 0, max: 100, efficiency: 1, locked: false },
   }
+};
+
+
+export const resourceColors: { [key: string]: string } = {
+  energy: "#FFD93D", // Example: Yellow for energy
+  solarPlasma: "#FF5722", // Example: Orange/Yellow for solar plasma
+  darkMatter: "#6A0DAD", // Purple for dark matter
+  fuel: "#FF6B6B", // Orange-Red for fuel
+  frozenHydrogen: "#77C0D8", // Light Blue for frozen hydrogen
+  alloys: "#C0C0C0", // Silver for alloys
 };
 
 

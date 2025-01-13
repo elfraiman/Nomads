@@ -145,7 +145,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     return {
                         ...defaultWeapon,
                         amount: savedWeapon?.amount || 0,
-                        costs: savedWeapon?.costs || defaultWeapon.costs,
                     };
                 })
 
