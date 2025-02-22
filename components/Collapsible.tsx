@@ -48,7 +48,7 @@ export function Collapsible({
       </GradientBorder>
       {isOpen && (
         <ThemedView style={styles.content}>
-          <View style={styles.innerContent}>{children}</View>
+          <View>{children}</View>
         </ThemedView>
       )}
     </ThemedView>
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: Platform.OS === "ios" ? colors.iosTransparentBackground : colors.transparentBackground, // Solid color for iOS
     borderBottomColor: colors.border,
-    paddingHorizontal: 12,
+    paddingHorizontal: 6,
   },
   title: {
     fontSize: 14,
@@ -71,9 +71,6 @@ const styles = StyleSheet.create({
   content: {
     backgroundColor: colors.panelBackground,
     paddingVertical: 6
-  },
-  innerContent: {
-    paddingHorizontal: 10,
   },
 });
 

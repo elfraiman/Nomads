@@ -1,6 +1,7 @@
 import { Text, type TextProps, StyleSheet } from 'react-native';
 
 import { useThemeColor } from '@/hooks/useThemeColor';
+import colors from '@/utils/colors';
 
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
@@ -36,32 +37,34 @@ export function ThemedText({
 
 const styles = StyleSheet.create({
   default: {
-    fontSize: 16,
+    fontSize: 14,
     lineHeight: 24,
+    color: colors.textPrimary,
   },
   defaultSemiBold: {
-    fontSize: 16,
+    fontSize: 14,
     lineHeight: 24,
     fontWeight: '600',
   },
   glow: {
-    fontSize: 16, // Adjust based on your text size
+    fontSize: 14, // Adjust based on your text size
     textShadowColor: '#bd650b', // Glow color (e.g., golden glow)
     textShadowOffset: { width: 0, height: 0 }, // No offset, shadow directly behind text
     textShadowRadius: 4, // Adjust for stronger or softer glow
+    color: colors.textPrimary,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     lineHeight: 32,
   },
   subtitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
   },
   link: {
     lineHeight: 30,
-    fontSize: 16,
+    fontSize: 14,
     color: '#0a7ea4',
   },
 });

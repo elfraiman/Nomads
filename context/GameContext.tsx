@@ -6,6 +6,7 @@ import { IResource, PlayerResources, Ships, initialShips, IAsteroid, IGalaxy, in
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { Alert, AppState, AppStateStatus, Platform } from "react-native";
 
+
 export interface GameContextType {
     resources: PlayerResources; // Tracks resource states like energy, fuel, etc.
     achievements: IAchievement[]; // Tracks all achievements and their states
@@ -20,8 +21,11 @@ export interface GameContextType {
 
     // Combat
     updateMainShip: (updatedMainShip: IMainShip) => void;
-    updateWeapons: (weaponId: string, newAmount: number) => void;
-    manufactureWeapon: (weaponId: string) => void;
+    updateWeapons: (weaponId: string, action: 'add' | 'remove' | 'craft', weaponInfo?: {
+        durability: number;
+        maxDurability: number;
+        uniqueId: string;
+    }) => void;
     setMainShip: React.Dispatch<React.SetStateAction<IMainShip>>
 
     // Drones
@@ -139,15 +143,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     };
                 })
 
-                const weaponsFromSaveFile = initialWeapons.map((defaultWeapon) => {
-                    const savedWeapon = savedState.weapons?.find((u) => u.id === defaultWeapon.id);
-
-                    return {
-                        ...defaultWeapon,
-                        amount: savedWeapon?.amount || 0,
-                    };
-                })
-
 
                 // Check for unlocked upgrades and apply special effects
                 // might need to find a new way to do this rather then here
@@ -176,8 +171,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 setUpgrades(
                     upgradesFromSaveFile
                 );
-
-                setWeapons(weaponsFromSaveFile)
             }
         };
 
@@ -228,39 +221,56 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         setMainShip(updatedMainShip);
     };
 
-    const updateWeapons = (weaponId: string, newAmount: number) => {
-        setWeapons((prev) =>
-            prev.map((weapon) =>
-                weapon.id === weaponId ? { ...weapon, amount: newAmount } : weapon
-            )
-        );
-    };
-
-    // Manufacture a weapon (increase its amount in inventory)
-    const manufactureWeapon = (weaponId: string) => {
-        const weapon = weapons.find((w) => w.id === weaponId);
-        if (!weapon) return;
-
-        const canAfford = weapon.costs.every(
-            (cost) => mainShip.resources[cost.resourceType as keyof PlayerResources]?.current >= cost.amount
-        );
-
-        if (canAfford) {
-            // Deduct resources
-            const updatedResources = { ...mainShip.resources };
-            weapon.costs.forEach((cost) => {
-                updatedResources[cost.resourceType as keyof PlayerResources].current -= cost.amount;
-            });
-
-            setMainShip((prev) => ({
-                ...prev,
-                resources: updatedResources,
-            }));
-
-            // Increase weapon amount
-            updateWeapons(weaponId, weapon.amount + 1);
+    const updateWeapons = (
+        weaponId: string,
+        action: 'add' | 'remove' | 'craft',
+        weaponInfo?: {
+            durability: number;
+            maxDurability: number;
+            uniqueId: string;
         }
+    ) => {
+        setWeapons(prev => {
+            if (action === 'craft') {
+                // Find the base weapon template
+                const baseWeapon = prev.find(w => w.id === weaponId && !w.uniqueId);
+                if (!baseWeapon) return prev;
+
+                // Create a new unique weapon instance
+                const newWeapon = {
+                    ...baseWeapon,
+                    uniqueId: `${weaponId}-${Date.now()}`,
+                    weaponDetails: {
+                        ...baseWeapon.weaponDetails,
+                        durability: baseWeapon.weaponDetails.maxDurability,
+                        maxDurability: baseWeapon.weaponDetails.maxDurability
+                    }
+                };
+
+                // Add the new weapon to the array
+                return [...prev, newWeapon];
+            } else if (action === 'remove') {
+                // Remove specific weapon by uniqueId
+                return prev.filter(w => w.uniqueId !== weaponId);
+            } else if (action === 'add' && weaponInfo) {
+                // Add weapon with specific durability and uniqueId
+                const baseWeapon = prev.find(w => w.id === weaponId && !w.uniqueId);
+                if (!baseWeapon) return prev;
+
+                return [...prev, {
+                    ...baseWeapon,
+                    uniqueId: weaponInfo.uniqueId,
+                    weaponDetails: {
+                        ...baseWeapon.weaponDetails,
+                        durability: weaponInfo.durability,
+                        maxDurability: weaponInfo.maxDurability
+                    }
+                }];
+            }
+            return prev;
+        });
     };
+
 
     // Achievements
     //
@@ -707,7 +717,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 updateResources,
                 updateMainShip,
                 updateWeapons,
-                manufactureWeapon,
                 setMainShip,
                 upgradeResourceEfficiency,
                 purchaseUpgrade,

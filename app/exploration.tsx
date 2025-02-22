@@ -8,6 +8,14 @@ import { NavigationProp, useNavigation } from "@react-navigation/native";
 import React, { useEffect, useMemo, useState } from "react";
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Circle, Defs, G, Polygon, RadialGradient, Stop, Svg, Image as SvgImage, Text as SvgText } from "react-native-svg";
+import Animated, {
+    useAnimatedStyle,
+    withTiming,
+    withRepeat,
+    withSequence,
+    useSharedValue,
+} from 'react-native-reanimated';
+
 
 
 const { width: fullWidth, height: fullHeight } = Dimensions.get("window");
@@ -39,7 +47,6 @@ const generateRandomStars = (count: number) => {
     }
     return stars;
 };
-
 
 export type RootStackParamList = {
     Exploration: undefined;
@@ -99,8 +106,51 @@ const AnimatedPirates = ({ planet }: { planet: IPlanet }) => {
     );
 };
 
+const ScanningAnimation = ({ isActive }: { isActive: boolean }) => {
+    const scale = useSharedValue(0);
+    const opacity = useSharedValue(0.8);
 
-const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => {
+    React.useEffect(() => {
+        if (isActive) {
+            scale.value = withRepeat(
+                withSequence(
+                    withTiming(1.5, { duration: 1000 }),
+                    withTiming(0, { duration: 0 })
+                ),
+                -1
+            );
+            opacity.value = withRepeat(
+                withSequence(
+                    withTiming(0, { duration: 1000 }),
+                    withTiming(0.8, { duration: 0 })
+                ),
+                -1
+            );
+        } else {
+            scale.value = 0;
+            opacity.value = 0;
+        }
+    }, [isActive]);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+        opacity: opacity.value,
+    }));
+
+    if (!isActive) return null;
+
+    return (
+        <View style={styles.scanningContainer}>
+            <Animated.View style={[styles.scanningWave, animatedStyle]} />
+            <View style={styles.scanningCenter}>
+                <ResourceIcon type="scanningDrones" size={24} />
+            </View>
+        </View>
+    );
+};
+
+
+const GalaxyView = ({ galaxy, onBack }: { galaxy: IGalaxy; onBack: () => void }) => {
     const game = useGame();
     const navigator = useNavigation<NavigationProp<RootStackParamList>>();
 
@@ -187,7 +237,7 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
 
             setIsScanning(false);
             setScanCooldown(5);
-        }, 3000);
+        }, 5000);
     };
 
     // Memoize the asteroids for this galaxy
@@ -261,7 +311,6 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                     {/* Render planets */}
                     {galaxy.planets.filter((p: IPlanet) => !p.locked).map((planet: IPlanet) => (
                         <React.Fragment key={planet.id}>
-                            {/* Planet Image */}
                             <SvgImage
                                 href={planet.image}
                                 x={planet.position.x - 30}
@@ -272,7 +321,6 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                                     if (planet.pirateCount > 0) {
                                         navigator.navigate("CombatPage", { planet });
                                     }
-
                                 }}
                             />
 
@@ -294,6 +342,9 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
 
                 </Svg>
 
+                {/* Add the scanning animation */}
+                {isScanning && <ScanningAnimation isActive={isScanning} />}
+
                 {/* Scan Button */}
                 {isAchievementUnlocked("build_scanning_drones") && (
                     <TouchableOpacity
@@ -301,7 +352,7 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                             styles.scanButtonContainer,
                             (isScanning || scanCooldown > 0 || !canAffordScan()) ? styles.disabledButton : null,
                         ]}
-                        onPress={() => handleScan}
+                        onPress={handleScan}
                         disabled={isScanning || scanCooldown > 0 || !canAffordScan()}
                     >
                         {/* Scan Cost */}
@@ -490,6 +541,33 @@ const styles = StyleSheet.create({
     backButtonText: {
         color: "white",
         fontWeight: "bold",
+    },
+    scanningContainer: {
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        pointerEvents: 'none',
+    },
+    scanningWave: {
+        position: 'absolute',
+        width: 200,
+        height: 200,
+        borderRadius: 100,
+        borderWidth: 4,
+        borderColor: colors.primary,
+        backgroundColor: colors.primary + '20',
+    },
+    scanningCenter: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: colors.panelBackground,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: colors.primary,
     },
 });
 

@@ -1,6 +1,8 @@
-import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
-import ResourceIcon, { ResourceType } from "./ResourceIcon";
 import colors from "@/utils/colors";
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from "expo-linear-gradient";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import ResourceIcon, { ResourceType } from "./ResourceIcon";
 
 const ResourceButton = ({
     title,
@@ -10,6 +12,7 @@ const ResourceButton = ({
     onPress,
     currentAmount,
     maxAmount,
+    generationAmount,
 }: {
     title: string;
     resourceType: ResourceType;
@@ -18,59 +21,168 @@ const ResourceButton = ({
     currentAmount: number;
     maxAmount: number;
     onPress: () => void;
+    generationAmount: number;
 }) => {
     const isDisabled = playerEnergy < cost || currentAmount >= maxAmount;
+    const progress = (currentAmount / maxAmount) * 100;
 
     return (
-        <TouchableOpacity
-            style={[styles.button, isDisabled && styles.buttonDisabled]}
-            onPress={onPress}
-            disabled={isDisabled}
-        >
-            <View style={styles.buttonContent}>
-                <Text style={styles.buttonText}>{title}</Text>
-                <View style={styles.iconContainer}>
-                    <ResourceIcon type={resourceType} size={20} />
+        <View style={styles.buttonContainer}>
+            <LinearGradient
+                colors={
+                    isDisabled
+                        ? ['#1A1D2E', '#141824', '#141824']
+                        : [
+                            'rgba(25, 35, 55, 0.9)',
+                            colors.primary,
+                            'rgba(25, 35, 55, 0.9)'
+                        ]
+                }
+                locations={[0, 0.5, 1]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.button}
+            >
+                <View style={[styles.glowContainer, { pointerEvents: 'none' }]}>
+                    <LinearGradient
+                        colors={['transparent', 'rgba(73, 143, 225, 0.15)', 'transparent']}
+                        locations={[0, 0.5, 1]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.glowEffect}
+                    />
                 </View>
-            </View>
-        </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.mainButton}
+                    onPress={onPress}
+                    disabled={isDisabled}
+                >
+                    <View style={styles.buttonContent}>
+                        <View style={styles.titleContainer}>
+                            <Text style={[styles.buttonText, isDisabled && styles.textDisabled]}>
+                                {title}
+                            </Text>
+                            <View style={styles.statsContainer}>
+                                <View style={styles.statRow}>
+                                    <ResourceIcon type={resourceType} size={16} />
+                                    <Text style={[styles.costText, isDisabled && styles.textDisabled]}>
+                                        Current: {currentAmount}/{maxAmount}
+                                    </Text>
+                                    <Text style={[styles.gainText, isDisabled && styles.textDisabled]}>
+                                        (+{generationAmount})
+                                    </Text>
+                                </View>
+                                <View style={styles.statRow}>
+                                    <ResourceIcon type="energy" size={16} />
+                                    <Text style={[styles.costText, isDisabled && styles.textDisabled]}>
+                                        Cost: {cost}
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                        <Ionicons
+                            name="arrow-forward"
+                            size={16}
+                            color={isDisabled ? colors.textSecondary : colors.textPrimary}
+                        />
+                    </View>
+                </TouchableOpacity>
+
+                <View style={styles.progressBarContainer}>
+                    <View
+                        style={[
+                            styles.progressBar,
+                            { width: `${progress}%` },
+                            isDisabled && styles.progressBarDisabled
+                        ]}
+                    />
+                </View>
+            </LinearGradient>
+        </View>
     );
 };
+
 const styles = StyleSheet.create({
-    button: {
-        backgroundColor: colors.primary,
-        padding: 10,
-        alignItems: "center",
-        marginTop: 8,
-        width: '90%',
+    buttonContainer: {
+        width: '100%',
+        marginVertical: 8,
+        borderRadius: 2,
+        overflow: 'hidden',
     },
-    buttonDisabled: {
-        backgroundColor: colors.disabledBackground, // Muted gray for disabled state
-        borderColor: colors.disabledBorder, // Subtle border for disabled buttons
+    button: {
+        padding: 8,
+        borderRadius: 2,
+        borderWidth: 1,
+        borderColor: 'rgba(73, 143, 225, 0.3)',
+    },
+    glowContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        overflow: 'hidden',
+    },
+    glowEffect: {
+        position: 'absolute',
+        top: 0,
+        left: '-50%',
+        right: '-50%',
+        bottom: 0,
+        transform: [{ rotate: '15deg' }],
     },
     buttonContent: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
     },
+    titleContainer: {
+        flex: 1,
+    },
     buttonText: {
         color: colors.textPrimary,
-        fontSize: 16,
-        fontWeight: "bold",
+        fontSize: 14,
+        fontWeight: "600",
     },
-    iconContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginLeft: 10,
+    statsContainer: {
+        marginTop: 4,
+        gap: 4,
+    },
+    statRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
     },
     costText: {
-        color: colors.textPrimary, // Warm orange for cost text
-        fontSize: 16,
-        fontWeight: "bold",
-        marginLeft: 5,
+        color: colors.textPrimary,
+        fontSize: 12,
+        marginLeft: 6,
     },
-    costTextDisabled: {
-        color: "#777777", // Muted gray for disabled text
+    textDisabled: {
+        color: colors.textSecondary,
+    },
+    progressBarContainer: {
+        height: 2,
+        backgroundColor: colors.border,
+        marginTop: 6,
+        borderRadius: 1,
+        overflow: 'hidden',
+    },
+    progressBar: {
+        height: '100%',
+        backgroundColor: colors.glowEffect,
+    },
+    progressBarDisabled: {
+        backgroundColor: colors.textSecondary,
+    },
+    mainButton: {
+        width: '100%',
+    },
+    gainText: {
+        color: colors.textPrimary,
+        fontSize: 12,
+        marginLeft: 4,
+        fontWeight: '600',
     },
 });
 

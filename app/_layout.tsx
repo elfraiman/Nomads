@@ -2,19 +2,23 @@ import { GameProvider, useGame } from '@/context/GameContext';
 import colors from '@/utils/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, NavigationContainer, ThemeProvider } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import { StatusBar } from 'react-native';
+import { useEffect, useMemo, useState, useContext } from 'react';
+import { StatusBar, TouchableOpacity, Platform } from 'react-native';
 import CombatPage from './combatPage';
 import Dashboard from './dashboard';
-import DroneManagement from './dronemanagment';
 import Exploration from './exploration';
 import WeaponManagementPage from './weaponsManagmentPage';
-
+import React from 'react';
+import DroneManagement from './droneManagment';
+import { Slot } from "expo-router";
+import { StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 SplashScreen.preventAutoHideAsync();
 
 const Drawer = createDrawerNavigator();
@@ -57,49 +61,63 @@ function WrappedRootLayout() {
 
 
   return (
-    <>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar
-        barStyle="light-content" // Options: "light-content", "dark-content"
-        backgroundColor="black" // Android-specific
+        barStyle="light-content"
+        backgroundColor="black"
       />
       <Drawer.Navigator
         screenOptions={({ navigation }) => ({
           drawerStyle: {
             backgroundColor: colors.background,
             width: 240,
+            borderRightWidth: 1,
+            borderColor: colors.border,
           },
-          drawerActiveTintColor: colors.primary,
-          drawerInactiveTintColor: '#ccc',
+          drawerActiveTintColor: colors.glowEffect,
+          drawerInactiveTintColor: colors.textSecondary,
           headerLeft: () => (
-            <Ionicons
-              name="menu-outline"
-              size={24}
-              color="#fff"
-              style={{ marginLeft: 10 }}
+            <TouchableOpacity
+              style={[
+                styles.menuButton,
+                { marginLeft: Platform.OS === 'ios' ? 16 : 8 }
+              ]}
               onPress={() => navigation.toggleDrawer()}
-            />
+            >
+              <Ionicons
+                name="menu-outline"
+                size={24}
+                color={colors.textPrimary}
+              />
+            </TouchableOpacity>
           ),
           headerStyle: {
             backgroundColor: colors.background,
-            borderBottomWidth: 2,
-            borderBottomColor: colors.primary,
+            height: Platform.OS === 'ios' ? 44 : 60,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
             shadowColor: colors.glowEffect,
-            shadowOpacity: 0.8,
-            shadowRadius: 10,
-            elevation: 6,
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 4,
           },
-          headerTintColor: colors.textPrimary,
-          headerTitleAlign: 'center',
+          headerTitleContainerStyle: {
+            left: Platform.OS === 'ios' ? 0 : 0,
+          },
+          headerLeftContainerStyle: {
+            paddingTop: 0,
+          },
           headerTitleStyle: {
-            fontSize: 18,
-            fontWeight: 'bold',
+            fontSize: 16,
+            fontWeight: '600',
             color: colors.textPrimary,
             textTransform: 'uppercase',
-            letterSpacing: 2,
-            textShadowColor: colors.glowEffect,
-            textShadowOffset: { width: 0, height: 0 },
-            textShadowRadius: 8,
+            letterSpacing: 1,
           },
+          headerTitleAlign: 'center',
+          headerTintColor: colors.textPrimary,
+          headerMode: 'float',
+          headerStatusBarHeight: 0,
         })}
       >
         {/* Dashboard is always available */}
@@ -178,18 +196,30 @@ function WrappedRootLayout() {
           />
         )}
       </Drawer.Navigator>
-    </>
+    </SafeAreaView>
   );
 }
 
 
-const RootLayout = () => (
+const RootLayout = () => {
 
-  <ThemeProvider value={DarkTheme}>
+  return (
     <GameProvider>
       <WrappedRootLayout />
     </GameProvider>
-  </ThemeProvider>
-);
+  );
+};
+
+const styles = StyleSheet.create({
+  menuButton: {
+    padding: 8,
+    borderRadius: 4,
+  },
+  menuButtonGradient: {
+    padding: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(73, 143, 225, 0.3)',
+  },
+});
 
 export default RootLayout

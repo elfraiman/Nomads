@@ -1,46 +1,48 @@
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert, Image, ImageBackground } from "react-native";
+import { ScrollView, StyleSheet, Text, View, Alert } from "react-native";
 import { useGame } from "@/context/GameContext";
 import colors from "@/utils/colors";
-import ResourceIcon from "@/components/ui/ResourceIcon";
-import { PlayerResources } from "@/utils/defaults";
+import { WeaponSlot } from "@/components/weapons/WeaponSlot";
+import { WeaponDetails } from "@/components/weapons/WeaponDetails";
+import { WeaponCard } from "@/components/weapons/WeaponCard";
+import { IWeapon } from "@/data/weapons";
+import { WeaponDetailsModal } from "@/components/weapons/WeaponDetailsModal";
 
 const WeaponManagementPage = () => {
   const game = useGame();
   const [selectedWeapon, setSelectedWeapon] = useState<string | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   if (!game) return null;
 
   const { weapons, mainShip, setMainShip, updateWeapons } = game;
 
-  const equipWeapon = (weaponId: string) => {
-    const weapon = weapons.find((w) => w.id === weaponId);
+  const selectedWeaponDetails = weapons.find(w => w.uniqueId === selectedWeapon);
 
-    if (!weapon || mainShip.equippedWeapons.length >= mainShip.maxWeaponSlots || weapon.amount <= 0) {
+  // Helper function to get durability color
+  const getDurabilityColor = (durability: number, maxDurability: number) => {
+    const ratio = durability / maxDurability;
+    if (ratio > 0.7) return colors.buttonGreen;
+    if (ratio > 0.3) return colors.warning;
+    return colors.error;
+  };
+
+  const equipWeapon = (weaponId: string) => {
+    const weapon = weapons.find((w) => w.uniqueId === weaponId);
+    if (!weapon || mainShip.equippedWeapons.length >= mainShip.maxWeaponSlots) {
       return;
     }
 
-    // Create a unique weapon object for equippedWeapons without the `amount` property
-    const uniqueEquippedWeapon = {
-      ...weapon,
-      uniqueId: `${weapon.id}-${Date.now()}`, // Generate a unique identifier
-      weaponDetails: {
-        ...weapon.weaponDetails,
-        durability: weapon.weaponDetails.maxDurability, // Reset durability when equipped
-      },
-    };
+    // Remove from inventory
+    updateWeapons(weaponId, 'remove');
 
-
-    uniqueEquippedWeapon.amount - 1; // Remove `amount` from the equipped weapon object
-
-    // Deduct 1 from the weapon's inventory count
-    updateWeapons(weaponId, weapon.amount - 1);
-
+    // Add to equipped weapons
     setMainShip((prev) => ({
       ...prev,
-      equippedWeapons: [...prev.equippedWeapons, uniqueEquippedWeapon],
+      equippedWeapons: [...prev.equippedWeapons, weapon],
     }));
-    setSelectedWeapon(null); // Clear selected weapon after equipping
+
+    setSelectedWeapon(null);
   };
 
   const unequipWeapon = (uniqueId: string) => {
@@ -49,18 +51,19 @@ const WeaponManagementPage = () => {
 
     const unequippedWeapon = mainShip.equippedWeapons[weaponIndex];
 
+    // Remove from equipped weapons
     setMainShip((prev) => ({
       ...prev,
       equippedWeapons: mainShip.equippedWeapons.filter((w) => w.uniqueId !== uniqueId),
     }));
 
-    // Return the weapon to the inventory
-    const weaponInInventory = weapons.find((w) => w.id === unequippedWeapon.id);
-    const newAmount = weaponInInventory ? weaponInInventory.amount + 1 : 1;
-
-    updateWeapons(unequippedWeapon.id, newAmount);
+    // Add back to inventory with current durability
+    updateWeapons(unequippedWeapon.id, 'add', {
+      durability: unequippedWeapon.weaponDetails.durability,
+      maxDurability: unequippedWeapon.weaponDetails.maxDurability,
+      uniqueId: `${unequippedWeapon.id}-${Date.now()}`
+    });
   };
-
 
   const destroyWeapon = (uniqueId: string) => {
     Alert.alert(
@@ -72,120 +75,103 @@ const WeaponManagementPage = () => {
           text: "Destroy",
           style: "destructive",
           onPress: () => {
-            setMainShip((prev) => ({
-              ...prev,
-              equippedWeapons: prev.equippedWeapons.filter((w) => w.uniqueId !== uniqueId),
-            }));
+            // First check if it's an equipped weapon
+            const equippedWeapon = mainShip.equippedWeapons.find(w => w.uniqueId === uniqueId);
+
+            if (equippedWeapon) {
+              // Remove from equipped weapons
+              setMainShip((prev) => ({
+                ...prev,
+                equippedWeapons: prev.equippedWeapons.filter((w) => w.uniqueId !== uniqueId),
+              }));
+
+              // Also reduce the amount in weapons inventory
+              const baseWeaponId = equippedWeapon.id;
+              updateWeapons(baseWeaponId, 'remove');
+            } else {
+              // If it's an inventory weapon, just remove it from inventory
+              updateWeapons(uniqueId, 'remove');
+            }
           },
         },
       ]
     );
   };
 
-  const availableWeapons = weapons.filter((weapon) => weapon.amount > 0);
+  // Group weapons by their base type and durability for display
+  const groupedWeapons = weapons.reduce((acc, weapon) => {
+    // Skip template weapons (ones without uniqueId)
+    if (!weapon.uniqueId) return acc;
+
+    // Group by base weapon type
+    const groupKey = weapon.id;
+    if (!acc[groupKey]) {
+      acc[groupKey] = [];
+    }
+    acc[groupKey].push(weapon);
+
+    // Sort by durability within each group
+    acc[groupKey].sort((a, b) =>
+      b.weaponDetails.durability / b.weaponDetails.maxDurability -
+      a.weaponDetails.durability / a.weaponDetails.maxDurability
+    );
+
+    return acc;
+  }, {} as Record<string, IWeapon[]>);
 
   return (
     <ScrollView style={styles.container}>
-      {/* Weapon Slots */}
+      <WeaponDetailsModal
+        weapon={selectedWeaponDetails || null}
+        isVisible={modalVisible}
+        onClose={() => {
+          setModalVisible(false);
+          setSelectedWeapon(null);
+        }}
+        onEquip={equipWeapon}
+        onDestroy={destroyWeapon}
+      />
+
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Ship Weapon Slots</Text>
         <View style={styles.weaponSlots}>
-          {Array.from({ length: mainShip.maxWeaponSlots }).map((_, index) => {
-            const equippedWeapon = mainShip.equippedWeapons[index];
-            return (
-              <View key={index} style={styles.slot}>
-                {equippedWeapon ? (
-                  <>
-                    <Text style={styles.weaponTitle}>{equippedWeapon.title}</Text>
-                    <Text style={styles.durabilityText}>
-                      Durability: {equippedWeapon.weaponDetails.durability}/
-                      {equippedWeapon.weaponDetails.maxDurability}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => unequipWeapon(equippedWeapon.uniqueId ?? "")}
-                      style={styles.unequipButton}
-                    >
-                      <Text style={styles.buttonText}>Unequip</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => destroyWeapon(equippedWeapon.uniqueId ?? "")}
-                      style={styles.destroyButton}
-                    >
-                      <Text style={styles.buttonText}>Destroy</Text>
-                    </TouchableOpacity>
-                  </>
-                ) : (
-                  <Text style={styles.emptySlot}>Empty Slot</Text>
-                )}
-              </View>
-            );
-          })}
+          {Array.from({ length: mainShip.maxWeaponSlots }).map((_, index) => (
+            <WeaponSlot
+              key={index}
+              weapon={mainShip.equippedWeapons[index]}
+              onUnequip={unequipWeapon}
+              onDestroy={destroyWeapon}
+            />
+          ))}
         </View>
       </View>
-      {/* Selected Weapon Details */}
-      {selectedWeapon && (
-        <View style={styles.section}>
-          <Text style={styles.sectionHeader}>Selected Weapon Details</Text>
-          {weapons.filter(w => w.id === selectedWeapon).map((weapon, index) => (
-            <View key={index} style={styles.weaponDetails}>
-              <ImageBackground source={weapon.icon} style={styles.detailsIcon} imageStyle={styles.weaponCardImage}>
-                <View style={styles.weaponCardOverlay}>
-                  <Text style={styles.weaponTitle}>{weapon.title}</Text>
-                </View>
-              </ImageBackground>
 
-              <View style={styles.statsContainer}>
-                <Text style={styles.statText}>Power: {weapon.weaponDetails.power}</Text>
-                <Text style={styles.statText}>Cooldown: {weapon.weaponDetails.cooldown}s</Text>
-                <Text style={styles.statText}>Accuracy: {weapon.weaponDetails.accuracy}% </Text>
-                <Text style={styles.statText}>Max Durability: {weapon.weaponDetails.maxDurability}</Text>
-
-                <Text style={styles.statText}>Resource cost: <ResourceIcon size={14} type={weapon.weaponDetails.cost.type as keyof PlayerResources} /> {weapon.weaponDetails.cost.amount}</Text>
-
-              </View>
-
-            </View>
-
-          ))}
-          {/* Equip Weapon */}
-          {selectedWeapon && (
-            <TouchableOpacity
-              onPress={() => equipWeapon(selectedWeapon)}
-              style={styles.equipButton}
-            >
-              <Text style={styles.buttonText}>Equip Selected Weapon</Text>
-            </TouchableOpacity>
-          )}
-
-        </View>
-      )}
-
-      {/* Available Weapons */}
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Available Weapons</Text>
         <View style={styles.availableWeapons}>
-          {availableWeapons.map((weapon, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.weaponCard,
-                selectedWeapon === weapon.id && styles.selectedWeaponCard,
-              ]}
-              onPress={() => setSelectedWeapon(weapon.id === selectedWeapon ? null : weapon.id)}
-            >
-              <ImageBackground source={weapon.icon} style={styles.weaponCardBackground} imageStyle={styles.weaponCardImage}>
-                <View style={styles.weaponCardOverlay}>
-                  <Text style={styles.weaponTitle}>
-                    {weapon.title} ({weapon.amount})
-                  </Text>
-                </View>
-              </ImageBackground>
-            </TouchableOpacity>
+          {Object.entries(groupedWeapons).map(([id, weapons]) => (
+            <View key={id} style={styles.weaponGroup}>
+              <Text style={styles.weaponGroupTitle}>
+                {weapons[0].title} ({weapons.length})
+              </Text>
+              <View style={styles.weaponInstances}>
+                {weapons.map((weapon) => (
+                  <WeaponCard
+                    key={weapon.uniqueId}
+                    weapon={weapon}
+                    isSelected={selectedWeapon === weapon.uniqueId}
+                    onSelect={(weaponId) => {
+                      setSelectedWeapon(weaponId);
+                      setModalVisible(true);
+                    }}
+                    getDurabilityColor={getDurabilityColor}
+                  />
+                ))}
+              </View>
+            </View>
           ))}
         </View>
       </View>
-
-
     </ScrollView>
   );
 };
@@ -193,7 +179,7 @@ const WeaponManagementPage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: 12,
     backgroundColor: colors.background,
   },
   weaponDetails: {
@@ -225,37 +211,24 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   section: {
-    marginBottom: 20,
-    padding: 10,
+    marginBottom: 16,
+    padding: 12,
     backgroundColor: colors.transparentBackground,
     borderWidth: 1,
     borderColor: colors.border,
+    borderRadius: 4,
   },
   sectionHeader: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
     color: colors.textPrimary,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   weaponSlots: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-  },
-  slot: {
-    width: "48%",
-    padding: 10,
-    backgroundColor: colors.panelBackground,
-    marginBottom: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    minHeight: 80,
-    borderColor: colors.border,
-  },
-  emptySlot: {
-    color: colors.textSecondary,
-    fontSize: 14,
+    gap: 8,
   },
   weaponCard: {
     width: "32%",
@@ -281,9 +254,10 @@ const styles = StyleSheet.create({
     height: "100%"
   },
   weaponCardOverlay: {
-    backgroundColor: "rgba(0, 0, 0, 0.6)", // Semi-transparent overlay for better text readability
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
     padding: 6,
     bottom: 0,
+    width: '100%',
   },
   selectedWeaponCard: {
     borderColor: colors.primary,
@@ -328,7 +302,27 @@ const styles = StyleSheet.create({
     height: 64,
     marginBottom: 8,
   },
-
+  weaponGroup: {
+    marginBottom: 16,
+    width: '100%',
+  },
+  weaponGroupTitle: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  weaponInstances: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  durabilityBar: {
+    height: 4,
+    width: '100%',
+    borderRadius: 2,
+    marginTop: 4,
+  },
 });
 
 export default WeaponManagementPage;

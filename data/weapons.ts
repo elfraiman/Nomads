@@ -18,7 +18,6 @@ export interface IWeapon {
     maxDurability: number; // Maximum durability
     category: "Small" | "Medium" | "Large";
   };
-  amount: number;
 }
 
 // Utility function to calculate durability based on total cost
@@ -59,7 +58,6 @@ const blasters: IWeapon[] = [
       type: "blaster" as "blaster",
       category: "Small" as "Small",
     },
-    amount: 0,
   },
   {
     id: "medium_plasma_blaster",
@@ -81,7 +79,6 @@ const blasters: IWeapon[] = [
       type: "blaster" as "blaster",
       category: "Medium" as "Medium",
     },
-    amount: 0,
   },
   {
     id: "heavy_plasma_blaster",
@@ -103,7 +100,6 @@ const blasters: IWeapon[] = [
       type: "blaster" as "blaster",
       category: "Large" as "Large",
     },
-    amount: 0,
   },
 ].map(withDurability);
 
@@ -126,7 +122,6 @@ const lasers: IWeapon[] = [
       type: "laser" as "laser",
       category: "Small" as "Small"
     },
-    amount: 0,
   },
   {
     id: "medium_beam_laser",
@@ -146,7 +141,6 @@ const lasers: IWeapon[] = [
       type: "laser" as "laser",
       category: "Medium" as "Medium",
     },
-    amount: 0,
   },
   {
     id: "heavy_beam_laser",
@@ -166,7 +160,6 @@ const lasers: IWeapon[] = [
       type: "laser" as "laser",
       category: "Large" as "Large",
     },
-    amount: 0,
   },
 ].map(withDurability);
 
@@ -189,7 +182,6 @@ const missiles: IWeapon[] = [
       type: "missile" as "missile",
       category: "Small" as "Small",
     },
-    amount: 0,
   },
   {
     id: "medium_missile_launcher",
@@ -209,7 +201,6 @@ const missiles: IWeapon[] = [
       type: "missile" as "missile",
       category: "Medium" as "Medium",
     },
-    amount: 0,
   },
   {
     id: "heavy_torpedo_launcher",
@@ -229,7 +220,6 @@ const missiles: IWeapon[] = [
       type: "missile" as "missile",
       category: "Large" as "Large",
     },
-    amount: 0,
   },
 ].map(withDurability);
 
@@ -252,7 +242,6 @@ const railguns: IWeapon[] = [
       type: "railgun" as "railgun",
       category: "Small" as "Small",
     },
-    amount: 0,
   },
   {
     id: "medium_railgun",
@@ -272,7 +261,6 @@ const railguns: IWeapon[] = [
       type: "railgun" as "railgun",
       category: "Medium" as "Medium",
     },
-    amount: 0,
   },
   {
     id: "heavy_railgun",
@@ -292,7 +280,6 @@ const railguns: IWeapon[] = [
       type: "railgun" as "railgun",
       category: "Large" as "Large",
     },
-    amount: 0,
   },
 ].map(withDurability);
 

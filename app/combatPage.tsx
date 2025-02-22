@@ -14,6 +14,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
   if (!game) return null;
 
+
   const { mainShip, setMainShip } = game;
 
 

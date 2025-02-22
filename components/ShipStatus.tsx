@@ -52,24 +52,22 @@ const ShipStatus = () => {
                 </View>
 
                 <View style={styles.otherResources}>
-                    {/* Other Resources */}
                     {Object.entries(resources).map(([key, resource]) => {
                         if (key === "energy") return null;
 
-                        if (resource.locked) {
-                            return (
-                                <View key={key} style={styles.resource}>
-                                    <Ionicons name="lock-closed" size={20} color={colors.disabledIcon} />
-                                    <Text style={styles.lockedText}>Locked</Text>
-                                </View>
-                            );
-                        }
+                        const formatNumber = (num: number) =>
+                            num >= 1000 ? `${Math.floor(num / 1000)}k` : Math.round(num);
 
-                        return (
+                        return resource.locked ? (
+                            <View key={key} style={styles.resource}>
+                                <Ionicons name="lock-closed" size={21} color={colors.disabledIcon} />
+                                <Text style={styles.lockedText}>Locked</Text>
+                            </View>
+                        ) : (
                             <View style={styles.resource} key={key}>
-                                <ResourceIcon type={key as keyof typeof resources} />
+                                <ResourceIcon size={21} type={key as keyof typeof resources} />
                                 <Text style={styles.resourceText}>
-                                    {Math.round(resource.current)}/{resource.max}
+                                    {formatNumber(resource.current)}/{formatNumber(resource.max)}
                                 </Text>
                             </View>
                         );
@@ -92,31 +90,22 @@ const ShipStatus = () => {
                         {isDronesExpanded && (
                             <View>
                                 <Text style={styles.shipsHeader}>Drones</Text>
-                                {Object.entries(ships).map(([shipType, count]) => {
-                                    let allocatedDrones = 0;
-
-                                    // Determine allocated drones based on the ship type
-                                    if (shipType === "miningDrones") {
-                                        allocatedDrones = Object.values(game.miningDroneAllocation).reduce((a, b) => a + b, 0);
-                                    } else if (shipType === "scanningDrones") {
-                                        allocatedDrones = 0; // Scanning drones are not allocated in the same way
-                                    }
-
-                                    const availableDrones = count - allocatedDrones;
-
-                                    return (
-                                        <View key={shipType} style={styles.shipItem}>
-                                            <ResourceIcon
-                                                type={shipType as keyof typeof ships}
-                                                size={18}
-                                            />
-                                            <Text style={styles.shipText}>
-                                                {availableDrones <= 0 ? 0 : (availableDrones / count)}
-
+                                {Object.entries(ships).map(([shipType, totalCount]) => (
+                                    <View key={shipType} style={styles.shipItem}>
+                                        <ResourceIcon
+                                            type={shipType as keyof typeof ships}
+                                            size={18}
+                                        />
+                                        <Text style={styles.shipText}>
+                                            {totalCount}
+                                        </Text>
+                                        {shipType === "miningDrones" && (
+                                            <Text style={styles.allocationText}>
+                                                ({Object.values(game.miningDroneAllocation).reduce((a, b) => a + b, 0)} deployed)
                                             </Text>
-                                        </View>
-                                    );
-                                })}
+                                        )}
+                                    </View>
+                                ))}
                             </View>
                         )}
                     </View>
@@ -156,7 +145,7 @@ const styles = StyleSheet.create({
     energyBarContainer: {
         position: "relative",
         width: "100%",
-        height: 20,
+        height: 16,
         backgroundColor: colors.disabledBackground,
         overflow: "hidden",
         marginBottom: 12,
@@ -174,28 +163,28 @@ const styles = StyleSheet.create({
         height: "100%",
     },
     energyBarText: {
-        color: colors.textPrimary,
-        fontSize: 14,
+        color: '#E0F0FFFF',
+        fontSize: 12,
         fontWeight: "bold",
         marginLeft: 5,
     },
     otherResources: {
         display: "flex",
         flexDirection: "row",
+        alignItems: "center",
         justifyContent: "space-between",
     },
     resource: {
         flexDirection: "column",
+        justifyContent: "center",
         alignItems: "center",
     },
     resourceText: {
         color: colors.textPrimary,
-        fontSize: 14,
-        marginLeft: 6,
+        fontSize: 12,
     },
     lockedText: {
         color: colors.textSecondary,
-
         marginTop: 4,
     },
     shipsContainer: {
@@ -235,15 +224,20 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     shipItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: 5,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 4,
     },
     shipText: {
         color: colors.textPrimary,
         fontSize: 14,
-        fontWeight: "bold",
+        fontWeight: '600',
+    },
+    allocationText: {
+        color: colors.textSecondary,
+        fontSize: 12,
+        fontStyle: 'italic',
     },
 });
 

@@ -349,13 +349,31 @@ export const initialGalaxies: IGalaxy[] = [
     id: 1,
     name: "Alpha Centauri",
     size: 90,
-    image: require("../assets/images/galaxy.webp"),
+    image: require("../assets/images/galaxies/galaxy.webp"),
     found: true,
     planets: [
-      { galaxyId: 1, id: 1, name: "Planet A1", position: { x: 150, y: height / 6 }, image: require("../assets/images/planet1.png"), enemies: nebulaMarauderPirates, pirateCount: 6, locked: false },
-      { galaxyId: 1, id: 2, name: "Planet A2", position: { x: 350, y: height / 4.8 }, image: require("../assets/images/planet2.png"), enemies: voidCorsairsPirates, pirateCount: 8, locked: true },
-      { galaxyId: 1, id: 3, name: "Planet A3", position: { x: 80, y: height / 2.9 }, image: require("../assets/images/planet3.png"), enemies: starScavengersPirates, pirateCount: 13, locked: true },
-      { galaxyId: 1, id: 4, name: "Planet A4", position: { x: 300, y: height / 2 }, image: require("../assets/images/planet4.png"), enemies: titanVanguardPirates, pirateCount: 25, locked: true },
+      {
+        galaxyId: 1,
+        id: 1,
+        name: "Planet A1",
+        position: { x: 150, y: height / 6 },
+        image: require("../assets/images/planets/planet1.png"),
+        enemies: nebulaMarauderPirates,
+        pirateCount: 6,
+        locked: false
+      },
+      {
+        galaxyId: 1,
+        id: 2,
+        name: "Planet A2",
+        position: { x: 350, y: height / 4.8 },
+        image: require("../assets/images/planets/planet2.png"),
+        enemies: voidCorsairsPirates,
+        pirateCount: 8,
+        locked: true
+      },
+      { galaxyId: 1, id: 3, name: "Planet A3", position: { x: 80, y: height / 2.9 }, image: require("../assets/images/planets/planet3.png"), enemies: starScavengersPirates, pirateCount: 13, locked: true },
+      { galaxyId: 1, id: 4, name: "Planet A4", position: { x: 300, y: height / 2 }, image: require("../assets/images/planets/planet4.png"), enemies: titanVanguardPirates, pirateCount: 25, locked: true },
     ],
     asteroids: [
       { galaxyId: 1, id: 1, name: "Asteroid Ignis", resource: "fuel" as keyof PlayerResources, findChance: 0.2, maxResources: 1000 },
@@ -412,7 +430,7 @@ export const initialGalaxies: IGalaxy[] = [
     }, */
 ];
 
-export const miningDroneCost = { fuel: 500, solarPlasma: 800, energy: 850 };
+export const miningDroneCost = { fuel: 300, solarPlasma: 40, energy: 450 };
 export const scanningDroneCost = { fuel: 100, solarPlasma: 100, energy: 200 };
 
 export interface IMainShip {
@@ -448,6 +466,15 @@ export const initialMainShip: IMainShip = {
     alloys: { current: 0, max: 100, efficiency: 0.3, locked: false },
     tokens: { current: 0, max: 100, efficiency: 1, locked: false },
   }
+};
+
+// Default resource generation values for Core Operations
+export const defaultResourceGenerationValue = {
+  fuel: 1555,
+  solarPlasma: 999,
+  darkMatter: 444,
+  frozenHydrogen: 333,
+  alloys: 222,
 };
 
 

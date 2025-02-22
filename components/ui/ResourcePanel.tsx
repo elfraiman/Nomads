@@ -20,53 +20,6 @@ interface ResourcePanelProps {
     description: string;
 }
 
-const ResourcePanel = ({
-    resourceType,
-    title,
-    cost,
-    currentAmount,
-    maxAmount,
-    playerEnergy,
-    onGenerate,
-    description,
-}: ResourcePanelProps) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    return (
-        <View>
-            <View style={styles.row}>
-                <ResourceButton
-                    title={title}
-                    resourceType={resourceType}
-                    cost={cost}
-                    playerEnergy={playerEnergy}
-                    currentAmount={currentAmount}
-                    maxAmount={maxAmount}
-                    onPress={onGenerate}
-                />
-
-                <TouchableOpacity
-                    style={styles.chevronButton}
-                    onPress={() => setIsExpanded(!isExpanded)}
-                >
-                    <Ionicons
-                        name={isExpanded ? "chevron-down" : "chevron-forward"}
-                        size={20}
-                        color="#FFF"
-                    />
-                </TouchableOpacity>
-            </View>
-            {isExpanded && (
-                <View style={styles.expandedContainer}>
-                    <Text style={styles.description}>
-                        Cost: {cost} <ResourceIcon type="energy" size={14} />
-                    </Text>
-                    <Text style={styles.description}>{description}<ResourceIcon type={resourceType} size={14} /></Text>
-                </View>
-            )}
-        </View>
-    );
-};
 
 interface CoreOperationsProps {
     defaultResourceGenerationValue: {
@@ -89,49 +42,38 @@ const CoreOperations = ({
 
 
     return (
-        <View style={styles.cardContent}>
-            <ResourcePanel
+        <View style={styles.container}>
+            <ResourceButton
+                title="Generate Fuel"
                 resourceType="fuel"
-                title="Refine Fuel"
                 cost={returnPriceForResource(resources.fuel, 10)}
+                playerEnergy={resources.energy.current}
                 currentAmount={resources.fuel.current}
                 maxAmount={resources.fuel.max}
-                efficiency={resources.fuel.efficiency}
-                playerEnergy={resources.energy.current}
-                onGenerate={() =>
-                    generateResource(
-                        "fuel",
-                        returnPriceForResource(resources.fuel, 10),
-                        defaultResourceGenerationValue.fuel,
-                        0
-                    )
-                }
-                description={`Use energy to refine trace materials into Fuel, generating +${Math.round(
-                    defaultResourceGenerationValue.fuel * resources.fuel.efficiency
-                )} `}
+                generationAmount={Math.round(defaultResourceGenerationValue.fuel * resources.fuel.efficiency)}
+                onPress={() => generateResource(
+                    "fuel",
+                    returnPriceForResource(resources.fuel, 10),
+                    defaultResourceGenerationValue.fuel,
+                    0
+                )}
             />
 
-
             {!resources.solarPlasma.locked && (
-                <ResourcePanel
-                    resourceType="solarPlasma"
+                <ResourceButton
                     title="Condense Solar Plasma"
+                    resourceType="solarPlasma"
                     cost={returnPriceForResource(resources.solarPlasma, 16)}
+                    playerEnergy={defaultResourceGenerationValue.solarPlasma}
                     currentAmount={resources.solarPlasma.current}
                     maxAmount={resources.solarPlasma.max}
-                    efficiency={resources.solarPlasma.efficiency}
-                    playerEnergy={resources.energy.current}
-                    onGenerate={() =>
-                        generateResource(
-                            "solarPlasma",
-                            returnPriceForResource(resources.solarPlasma, 16),
-                            defaultResourceGenerationValue.solarPlasma,
-                            0
-                        )
-                    }
-                    description={`Compress solar energy into Solar Plasma, generating +${Math.round(
-                        defaultResourceGenerationValue.solarPlasma * resources.solarPlasma.efficiency
-                    )}`}
+                    generationAmount={Math.round(defaultResourceGenerationValue.solarPlasma * resources.solarPlasma.efficiency)}
+                    onPress={() => generateResource(
+                        "solarPlasma",
+                        returnPriceForResource(resources.solarPlasma, 16),
+                        defaultResourceGenerationValue.solarPlasma,
+                        0
+                    )}
                 />
             )}
         </View>
@@ -139,6 +81,10 @@ const CoreOperations = ({
 };
 
 const styles = StyleSheet.create({
+    container: {
+        padding: 6,
+        color: colors.textSecondary,
+    },
     row: {
         flexDirection: "row",
         alignItems: "center",
@@ -159,9 +105,6 @@ const styles = StyleSheet.create({
     description: {
         color: colors.textPrimary, // Bright yellow for descriptive text
         fontSize: 12,
-    },
-    cardContent: {
-        padding: 6,
     },
     gained: {
         color: colors.warning, // Orange for emphasis
