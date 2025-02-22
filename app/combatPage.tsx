@@ -6,7 +6,8 @@ import colors from "@/utils/colors";
 import { IMainShip, IPirate, PlayerResources, resourceColors } from "@/utils/defaults";
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Svg, { Rect } from "react-native-svg";
+import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
+import { LinearGradient } from 'expo-linear-gradient';
 
 const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
   const { planet } = route.params;
@@ -16,7 +17,6 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
 
   const { mainShip, setMainShip } = game;
-
 
   const generateEnemies = () => {
     if (planet.pirateCount <= 0) {
@@ -30,7 +30,6 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
   };
 
 
-
   const [enemies, setEnemies] = useState(generateEnemies());
   const [currentEnemyIndex, setCurrentEnemyIndex] = useState(0);
   const [combatLog, setCombatLog] = useState<{ text: string; color?: string }[]>([]);
@@ -39,14 +38,15 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
   const [lastEscapeAttempt, setLastEscapeAttempt] = useState(0);
   const [hasEscaped, setHasEscaped] = useState(false);
   const [isFiring, setIsFiring] = useState(false);
+  const [activeWeapons, setActiveWeapons] = useState<Set<string>>(new Set());
   const [pirate, setPirate] = useState(enemies[0]);
   const [weaponCooldowns, setWeaponCooldowns] = useState(
     mainShip.equippedWeapons.map((weapon) => ({
-      id: weapon.id,
+      uniqueId: weapon.uniqueId,
       cooldown: 0,
       maxCooldown: weapon.weaponDetails.cooldown,
       animation: new Animated.Value(0),
-      weaponDetails: weapon.weaponDetails, // Include weapon details
+      weaponDetails: weapon.weaponDetails,
     }))
   );
 
@@ -56,23 +56,77 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
     weaponAccuracy: number,
     defenderAttackSpeed: number,
     weaponCategory: "Small" | "Medium" | "Large",
-    pirateCategory: "Corvette" | "Cruiser" | "Battleship" | "Dreadnought"
+    pirateCategory: "Corvette" | "Cruiser" | "Battleship" | "Dreadnought" | "Titan"
   ) => {
+    // Base category effectiveness modifiers
     const categoryModifiers: Record<string, Record<string, number>> = {
-      Small: { Corvette: 0, Cruiser: 0, Battleship: 0, Dreadnought: 0 }, // Small weapons are equally effective
-      Medium: { Corvette: -10, Cruiser: 0, Battleship: 5, Dreadnought: 10 },
-      Large: { Corvette: -20, Cruiser: -10, Battleship: 0, Dreadnought: 5 },
+      Small: {
+        Corvette: 15,      // Small weapons excel against corvettes
+        Cruiser: 5,        // Still effective against cruisers
+        Battleship: -10,   // Less effective against battleships
+        Dreadnought: -15,  // Poor against dreadnoughts
+        Titan: -20,        // Very poor against titans
+      },
+      Medium: {
+        Corvette: 5,       // Good against corvettes
+        Cruiser: 15,       // Excel against cruisers
+        Battleship: 10,    // Good against battleships
+        Dreadnought: 0,    // Neutral against dreadnoughts
+        Titan: -10,        // Poor against titans
+      },
+      Large: {
+        Corvette: -15,     // Poor against small targets
+        Cruiser: -5,       // Slightly poor against cruisers
+        Battleship: 15,    // Excel against battleships
+        Dreadnought: 20,   // Best against dreadnoughts
+        Titan: 10,         // Very effective against titans
+      },
     };
 
-    const sizePenalty = categoryModifiers[weaponCategory][pirateCategory] || 0;
+    // Get the base modifier for this weapon/target combination
+    const categoryModifier = categoryModifiers[weaponCategory][pirateCategory] || 0;
 
-    const defenderEvasion = Math.min(defenderAttackSpeed * 5, 90);
-    const effectiveAccuracy = Math.min(Math.max(weaponAccuracy - sizePenalty, 10), 100);
+    // Calculate evasion based on target's attack speed (faster ships are harder to hit)
+    // Cap maximum evasion at 40% to keep combat engaging
+    const baseEvasion = Math.min(defenderAttackSpeed * 4, 40);
 
-    const adjustedHitChance = effectiveAccuracy - defenderEvasion;
-    const finalHitChance = Math.max(adjustedHitChance / 100, 0.1);
+    // Calculate effective accuracy
+    let effectiveAccuracy = weaponAccuracy + categoryModifier;
 
-    console.log(`Weapon Accuracy: ${weaponAccuracy}, Pirate Category: ${pirateCategory}, Final Hit Chance: ${finalHitChance * 100}%`);
+    // Apply size-based scaling (larger targets are easier to hit)
+    const sizeScaling = {
+      Corvette: 0,
+      Cruiser: 5,
+      Battleship: 10,
+      Dreadnought: 15,
+      Titan: 20,
+    };
+    effectiveAccuracy += sizeScaling[pirateCategory];
+
+    // Add slight randomness to make combat more dynamic (-5% to +5%)
+    const randomVariance = (Math.random() * 10) - 5;
+
+    // Calculate final hit chance
+    const finalHitChance = Math.min(
+      Math.max(
+        (effectiveAccuracy - baseEvasion + randomVariance) / 100,
+        0.15  // Minimum 15% hit chance
+      ),
+      0.90   // Maximum 90% hit chance
+    );
+
+    // Log detailed calculation for debugging
+    console.log(
+      `Weapon Attack Roll:`,
+      `\nBase Accuracy: ${weaponAccuracy}%`,
+      `\nTarget Category: ${pirateCategory}`,
+      `\nCategory Modifier: ${categoryModifier}%`,
+      `\nSize Scaling: +${sizeScaling[pirateCategory]}%`,
+      `\nTarget Evasion: ${baseEvasion.toFixed(1)}%`,
+      `\nRandom Variance: ${randomVariance.toFixed(1)}%`,
+      `\nFinal Hit Chance: ${(finalHitChance * 100).toFixed(1)}%`
+    );
+
     return Math.random() <= finalHitChance;
   };
 
@@ -110,7 +164,6 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
     ]);
   };
 
-
   const spawnNextPirate = () => {
     if (currentEnemyIndex < enemies.length - 1) {
       const nextIndex = currentEnemyIndex + 1;
@@ -130,8 +183,8 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
       unlockNextPlanet();
     }
   };
-  const startCooldownAnimation = (weaponId: string, duration: number) => {
-    const weaponCooldown = weaponCooldowns.find((w) => w.id === weaponId);
+  const startCooldownAnimation = (uniqueId: string, duration: number) => {
+    const weaponCooldown = weaponCooldowns.find((w) => w.uniqueId === uniqueId);
     if (weaponCooldown) {
       weaponCooldown.animation.setValue(1);
       Animated.timing(weaponCooldown.animation, {
@@ -140,117 +193,125 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
         useNativeDriver: false,
       }).start(() => {
         setWeaponCooldowns((prev) =>
-          prev.map((w) => (w.id === weaponId ? { ...w, cooldown: 0 } : w))
+          prev.map((w) => (w.uniqueId === uniqueId ? { ...w, cooldown: 0 } : w))
         );
       });
     }
   };
 
-  const handleAttackByType = (weaponsType: string) => {
-    if (isFiring) return; // Prevent spamming
-    setIsFiring(true);
+  const handleWeaponFire = (weapon: IWeapon) => {
+    const uniqueId = weapon.uniqueId as string;
 
-    // Check if any weapon in the group can fire
-    const weapons = weaponGroups[weaponsType];
-    if (!weapons || weapons.length === 0) {
-      setCombatLog((prev) => [...prev, { text: `No weapons of type ${weaponsType} equipped!`, color: colors.warning }]);
-      setIsFiring(false);
-      return;
-    }
+    // Only proceed if the weapon is active
+    if (!activeWeapons.has(uniqueId)) return;
 
-    const fireableWeapons = weapons.filter((weapon) => {
-      const cooldown = weaponCooldowns.find((w) => w.id === weapon.id)?.cooldown || 0;
-      return cooldown === 0;
-    });
+    const cooldown = weaponCooldowns.find((w) => w.uniqueId === uniqueId)?.cooldown || 0;
+    const currentResource = mainShip.resources[weapon.weaponDetails.cost.type as keyof PlayerResources]?.current || 0;
+    const canFire = currentResource >= weapon.weaponDetails.cost.amount && cooldown === 0;
 
-    if (fireableWeapons.length === 0) {
-      setIsFiring(false);
-      return;
-    }
+    if (!canFire) return;
 
-    // Fire logic as before
     let newMainShip = mainShip;
-    let totalDamage = 0;
 
-    const updatedWeaponCooldowns = weaponCooldowns.map((weaponCooldown) => {
-      if (weaponCooldown.weaponDetails.type === weaponsType && weaponCooldown.cooldown === 0) {
-        const { cost, durability } = weaponCooldown.weaponDetails;
-        const currentResource = mainShip.resources[cost.type as keyof PlayerResources]?.current || 0;
+    // Deduct resources
+    const updatedResources = {
+      ...mainShip.resources,
+      [weapon.weaponDetails.cost.type]: {
+        ...mainShip.resources[weapon.weaponDetails.cost.type as keyof PlayerResources],
+        current: currentResource - weapon.weaponDetails.cost.amount,
+      },
+    };
 
-        if (currentResource < cost.amount) {
-          setCombatLog((prev) => [
-            ...prev,
-            { text: `Not enough ${cost.type} to fire ${weaponCooldown.weaponDetails.name}!`, color: colors.secondary },
-          ]);
+    newMainShip = { ...mainShip, resources: updatedResources };
 
-          return weaponCooldown;
-        }
+    // Calculate hit chance and apply damage
+    const hit = calculateHitChance(
+      weapon.weaponDetails.accuracy,
+      pirate?.attackSpeed ?? 0,
+      weapon.weaponDetails.category,
+      pirate.category
+    );
 
-        // Deduct resources
-        const updatedResources = {
-          ...mainShip.resources,
-          [cost.type]: {
-            ...mainShip.resources[cost.type as keyof PlayerResources],
-            current: currentResource - cost.amount,
-          },
-        };
+    if (hit) {
+      const randomMultiplier = Math.random() * 0.4 + 0.8;
+      const damage = Math.floor(
+        weapon.weaponDetails.power * randomMultiplier * (1 - pirate.defense / 100)
+      );
 
-        newMainShip = { ...mainShip, resources: updatedResources };
+      setCombatLog((prev) => [
+        ...prev,
+        { text: `${weapon.weaponDetails.name} hit for ${damage} damage!`, color: resourceColors[weapon.weaponDetails.cost.type] },
+      ]);
 
-        // Calculate hit chance and apply damage
-        const hit = calculateHitChance(weaponCooldown.weaponDetails.accuracy, pirate?.attackSpeed ?? 0, weaponCooldown.weaponDetails.category, pirate.category);
+      setPirate((prev: IPirate) => ({
+        ...prev,
+        health: Math.max(prev.health - damage, 0),
+      }));
+    } else {
+      setCombatLog((prev) => [
+        ...prev,
+        { text: `${weapon.weaponDetails.name} missed!`, color: colors.textSecondary },
+      ]);
+    }
 
-        if (hit) {
-          const randomMultiplier = Math.random() * 0.4 + 0.8; // Random between 0.8 and 1.2
-          const damage = Math.floor(
-            weaponCooldown.weaponDetails.power * randomMultiplier * (1 - pirate.defense / 100)
-          );
-          totalDamage += damage;
-          setCombatLog((prev) => [
-            ...prev,
-            { text: `${weaponCooldown.weaponDetails.name} hit for ${damage} damage!`, color: resourceColors[weaponCooldown.weaponDetails.cost.type] },
-          ]);
-        } else {
-          setCombatLog((prev) => [
-            ...prev,
-            { text: `${weaponCooldown.weaponDetails.name} missed!`, color: colors.textSecondary },
-          ]);
-        }
+    // Handle durability reduction
+    const newDurability = weapon.weaponDetails.durability - 1;
+    if (newDurability <= 0) {
+      setCombatLog((prev) => [
+        ...prev,
+        { text: `${weapon.weaponDetails.name} has broken!`, color: colors.secondary },
+      ]);
+      newMainShip.equippedWeapons = newMainShip.equippedWeapons.filter(
+        (w) => w.id !== weapon.id
+      );
+      setActiveWeapons(prev => {
+        const next = new Set(prev);
+        next.delete(uniqueId);
+        return next;
+      });
+    } else {
+      weapon.weaponDetails.durability = newDurability;
+    }
 
-        // Handle durability reduction
-        //
-        const newDurability = durability - 1;
-        if (newDurability <= 0) {
-          setCombatLog((prev) => [
-            ...prev,
-            { text: `${weaponCooldown.weaponDetails.name} has broken!`, color: colors.secondary },
-          ]);
-          newMainShip.equippedWeapons = newMainShip.equippedWeapons.filter(
-            (w) => w.id !== weaponCooldown.id
-          );
-          return null;
-        }
+    // Start cooldown only for the specific weapon instance
+    startCooldownAnimation(uniqueId, weapon.weaponDetails.cooldown);
+    setWeaponCooldowns(prev =>
+      prev.map(w => w.uniqueId === uniqueId ? { ...w, cooldown: weapon.weaponDetails.cooldown } : w)
+    );
 
-        // Start cooldown
-        weaponCooldown.weaponDetails.durability = newDurability;
-        startCooldownAnimation(weaponCooldown.id, weaponCooldown.weaponDetails.cooldown);
-        return { ...weaponCooldown, cooldown: weaponCooldown.weaponDetails.cooldown };
-      }
-
-      return weaponCooldown.cooldown > 0
-        ? { ...weaponCooldown, cooldown: Math.round(weaponCooldown.cooldown - 1) }
-        : weaponCooldown;
-    });
-
-    setWeaponCooldowns(updatedWeaponCooldowns.filter((w): w is NonNullable<typeof w> => w !== null));
     setMainShip(newMainShip);
-    setPirate((prev: IPirate) => ({
-      ...prev,
-      health: Math.max(prev.health - totalDamage, 0),
-    }));
-    setIsFiring(false);
   };
 
+  // Auto-fire system for active weapons
+  useEffect(() => {
+    if (activeWeapons.size === 0 || !pirate || hasEscaped) return;
+
+    const interval = setInterval(() => {
+      mainShip.equippedWeapons.forEach(weapon => {
+        if (activeWeapons.has(weapon.uniqueId as string)) {
+          handleWeaponFire(weapon);
+        }
+      });
+    }, 100); // Check every 100ms for weapons that can fire
+
+    return () => clearInterval(interval);
+  }, [activeWeapons, pirate, hasEscaped, mainShip.equippedWeapons, weaponCooldowns]);
+
+  const toggleWeapon = (weapon: IWeapon) => {
+    const uniqueId = weapon.uniqueId as string;
+
+    setActiveWeapons(prev => {
+      const next = new Set(prev);
+      if (next.has(uniqueId)) {
+        next.delete(uniqueId);
+      } else {
+        next.add(uniqueId);
+        // Fire immediately when activated
+        handleWeaponFire(weapon);
+      }
+      return next;
+    });
+  };
 
   // Makes sure we update the weapons when the player changes them
   // in the management 
@@ -271,46 +332,62 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
 
   const calculatePirateHitChance = (
-    pirateAccuracy: number, // Base accuracy of the pirate
-    pirateCategory: "Corvette" | "Cruiser" | "Battleship" | "Titan" // Ship category
+    pirateAccuracy: number,
+    pirateCategory: "Corvette" | "Cruiser" | "Battleship" | "Titan"
   ): boolean => {
     // Category-based accuracy modifiers for pirates
     const categoryModifiers: Record<string, number> = {
       Corvette: -6,  // Smaller ships have reduced accuracy
-      Cruiser: -3,     // Balanced accuracy for medium ships
-      Battleship: 10,  // Large ships are slightly more accurate
-      Titan: 12,      // Massive ships are very accurate
+      Cruiser: -3,   // Balanced accuracy for medium ships
+      Battleship: 10, // Large ships are slightly more accurate
+      Titan: 12,     // Massive ships are very accurate
     };
 
     // Apply the modifier based on the category
     const categoryModifier = categoryModifiers[pirateCategory] || 0;
 
-    // Effective accuracy after applying category modifier
-    const randomMultiplier = Math.random() * (1.1 - 0.7) + 0.7; // some randomness
-    const effectiveAccuracy = Math.min(Math.max((pirateAccuracy + categoryModifier), 10), 80); // Clamp between 10% and 95%
+    // Calculate base accuracy based on attack speed
+    // Slower ships (higher attackSpeed) are more accurate
+    const speedAccuracyBonus = Math.min((pirateAccuracy / 20), 15); // Max 15% bonus from speed
 
-    // Convert effectiveAccuracy into a decimal (0.0 to 1.0)
-    const hitChance = (effectiveAccuracy / 100);
+    // Effective accuracy after applying all modifiers
+    const effectiveAccuracy = Math.min(
+      Math.max(
+        (pirateAccuracy + categoryModifier + speedAccuracyBonus),
+        10  // Minimum accuracy
+      ),
+      85  // Maximum accuracy
+    );
 
-    console.log(`Pirate Accuracy: ${pirateAccuracy}, Category: ${pirateCategory}, Final Hit Chance: ${hitChance * 100}%`);
+    // Add slight randomness to make combat more dynamic
+    const randomVariance = (Math.random() * 10) - 5; // ±5% random variance
+
+    // Final hit chance calculation
+    const finalHitChance = (effectiveAccuracy + randomVariance) / 100;
+
+    console.log(
+      `Pirate Attack Roll:`,
+      `\nBase Accuracy: ${pirateAccuracy}%`,
+      `\nCategory Modifier: ${categoryModifier}%`,
+      `\nSpeed Bonus: ${speedAccuracyBonus.toFixed(1)}%`,
+      `\nRandom Variance: ${randomVariance.toFixed(1)}%`,
+      `\nFinal Hit Chance: ${(finalHitChance * 100).toFixed(1)}%`
+    );
 
     // Determine hit or miss
-    return Math.random() <= hitChance;
+    return Math.random() <= finalHitChance;
   };
-
-
 
   // Pirate attack
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (!pirate || hasEscaped) {
-        clearInterval(interval); // Stop the interval if no pirate or the player has escaped
-        return;
-      }
+    if (!pirate || hasEscaped) return;
 
+    // Convert attackSpeed to milliseconds (attackSpeed is in seconds)
+    const attackInterval = pirate.attackSpeed * 1000;
+
+    const interval = setInterval(() => {
       if (pirate.health > 0) {
         const pirateAccuracy = Math.min(pirate.attackSpeed * 10, 100);
-
 
         // Calculate hit chance using refactored function
         const isHit = calculatePirateHitChance(
@@ -324,7 +401,6 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
           const playerDefense = mainShip.baseStats.defense ?? 0; // Default to 0 if undefined
 
           // Add randomness to the damage calculation
-          //
           const randomMultiplier = Math.random() * (1.2 - 0.8) + 0.8;
           const damage = Math.max(Math.floor((pirateAttack * randomMultiplier) - playerDefense), 1);
 
@@ -354,7 +430,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
         spawnNextPirate();
         clearInterval(interval);
       }
-    }, 1000);
+    }, attackInterval); // Use the calculated attack interval
 
     return () => clearInterval(interval); // Clean up interval on unmount
   }, [pirate, mainShip.baseStats.defense, hasEscaped, currentEnemyIndex, enemies.length]);
@@ -383,543 +459,602 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
 
   return (
-    <>
-      <ImageBackground
-        source={require("@/assets/images/space-bg.png")} // Replace with your image path
-        style={styles.backgroundImage}
-      >
-        {/* Fixed Health Bars */}
-        <View style={styles.fixedHealthBars}>
-          {/* Main Ship Health Bar */}
-          <View style={styles.fixedBar}>
-            <Text style={styles.fixedBarText}>
-              Main Ship Health: {mainShip.baseStats.health}/{mainShip.baseStats.maxHealth}
-            </Text>
-            <Svg width="100%" height="20">
-              <Rect x="0" y="0" width="100%" height="20" fill={colors.disabledBackground} />
-              <Rect
-                x="0"
-                y="0"
-                width={`${(mainShip.baseStats.health / mainShip.baseStats.maxHealth) * 100}%`}
-                height="20"
-                fill={colors.successGradient[0]}
-              />
-            </Svg>
-          </View>
-
-          {/* Pirate Health Bar */}
-          {pirate && (
-            <View style={styles.fixedBar}>
-              <Text style={styles.fixedBarText}>
-                {pirate.name} ({pirate.category}) - {pirate.health}/{pirate.maxHealth} HP
-              </Text>
-              <Svg width="100%" height="20">
-                <Rect x="0" y="0" width="100%" height="20" fill={colors.disabledBackground} />
-                <Rect
-                  x="0"
-                  y="0"
-                  width={`${(pirate.health / pirate.maxHealth) * 100}%`}
-                  height="20"
-                  fill={colors.error}
-                />
-              </Svg>
+    <ImageBackground
+      source={require("@/assets/images/space-bg.png")}
+      style={styles.backgroundImage}
+    >
+      {/* Target Overview Panel - EVE Style */}
+      <View style={styles.targetOverview}>
+        <LinearGradient
+          colors={[colors.panelBackground, colors.background]}
+          style={styles.targetHeader}
+        >
+          <Text style={styles.targetTitle}>Target Overview</Text>
+        </LinearGradient>
+        {pirate && (
+          <View style={styles.targetInfo}>
+            <View style={styles.targetBasicInfo}>
+              <Text style={styles.targetName}>{pirate.name}</Text>
+              <Text style={styles.targetClass}>{pirate.category}</Text>
             </View>
-          )}
-        </View>
-
-        <ScrollView style={[styles.container, { backgroundColor: "transparent" }]}>
-
-          {/* Main Content */}
-          {hasEscaped ? (
-            <Text style={styles.header}>ESCAPED</Text>
-          ) : pirate ? (
-            <>
-              <Text style={styles.header}>
-                {planet.name} - Enemies Left: {enemies.length - currentEnemyIndex}
-              </Text>
-              <View style={styles.pirateImageContainer}>
-                <Text style={styles.pirateName}>
-                  {pirate.name} ({pirate.category}): {pirate.health}/{pirate.maxHealth} HP
-                </Text>
+            <View style={styles.targetStats}>
+              <View style={styles.healthBarContainer}>
+                <Text style={styles.healthLabel}>Structure</Text>
+                <View style={styles.healthBar}>
+                  <LinearGradient
+                    colors={[colors.error, colors.redButton]}
+                    style={[
+                      styles.healthFill,
+                      { width: `${(pirate.health / pirate.maxHealth) * 100}%` }
+                    ]}
+                  />
+                  <Text style={styles.healthText}>
+                    {pirate.health}/{pirate.maxHealth}
+                  </Text>
+                </View>
               </View>
-            </>
-          ) : (
-            <Text style={styles.header}>All enemies defeated! Planet cleared.</Text>
-          )}
-
-          {/* Combat Log */}
-          <View style={styles.logContainer}>
-            <Text style={styles.logHeader}>Combat Log</Text>
-            <ScrollView ref={scrollViewRef}>
-              {combatLog.map((entry, index) => (
-                <Text key={index} style={[styles.logText, entry.color ? { color: entry.color } : null]}>
-                  {entry.text}
-                </Text>
-              ))}
-            </ScrollView>
+              <View style={styles.targetAttributes}>
+                <Text style={styles.attributeText}>Defense: {pirate.defense}</Text>
+                <Text style={styles.attributeText}>Speed: {pirate.attackSpeed}</Text>
+              </View>
+            </View>
           </View>
+        )}
+      </View>
 
-          {/* Weapon Groups */}
-          <View style={styles.optionsGridContainer}>
-            {Object.entries(weaponGroups).map(([type, weapons], index) => {
-              const fireableWeapons = weapons.filter((weapon) => {
-                const { type: resourceType, amount } = weapon.weaponDetails.cost;
-                return (mainShip.resources[resourceType as keyof PlayerResources]?.current || 0) >= amount;
-              });
+      {/* Player Ship Status - EVE Style */}
+      <View style={styles.shipStatus}>
+        <LinearGradient
+          colors={[colors.panelBackground, colors.background]}
+          style={styles.shipHeader}
+        >
+          <Text style={styles.shipTitle}>Ship Status</Text>
+        </LinearGradient>
+        <View style={styles.shipInfo}>
+          <View style={styles.healthBarContainer}>
+            <Text style={styles.healthLabel}>Structure</Text>
+            <View style={styles.healthBar}>
+              <LinearGradient
+                colors={[colors.successGradient[0], colors.successGradient[1]]}
+                style={[
+                  styles.healthFill,
+                  { width: `${(mainShip.baseStats.health / mainShip.baseStats.maxHealth) * 100}%` }
+                ]}
+              />
+              <Text style={styles.healthText}>
+                {mainShip.baseStats.health}/{mainShip.baseStats.maxHealth}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.resourceBars}>
+            {Object.entries(mainShip.resources).map(([type, resource], index) => (
+              <View key={index} style={styles.resourceBar}>
+                <ResourceIcon type={type as keyof PlayerResources} size={16} />
+                <View style={styles.resourceBarInner}>
+                  <LinearGradient
+                    colors={[resourceColors[type], colors.background]}
+                    style={[
+                      styles.resourceFill,
+                      { width: `${(resource.current / resource.max) * 100}%` }
+                    ]}
+                  />
+                  <Text style={styles.resourceText}>
+                    {resource.current}/{resource.max}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
 
-              const totalCost = fireableWeapons.reduce((acc, weapon) => {
-                const { type: resourceType, amount } = weapon.weaponDetails.cost;
-                acc[resourceType] = (acc[resourceType] || 0) + amount;
-                return acc;
-              }, {} as { [key: string]: number });
+      {/* Weapon Groups - EVE Style */}
+      <View style={styles.weaponGroups}>
+        <View style={styles.weaponHeader}>
+          <Text style={styles.weaponTitle}>Weapon Systems</Text>
+        </View>
+        <ScrollView
+          style={styles.weaponList}
+          showsVerticalScrollIndicator={true}
+          persistentScrollbar={true}
+        >
+          {Object.entries(weaponGroups).map(([type, weapons], index) => (
+            <View key={index} style={styles.weaponTypeGroup}>
+              <Text style={styles.weaponTypeTitle}>{type.toUpperCase()}</Text>
+              {weapons.map((weapon) => {
+                const cooldown = weaponCooldowns.find((w) => w.uniqueId === weapon.uniqueId)?.cooldown || 0;
+                const canFire = (mainShip.resources[weapon.weaponDetails.cost.type as keyof PlayerResources]?.current || 0) >= weapon.weaponDetails.cost.amount;
 
-              return (
-                <View key={index} style={styles.weaponGroup}>
-                  <Text style={styles.groupTitle}>{type.toUpperCase()}</Text>
-                  {/* Render Weapons */}
-                  {weapons.map((weapon, weaponIndex) => {
-                    const weaponCooldown = weaponCooldowns.find((w) => w.id === weapon.id);
-                    const cooldown = weaponCooldown?.cooldown || 0;
-                    const animation = weaponCooldown?.animation;
-                    const durabilityPercentage =
-                      (weapon.weaponDetails.durability / weapon.weaponDetails.maxDurability) * 100;
-                    const canFire =
-                      (mainShip.resources[weapon.weaponDetails.cost.type as keyof PlayerResources]?.current ||
-                        0) >= weapon.weaponDetails.cost.amount;
-
-                    return (
-                      <View key={weaponIndex} style={styles.weaponItem}>
-                        <View style={styles.weaponHeader}>
+                return (
+                  <TouchableOpacity
+                    key={weapon.uniqueId}
+                    style={[
+                      styles.weaponButton,
+                      !canFire && styles.weaponButtonDisabled,
+                      activeWeapons.has(weapon.uniqueId || '') && styles.weaponButtonActive
+                    ]}
+                    onPress={() => toggleWeapon(weapon)}
+                    disabled={false}
+                  >
+                    <View style={styles.weaponInfo}>
+                      <View style={styles.weaponMainInfo}>
+                        <View style={styles.weaponNameContainer}>
                           <Text style={styles.weaponName}>{weapon.weaponDetails.name}</Text>
-                          <Text
-                            style={[
-                              styles.durabilityText,
-                              durabilityPercentage < 25 ? styles.durabilityLow : null,
-                            ]}
-                          >
-                            {weapon.weaponDetails.durability}/{weapon.weaponDetails.maxDurability}
+                        </View>
+                        <View style={styles.weaponStats}>
+                          <Text style={styles.weaponStat}>
+                            DMG: {weapon.weaponDetails.power}
                           </Text>
-                        </View>
-                        {/* Durability Bar */}
-                        <View style={styles.durabilityBar}>
-                          <View
-                            style={[
-                              styles.durabilityFill,
-                              { width: `${durabilityPercentage}%` },
-                              durabilityPercentage < 25 ? styles.durabilityLowFill : null,
-                            ]}
-                          />
-                        </View>
-                        {/* Cooldown Bar */}
-                        <View style={styles.cooldownContainer}>
-                          {cooldown > 0 ? (
-                            <>
-                              <Animated.View
-                                style={[
-                                  styles.cooldownBar,
-                                  {
-                                    width: animation?.interpolate({
-                                      inputRange: [0, 1],
-                                      outputRange: ["0%", "100%"],
-                                    }),
-                                    backgroundColor:
-                                      resourceColors[weapon.weaponDetails.cost.type] || colors.warning,
-                                  },
-                                ]}
-                              />
-                              <Text style={styles.cooldownText}>{cooldown}s</Text>
-                            </>
-                          ) : canFire ? (
-                            <Text style={styles.readyText}>Ready</Text>
-                          ) : (
-                            <Text style={styles.noResourceText}>No Resources</Text>
-                          )}
-                        </View>
-                        <View style={styles.resourceCostItem}>
-                          <ResourceIcon
-                            type={weapon.weaponDetails.cost.type as keyof PlayerResources}
-                            size={16}
-                          />
-                          <Text style={styles.resourceAmountText}>
-                            {weapon.weaponDetails.cost.amount}
+                          <Text style={styles.weaponStat}>
+                            ACC: {weapon.weaponDetails.accuracy}%
                           </Text>
+                          <View style={styles.weaponCost}>
+                            <ResourceIcon
+                              type={weapon.weaponDetails.cost.type as keyof PlayerResources}
+                              size={12}
+                            />
+                            <Text style={styles.costText}>
+                              {weapon.weaponDetails.cost.amount}
+                            </Text>
+                          </View>
                         </View>
                       </View>
-                    );
-                  })}
-                  {/* Fire Button */}
-                  <TouchableOpacity
-                    disabled={fireableWeapons.length === 0 || isFiring}
-                    style={[
-                      styles.attackButton,
-                      (fireableWeapons.length === 0 || isFiring) && styles.disabledButton,
-                    ]}
-                    onPress={() => handleAttackByType(type)}
-                  >
-                    <View style={styles.resourceCosts}>
-                      <Text style={styles.attackButtonText}>Fire</Text>
-                      {Object.entries(totalCost).map(([resourceType, amount]) => (
-                        <View key={resourceType} style={styles.resourceCostItem}>
-                          <ResourceIcon type={resourceType as keyof PlayerResources} size={16} />
-                          <Text style={styles.resourceAmountText}>{amount}</Text>
+                      <View style={styles.durabilityContainer}>
+                        <Text style={[
+                          styles.durabilityText,
+                          weapon.weaponDetails.durability / weapon.weaponDetails.maxDurability < 0.25 && styles.durabilityLow
+                        ]}>
+                          {weapon.weaponDetails.durability}/{weapon.weaponDetails.maxDurability}
+                        </Text>
+                        <View style={styles.durabilityBar}>
+                          <LinearGradient
+                            colors={weapon.weaponDetails.durability / weapon.weaponDetails.maxDurability < 0.25
+                              ? [colors.error, colors.redButton]
+                              : [colors.successGradient[0], colors.successGradient[1]]}
+                            style={[
+                              styles.durabilityFill,
+                              { width: `${(weapon.weaponDetails.durability / weapon.weaponDetails.maxDurability) * 100}%` }
+                            ]}
+                          />
                         </View>
-                      ))}
+                      </View>
                     </View>
+                    {cooldown > 0 && (
+                      <View style={[styles.cooldownBar, { width: `${(cooldown / weapon.weaponDetails.cooldown) * 100}%` }]} />
+                    )}
                   </TouchableOpacity>
-                </View>
-              );
-            })}
-          </View>
-
+                );
+              })}
+            </View>
+          ))}
         </ScrollView>
+      </View>
 
-      </ImageBackground>
+      {/* Enhanced Combat Log - EVE Style */}
+      <View style={styles.combatLog}>
+        <LinearGradient
+          colors={[colors.panelBackground, colors.background]}
+          style={styles.logHeader}
+        >
+          <Text style={styles.logTitle}>Combat Feed</Text>
+        </LinearGradient>
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.logContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {combatLog.map((entry, index) => (
+            <View
+              key={index}
+              style={[
+                styles.logEntryContainer,
+                {
+                  opacity: Math.max(0.3, 1 - (combatLog.length - 1 - index) * 0.15),
+                  transform: [{ scale: Math.max(0.85, 1 - (combatLog.length - 1 - index) * 0.05) }]
+                }
+              ]}
+            >
+              <LinearGradient
+                colors={[entry.color || colors.textPrimary, 'transparent']}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={styles.logEntryGradient}
+              >
+                <Text style={styles.logEntry}>
+                  {entry.text}
+                </Text>
+              </LinearGradient>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
 
-
-      {hasEscaped || !pirate ? (
-
+      {/* Escape Button - EVE Style */}
+      {!hasEscaped && pirate ? (
         <TouchableOpacity
           style={[
             styles.escapeButton,
-            , {
-              position: 'relative',
-              bottom: 0,
-              left: 0,
-              width: 145,
-              padding: 10,
-              backgroundColor: colors.primary
-            }
+            !canEscape && styles.escapeButtonDisabled
           ]}
-          onPressIn={() => {
-            navigation.pop(2); // Pop 2 screens from the navigation stack
+          onPress={() => {
+            if (!canEscape) return;
+            const escapeChance = Math.random();
+            setLastEscapeAttempt(Date.now());
+
+            if (escapeChance <= 0.90) {
+              setCombatLog(prev => [...prev, { text: "Warp drive active - Escaping!", color: colors.successGradient[0] }]);
+              setHasEscaped(true);
+            } else {
+              setCombatLog(prev => [...prev, { text: "Warp drive failed - Scrambled!", color: colors.warning }]);
+              setCanEscape(false);
+              setTimeout(() => setCanEscape(true), 6000);
+            }
           }}
+          disabled={!canEscape}
         >
-          <Text style={styles.escapeButtonText}>Back</Text>
-        </TouchableOpacity>
-      ) : (<TouchableOpacity
-        style={[
-          styles.escapeButton,
-          , {
-            position: 'relative',
-            bottom: 0,
-            left: 0,
-            width: 145,
-            padding: 10,
-            backgroundColor: canEscape ? colors.redButton : colors.disabledBackground
-          }
-        ]}
-        onPressIn={() => {
-          if (!canEscape) return;
-
-          const escapeChance = Math.random();
-          setLastEscapeAttempt(Date.now());
-
-          if (escapeChance <= 0.90) {
-            setCombatLog(prev => [...prev, { text: "Escape successful!", color: colors.successGradient[0] }]);
-            setEnemies([]);
-            setHasEscaped(true);
-
-            // navigation.goBack();
-          } else {
-            setCombatLog(prev => [...prev, { text: "Failed to escape! ", color: colors.warning }]);
-            setCanEscape(false);
-            setTimeout(() => setCanEscape(true), 6000);
-          }
-        }}
-        disabled={!canEscape}
-      >
-        <Text style={styles.escapeButtonText}>
-          {canEscape ? "Attempt Escape" : "Failed to escape! "}
-          {!canEscape && (
-            <Text style={styles.escapeButtonText}>
-              {Math.ceil((6000 - (Date.now() - lastEscapeAttempt)) / 1000)}s
+          <LinearGradient
+            colors={canEscape ? [colors.error, colors.redButton] : [colors.disabledBackground, colors.disabledBackground]}
+            style={styles.escapeGradient}
+          >
+            <Text style={styles.escapeText}>
+              {canEscape ? "Initiate Warp" : `Warp Scrambled (${Math.ceil((6000 - (Date.now() - lastEscapeAttempt)) / 1000)}s)`}
             </Text>
-          )}
-        </Text>
-      </TouchableOpacity>)}
-
-      <ShipStatus />
-    </>
+          </LinearGradient>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.returnButton}
+          onPress={() => navigation.pop(2)}
+        >
+          <LinearGradient
+            colors={[colors.primary, colors.secondary]}
+            style={styles.returnGradient}
+          >
+            <Text style={styles.returnText}>Return to Station</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
+    </ImageBackground>
   );
 };
-
-
-
 
 const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
-    resizeMode: "cover", // To cover the entire screen
+    resizeMode: "cover",
   },
-  container: {
-    flex: 1,
-    padding: 16,
+  targetOverview: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: '45%',
+    height: '29%',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderRadius: 5,
+    overflow: 'hidden',
   },
-  escapeButtonText: {
+  targetHeader: {
+    padding: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  targetTitle: {
     color: colors.textPrimary,
-  },
-  spawnButton: {
-    backgroundColor: colors.primary,
-    padding: 10,
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  spawnButtonText: {
-    color: "white",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: 'bold',
+  },
+  targetInfo: {
+    padding: 8,
+  },
+  targetBasicInfo: {
+    marginBottom: 8,
+  },
+  targetName: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  targetClass: {
+    color: colors.textSecondary,
+    fontSize: 12,
+  },
+  targetStats: {
+    gap: 8,
+  },
+  shipStatus: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    width: '45%',
+    height: '29%',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  shipHeader: {
+    padding: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  shipTitle: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  shipInfo: {
+    padding: 8,
+    gap: 8,
+  },
+  healthBarContainer: {
+    gap: 4,
+  },
+  healthLabel: {
+    color: colors.textSecondary,
+    fontSize: 12,
+  },
+  healthBar: {
+    height: 20,
+    backgroundColor: colors.disabledBackground,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  healthFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+  },
+  healthText: {
+    position: 'absolute',
+    width: '100%',
+    textAlign: 'center',
+    color: colors.textPrimary,
+    fontSize: 12,
+    lineHeight: 20,
+  },
+  targetAttributes: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  attributeText: {
+    color: colors.textSecondary,
+    fontSize: 12,
+  },
+  resourceBars: {
+    gap: 4,
+  },
+  resourceBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  resourceBarInner: {
+    flex: 1,
+    height: 16,
+    backgroundColor: colors.disabledBackground,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  resourceFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+  },
+  resourceText: {
+    position: 'absolute',
+    width: '100%',
+    textAlign: 'center',
+    color: colors.textPrimary,
+    fontSize: 10,
+    lineHeight: 16,
+  },
+  weaponGroups: {
+    position: 'absolute',
+    top: '31%',
+    left: 10,
+    right: 10,
+    bottom: '33%',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderRadius: 5,
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
   },
   weaponHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.panelBackground,
   },
-  durabilityBar: {
+  weaponTitle: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  weaponList: {
+    flex: 1,
+    padding: 8,
+  },
+  weaponTypeGroup: {
+    marginBottom: 12,
+  },
+  weaponTypeTitle: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    marginBottom: 4,
+    paddingHorizontal: 4,
+  },
+  weaponButton: {
+    backgroundColor: 'rgba(32, 34, 37, 0.9)',
+    borderRadius: 3,
+    padding: 6,
+    marginBottom: 4,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  weaponButtonDisabled: {
+    opacity: 0.5,
+  },
+  weaponButtonCooldown: {
+    backgroundColor: 'rgba(32, 34, 37, 0.9)',
+  },
+  weaponButtonActive: {
+    borderColor: colors.error,
+    backgroundColor: 'rgba(40, 42, 45, 0.9)',
+  },
+  cooldownBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
     height: 2,
-    backgroundColor: colors.disabledBackground,
-    marginTop: 4,
-  },
-  durabilityFill: {
-    height: '100%',
-    backgroundColor: colors.successGradient[0],
-  },
-  durabilityLowFill: {
     backgroundColor: colors.error,
   },
-  durabilityText: {
+  weaponInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  weaponMainInfo: {
+    flex: 1,
+  },
+  weaponNameContainer: {
+    marginBottom: 2,
+  },
+  weaponName: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  weaponStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  weaponStat: {
+    color: colors.textSecondary,
+    fontSize: 12,
+  },
+  weaponCost: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  costText: {
+    color: colors.textSecondary,
+    fontSize: 12,
+  },
+  combatLog: {
+    position: 'absolute',
+    bottom: 60,
+    left: 10,
+    right: 10,
+    height: '25%',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  logHeader: {
+    padding: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: 'rgba(32, 34, 37, 0.9)',
+  },
+  logTitle: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  logContent: {
+    padding: 6,
+  },
+  logEntryContainer: {
+    marginBottom: 4,
+  },
+  logEntryGradient: {
+    padding: 4,
+    borderRadius: 2,
+  },
+  logEntry: {
     fontSize: 12,
     color: colors.textPrimary,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  escapeButton: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    right: 10,
+    height: 40,
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  escapeButtonDisabled: {
+    opacity: 0.5,
+  },
+  escapeGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  escapeText: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  returnButton: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    right: 10,
+    height: 40,
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  returnGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  returnText: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  durabilityContainer: {
+    width: 80,
+    alignItems: 'flex-end',
+  },
+  durabilityText: {
+    color: colors.textSecondary,
+    fontSize: 10,
   },
   durabilityLow: {
     color: colors.error,
   },
-  scrollableContent: {
-    flexGrow: 1,
-    maxHeight: 160,
+  durabilityBar: {
+    width: 50,
+    height: 3,
+    backgroundColor: colors.disabledBackground,
+    borderRadius: 1.5,
+    overflow: 'hidden',
   },
-  resourceCosts: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  costRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  logHeader: {
-    fontSize: 14,
-    color: colors.glowEffect,
-    marginBottom: 8,
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: colors.textPrimary,
-    textAlign: "center",
-  },
-  pirateImageContainer: {
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  pirateImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 60,
-    borderColor: colors.glowEffect,
-    borderWidth: 2,
-  },
-  pirateName: {
-    color: colors.textPrimary,
-    marginTop: 10,
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  fixedHealthBars: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    paddingHorizontal: 16,
-    backgroundColor: colors.background, // Ensure readability
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderColor: colors.border,
-  },
-  fixedBar: {
-    marginBottom: 10,
-  },
-  fixedBarText: {
-    color: colors.textPrimary,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  healthText: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    marginBottom: 8,
-  },
-  gridButton: {
-    backgroundColor: colors.panelBackground,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 6,
-    margin: 6,
-    alignItems: "center",
-    width: "45%",
-  },
-  escapeButton: {
-    backgroundColor: colors.error,
-    padding: 10,
-    alignItems: "center",
-  },
-  gridOptionText: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  gridCostText: {
-    color: colors.warning,
-    fontSize: 12,
-    textAlign: "center",
-    marginTop: 4,
-  },
-  logContainer: {
-    backgroundColor: colors.panelBackground,
-    padding: 10,
-    maxHeight: 140,
-    minHeight: 140,
-    marginTop: 44,
-  },
-  logText: {
-    fontSize: 14,
-    color: colors.textPrimary, // Default color
-    marginBottom: 4,
-  },
-  logTextPlayer: {
-    color: colors.primary, // Player's attacks
-    fontWeight: "bold",
-  },
-  logTextPirate: {
-    color: colors.error, // Pirate's attacks
-  },
-  logTextMiss: {
-    color: colors.textSecondary, // Misses
-    fontStyle: "italic",
-  },
-  logTextVictory: {
-    color: colors.successGradient[0], // Bright green to signify victory
-    fontWeight: "bold", // Make it stand out
-    fontSize: 14, // Keep it consistent with other log text
-    textAlign: "center", // Center align to emphasize the message
-    marginBottom: 4, // Add spacing between entries
-  },
-  logTextWarning: {
-    color: colors.warning, // Warnings or negative events
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  logTextGeneral: {
-    color: colors.textPrimary, // Default log color
-  },
-  weaponName: {
-    fontSize: 11,
-    marginRight: 3,
-    fontWeight: 'bold',
-    color: colors.textPrimary,
-  },
-  cooldownOverlay: {
+  durabilityFill: {
     position: 'absolute',
     top: 0,
     left: 0,
-    height: '100%',
-    backgroundColor: colors.error,
-    opacity: 0.8,
-  },
-  readyText: {
-    fontSize: 9,
-    color: colors.successGradient[0],
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  attackButtonText: {
-    fontSize: 14,
-    marginRight: 6,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  disabledButton: {
-    backgroundColor: colors.disabledBackground,
-  },
-  optionsGridContainer: {
-    marginTop: 10,
-    flexDirection: "row",
-    flexWrap: "wrap", // Allow items to wrap to the next row
-    justifyContent: "space-between", // Space evenly in the row
-  },
-  weaponGroup: {
-    width: "48%", // Adjust width to fit two columns
-    marginVertical: 6,
-    padding: 8,
-    backgroundColor: colors.panelBackground,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  groupTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: colors.textPrimary,
-    marginBottom: 8,
-  },
-  weaponList: {
-    marginBottom: 12,
-  },
-  weaponItem: {
-    marginBottom: 6,
-  },
-  cooldownContainer: {
-    position: "relative",
-    height: 10,
-    backgroundColor: colors.disabledBackground,
-    overflow: "hidden",
-    marginVertical: 4,
-    display: 'flex',
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  cooldownBar: {
-    position: "absolute",
-    top: 0,
     bottom: 0,
-    left: 0,
-    backgroundColor: colors.secondary,
   },
-  cooldownText: {
-    fontSize: 10,
-    fontWeight: "bold",
-    color: colors.textPrimary,
-  },
-  noResourceText: {
-    color: colors.error,
-    fontSize: 10,
-  },
-  resourceCostItem: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  resourceAmountText: {
-    marginLeft: 4,
-    fontSize: 10,
-    color: colors.textPrimary,
-  },
-  attackButton: {
-    padding: 8,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-  },
-
 });
 
 export default CombatPage;

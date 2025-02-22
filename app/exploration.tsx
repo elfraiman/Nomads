@@ -569,6 +569,23 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: colors.primary,
     },
+    weaponTitle: {
+        fontSize: 12,
+        color: colors.textPrimary,
+        textAlign: "center",
+        fontWeight: "bold",
+    },
+    durabilityText: {
+        fontSize: 11,
+        color: colors.textPrimary,
+        fontWeight: "bold",
+        textAlign: 'center',
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: -6.5,
+        bottom: 0,
+    },
 });
 
 export default ExplorationMap;

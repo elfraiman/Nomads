@@ -7,6 +7,7 @@ import ActiveGoal from "./ui/ActiveGoal";
 import ResourceIcon from "./ui/ResourceIcon";
 import colors from "@/utils/colors";
 import { Ionicons } from "@expo/vector-icons";
+import GradientBorder from "./ui/GradientBorder";
 
 const ShipStatus = () => {
     const game = useGame();
@@ -32,51 +33,53 @@ const ShipStatus = () => {
     const expandedHeight = shipCount * 40 + 60;
 
     return (
+
         <View style={styles.container}>
             {/* Resources Container */}
-            <View style={styles.resourcesContainer}>
-                {/* Energy Bar */}
-                <View style={styles.energyBarContainer}>
-                    <LinearGradient
-                        colors={["#FFA93D", "#FF7726", "#ff3860",]}
-                        start={[0, 0]}
-                        end={[1, 0]}
-                        style={[styles.energyBarFill, { width: `${energyPercentage}%` }]}
-                    />
-                    <View style={styles.energyBarTextContainer}>
-                        <ResourceIcon type="energy" size={20} />
-                        <Text style={styles.energyBarText}>
-                            {Math.round(resources?.energy.current)}/{resources?.energy.max} ({getGenerationRate()}/sec)
-                        </Text>
+            <GradientBorder>
+                <View style={styles.resourcesContainer}>
+                    {/* Energy Bar */}
+                    <View style={styles.energyBarContainer}>
+                        <LinearGradient
+                            colors={["#FFA93D", "#FF7726", "#ff3860",]}
+                            start={[0, 0]}
+                            end={[1, 0]}
+                            style={[styles.energyBarFill, { width: `${energyPercentage}%` }]}
+                        />
+                        <View style={styles.energyBarTextContainer}>
+                            <ResourceIcon type="energy" size={20} />
+                            <Text style={styles.energyBarText}>
+                                {Math.round(resources?.energy.current)}/{resources?.energy.max} ({getGenerationRate()}/sec)
+                            </Text>
+                        </View>
                     </View>
+
+                    <View style={styles.otherResources}>
+                        {Object.entries(resources).map(([key, resource]) => {
+                            if (key === "energy") return null;
+
+                            const formatNumber = (num: number) =>
+                                num >= 1000 ? `${Math.floor(num / 1000)}k` : Math.round(num);
+
+                            return resource.locked ? (
+                                <View key={key} style={styles.resource}>
+                                    <Ionicons name="lock-closed" size={21} color={colors.disabledIcon} />
+                                    <Text style={styles.lockedText}>Locked</Text>
+                                </View>
+                            ) : (
+                                <View style={styles.resource} key={key}>
+                                    <ResourceIcon size={21} type={key as keyof typeof resources} />
+                                    <Text style={styles.resourceText}>
+                                        {formatNumber(resource.current)}/{formatNumber(resource.max)}
+                                    </Text>
+                                </View>
+                            );
+                        })}
+                    </View>
+
+                    <ActiveGoal />
                 </View>
-
-                <View style={styles.otherResources}>
-                    {Object.entries(resources).map(([key, resource]) => {
-                        if (key === "energy") return null;
-
-                        const formatNumber = (num: number) =>
-                            num >= 1000 ? `${Math.floor(num / 1000)}k` : Math.round(num);
-
-                        return resource.locked ? (
-                            <View key={key} style={styles.resource}>
-                                <Ionicons name="lock-closed" size={21} color={colors.disabledIcon} />
-                                <Text style={styles.lockedText}>Locked</Text>
-                            </View>
-                        ) : (
-                            <View style={styles.resource} key={key}>
-                                <ResourceIcon size={21} type={key as keyof typeof resources} />
-                                <Text style={styles.resourceText}>
-                                    {formatNumber(resource.current)}/{formatNumber(resource.max)}
-                                </Text>
-                            </View>
-                        );
-                    })}
-                </View>
-
-                <ActiveGoal />
-            </View>
-
+            </GradientBorder>
             {/* Drones Container */}
             {ships.scanningDrones > 0 && (
                 <View style={[
@@ -121,8 +124,8 @@ const ShipStatus = () => {
 
                 </View>
             )}
-
         </View >
+
     );
 };
 
@@ -130,8 +133,8 @@ const styles = StyleSheet.create({
     container: {
         position: "relative",
         width: "100%",
-        borderTopWidth: 2,
-        borderTopColor: colors.glowEffect,
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
         shadowColor: colors.glowEffect,
         shadowOpacity: 0.8,
         shadowRadius: 10,

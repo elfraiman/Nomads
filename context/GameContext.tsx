@@ -60,8 +60,7 @@ export interface GameContextType {
     setUnlockedGalaxies: (galaxies: IGalaxy[]) => void;
 }
 
-
-const GameContext = createContext<GameContextType | undefined>(undefined);
+const GameContext = createContext<GameContextType>({} as GameContextType);
 
 export const GameProvider = ({ children }: { children: ReactNode }) => {
     const [achievements, setAchievements] = useState<IAchievement[]>(initialAchievements);
