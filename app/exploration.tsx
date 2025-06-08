@@ -301,7 +301,7 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                             styles.scanButtonContainer,
                             (isScanning || scanCooldown > 0 || !canAffordScan()) ? styles.disabledButton : null,
                         ]}
-                        onPress={() => handleScan}
+                        onPress={handleScan}
                         disabled={isScanning || scanCooldown > 0 || !canAffordScan()}
                     >
                         {/* Scan Cost */}

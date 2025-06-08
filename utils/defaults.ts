@@ -74,6 +74,11 @@ export interface PlayerResources {
   frozenHydrogen: IResource;
   alloys: IResource;
   tokens: IResource;
+  researchPoints: IResource;
+  exoticMatter: IResource;
+  quantumCores: IResource;
+  ancientArtifacts: IResource;
+  diplomaticInfluence: IResource;
 }
 
 
@@ -447,6 +452,11 @@ export const initialMainShip: IMainShip = {
     frozenHydrogen: { current: 0, max: 100, efficiency: 0.9, locked: false },
     alloys: { current: 0, max: 100, efficiency: 0.3, locked: false },
     tokens: { current: 0, max: 100, efficiency: 1, locked: false },
+    researchPoints: { current: 0, max: 100, efficiency: 0.5, locked: false },
+    exoticMatter: { current: 0, max: 100, efficiency: 0.2, locked: false },
+    quantumCores: { current: 0, max: 100, efficiency: 0.3, locked: false },
+    ancientArtifacts: { current: 0, max: 100, efficiency: 0.1, locked: false },
+    diplomaticInfluence: { current: 0, max: 100, efficiency: 0.4, locked: false },
   }
 };
 
@@ -469,3 +479,52 @@ export const shipWeaponModules = [
   { name: "Penetrating Alloy Bullet", cost: { type: "alloy", amount: 100 }, power: 50, attackSpeed: 1 },
   { name: "Cold Laser", cost: { type: "frozenHydrogen", amount: 80 }, power: 40, attackSpeed: 1.5 },
 ];
+
+export interface IMission {
+  id: string;
+  title: string;
+  description: string;
+  type: "exploration" | "combat" | "trading" | "research" | "timed" | "resource_chain";
+  requirements: { [key: string]: number } & { ships?: Partial<Ships> };
+  duration?: number; // in seconds for timed missions
+  timeLimit?: number; // for challenges
+  rewards: { [key: string]: number } & { 
+    ships?: Partial<Ships>;
+    unlocks?: string[];
+    experience?: number;
+  };
+  difficulty: "Easy" | "Medium" | "Hard" | "Extreme";
+  faction?: string;
+  repeatable: boolean;
+  cooldown?: number;
+  steps?: string[]; // for multi-step missions
+  completed: boolean;
+  active: boolean;
+  progress?: number;
+}
+
+export interface IFaction {
+  id: string;
+  name: string;
+  relationship: "hostile" | "neutral" | "friendly" | "allied";
+  reputation: number;
+  maxReputation: number;
+  description: string;
+  tradeRoutes?: string[];
+  missions?: IMission[];
+  diplomacyUnlocked: boolean;
+}
+
+export interface IResearchProject {
+  id: string;
+  title: string;
+  description: string;
+  category: "materials" | "quantum" | "energy" | "weapons" | "automation";
+  costs: { resourceType: keyof PlayerResources; amount: number }[];
+  duration: number; // in seconds
+  unlocks: string[];
+  prerequisites?: string[];
+  completed: boolean;
+  inProgress: boolean;
+  progress: number;
+}

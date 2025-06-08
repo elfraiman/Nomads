@@ -1,7 +1,7 @@
 // src/data/gameState.ts
 
 
-import { IAsteroid, IGalaxy, IMainShip, PlayerResources, Ships } from "@/utils/defaults";
+import { IAsteroid, IGalaxy, IMainShip, PlayerResources, Ships, IMission } from "@/utils/defaults";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Upgrade } from "./upgrades";
 import { IAchievement } from "./achievements";
@@ -18,6 +18,10 @@ export interface GameState {
     foundAsteroids: IAsteroid[];
     galaxies: IGalaxy[];
     weapons: IWeapon[];
+    missions?: IMission[];
+    activeMissions?: IMission[];
+    missionTimers?: Record<string, number>;
+    missionCooldowns?: Record<string, number>;
 }
 
 const GAME_STATE_KEY = "GAME_STATE";

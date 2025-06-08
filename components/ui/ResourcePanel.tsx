@@ -72,6 +72,9 @@ interface CoreOperationsProps {
     defaultResourceGenerationValue: {
         fuel: number;
         solarPlasma: number;
+        researchPoints: number;
+        exoticMatter: number;
+        quantumCores: number;
     };
     generateResource: (type: keyof PlayerResources, energyCost: number, output: number, cooldown: number) => void;
 }
@@ -81,7 +84,7 @@ const CoreOperations = ({
     generateResource,
 }: CoreOperationsProps) => {
 
-    const { resources } = useGame();
+    const { resources, isAchievementUnlocked } = useGame();
 
     const returnPriceForResource = (resource: IResource, defaultPrice: number) => {
         return Math.round(resource.efficiency * defaultPrice);
@@ -131,6 +134,76 @@ const CoreOperations = ({
                     }
                     description={`Compress solar energy into Solar Plasma, generating +${Math.round(
                         defaultResourceGenerationValue.solarPlasma * resources.solarPlasma.efficiency
+                    )}`}
+                />
+            )}
+
+            {/* NEW ADVANCED RESOURCES */}
+            {isAchievementUnlocked("unlock_research_lab") && !resources.researchPoints.locked && (
+                <ResourcePanel
+                    resourceType="researchPoints"
+                    title="Generate Research Points"
+                    cost={returnPriceForResource(resources.researchPoints, 25)}
+                    currentAmount={resources.researchPoints.current}
+                    maxAmount={resources.researchPoints.max}
+                    efficiency={resources.researchPoints.efficiency}
+                    playerEnergy={resources.energy.current}
+                    onGenerate={() =>
+                        generateResource(
+                            "researchPoints",
+                            returnPriceForResource(resources.researchPoints, 25),
+                            defaultResourceGenerationValue.researchPoints,
+                            0
+                        )
+                    }
+                    description={`Convert energy and time into Research Points for technological advancement, generating +${Math.round(
+                        defaultResourceGenerationValue.researchPoints * resources.researchPoints.efficiency
+                    )}`}
+                />
+            )}
+
+            {isAchievementUnlocked("deep_space_explorer") && !resources.exoticMatter.locked && (
+                <ResourcePanel
+                    resourceType="exoticMatter"
+                    title="Extract Exotic Matter"
+                    cost={returnPriceForResource(resources.exoticMatter, 40)}
+                    currentAmount={resources.exoticMatter.current}
+                    maxAmount={resources.exoticMatter.max}
+                    efficiency={resources.exoticMatter.efficiency}
+                    playerEnergy={resources.energy.current}
+                    onGenerate={() =>
+                        generateResource(
+                            "exoticMatter",
+                            returnPriceForResource(resources.exoticMatter, 40),
+                            defaultResourceGenerationValue.exoticMatter,
+                            0
+                        )
+                    }
+                    description={`Extract rare matter from cosmic phenomena, generating +${Math.round(
+                        defaultResourceGenerationValue.exoticMatter * resources.exoticMatter.efficiency
+                    )}`}
+                />
+            )}
+
+            {isAchievementUnlocked("complete_first_research") && !resources.quantumCores.locked && (
+                <ResourcePanel
+                    resourceType="quantumCores"
+                    title="Manufacture Quantum Cores"
+                    cost={returnPriceForResource(resources.quantumCores, 60)}
+                    currentAmount={resources.quantumCores.current}
+                    maxAmount={resources.quantumCores.max}
+                    efficiency={resources.quantumCores.efficiency}
+                    playerEnergy={resources.energy.current}
+                    onGenerate={() =>
+                        generateResource(
+                            "quantumCores",
+                            returnPriceForResource(resources.quantumCores, 60),
+                            defaultResourceGenerationValue.quantumCores,
+                            0
+                        )
+                    }
+                    description={`Construct advanced computing cores, generating +${Math.round(
+                        defaultResourceGenerationValue.quantumCores * resources.quantumCores.efficiency
                     )}`}
                 />
             )}

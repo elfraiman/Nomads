@@ -7,13 +7,14 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar } from 'react-native';
 import CombatPage from './combatPage';
 import Dashboard from './dashboard';
 import DroneManagement from './dronemanagment';
 import Exploration from './exploration';
 import WeaponManagementPage from './weaponsManagmentPage';
+import MissionsPage from './missions';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -170,6 +171,28 @@ function WrappedRootLayout() {
           <Drawer.Screen
             name="weaponsManagementLocked"
             component={WeaponManagementPage}
+            options={{
+              title: 'Locked',
+              drawerIcon: ({ color }) => <Ionicons name="lock-closed-outline" size={24} color={color} />,
+              drawerItemStyle: { backgroundColor: colors.lockedBackground },
+            }}
+          />
+        )}
+
+        {/* Conditional rendering for Missions */}
+        {isAchievementUnlocked("build_mining_drones") ? (
+          <Drawer.Screen
+            name="missions"
+            component={MissionsPage}
+            options={{
+              title: 'Missions',
+              drawerIcon: ({ color }) => <Ionicons name="rocket-outline" size={24} color={color} />,
+            }}
+          />
+        ) : (
+          <Drawer.Screen
+            name="missionsLocked"
+            component={MissionsPage}
             options={{
               title: 'Locked',
               drawerIcon: ({ color }) => <Ionicons name="lock-closed-outline" size={24} color={color} />,

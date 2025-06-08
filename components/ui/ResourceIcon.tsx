@@ -14,7 +14,12 @@ export type ResourceType =
     | 'corvettes'
     | 'marauders'
     | 'titans'
-    | 'scanningDrones';
+    | 'scanningDrones'
+    | 'researchPoints'
+    | 'exoticMatter'
+    | 'quantumCores'
+    | 'ancientArtifacts'
+    | 'diplomaticInfluence';
 
 interface ResourceIconProps {
     type: ResourceType;
@@ -74,6 +79,26 @@ const resourceIcons: Record<ResourceType, { icon: React.ReactNode; defaultColor:
     titans: {
         icon: <FontAwesome5 name="mountain" />,
         defaultColor: '#FFD700', // Gold for titans
+    },
+    researchPoints: {
+        icon: <MaterialCommunityIcons name="flask-outline" />,
+        defaultColor: '#00CED1', // Dark turquoise for research
+    },
+    exoticMatter: {
+        icon: <MaterialCommunityIcons name="atom" />,
+        defaultColor: '#8A2BE2', // Blue violet for exotic matter
+    },
+    quantumCores: {
+        icon: <MaterialCommunityIcons name="chip" />,
+        defaultColor: '#32CD32', // Lime green for quantum cores
+    },
+    ancientArtifacts: {
+        icon: <MaterialCommunityIcons name="treasure-chest" />,
+        defaultColor: '#DAA520', // Golden rod for artifacts
+    },
+    diplomaticInfluence: {
+        icon: <Ionicons name="people-outline" />,
+        defaultColor: '#4169E1', // Royal blue for diplomacy
     },
 };
 

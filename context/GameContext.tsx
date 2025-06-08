@@ -2,7 +2,8 @@ import initialAchievements, { IAchievement } from "@/data/achievements";
 import { loadGameState, saveGameState } from "@/data/asyncStorage";
 import initialUpgradeList, { Upgrade, UpgradeCost } from "@/data/upgrades";
 import initialWeapons, { IWeapon } from "@/data/weapons";
-import { IResource, PlayerResources, Ships, initialShips, IAsteroid, IGalaxy, initialGalaxies, IMainShip, initialMainShip } from "@/utils/defaults";
+import initialMissions from "@/data/missions";
+import { IResource, PlayerResources, Ships, initialShips, IAsteroid, IGalaxy, initialGalaxies, IMainShip, initialMainShip, IMission } from "@/utils/defaults";
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { Alert, AppState, AppStateStatus, Platform } from "react-native";
 
@@ -16,7 +17,10 @@ export interface GameContextType {
     galaxies: IGalaxy[];
     weapons: IWeapon[];
     mainShip: IMainShip;
-
+    missions: IMission[]; // NEW: Mission management
+    activeMissions: IMission[]; // NEW: Currently active missions
+    missionTimers: Record<string, number>; // NEW: Mission timers
+    missionCooldowns: Record<string, number>; // NEW: Mission cooldowns
 
     // Combat
     updateMainShip: (updatedMainShip: IMainShip) => void;
@@ -33,7 +37,6 @@ export interface GameContextType {
 
     // Upgrade management functions
     purchaseUpgrade: (id: string) => void;
-    downgradeUpgrade: (id: string) => void;
     updateShips: (shipType: keyof Ships, amount: number) => void;
 
     // General game actions
@@ -54,6 +57,13 @@ export interface GameContextType {
     // Exploration
     setFoundAsteroids: (asteroids: IAsteroid[]) => void;
     setUnlockedGalaxies: (galaxies: IGalaxy[]) => void;
+
+    // NEW: Mission management functions
+    startMission: (missionId: string) => void;
+    completeMission: (missionId: string) => void;
+    cancelMission: (missionId: string) => void;
+    canStartMission: (missionId: string) => boolean;
+    formatTime: (seconds: number) => string;
 }
 
 
@@ -68,6 +78,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const [galaxies, setUnlockedGalaxies] = useState<IGalaxy[]>(initialGalaxies);
     const [weapons, setWeapons] = useState<IWeapon[]>(initialWeapons);
     const [mainShip, setMainShip] = useState<IMainShip>(initialMainShip);
+    const [missions, setMissions] = useState<IMission[]>(initialMissions);
+    const [activeMissions, setActiveMissions] = useState<IMission[]>([]);
+    const [missionTimers, setMissionTimers] = useState<Record<string, number>>({});
+    const [missionCooldowns, setMissionCooldowns] = useState<Record<string, number>>({});
 
     // Save state
     //
@@ -87,6 +101,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 mainShip, achievements, upgrades: serializableUpgrades,
                 ships, allocatedDrones: { mining: miningDroneAllocation },
                 foundAsteroids, galaxies, weapons,
+                missions, activeMissions, missionTimers, missionCooldowns,
             });
         };
 
@@ -115,7 +130,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 subscription.remove();
             };
         }
-    }, [mainShip, achievements, upgrades, ships, foundAsteroids, miningDroneAllocation, galaxies, weapons]);
+    }, [mainShip, achievements, upgrades, ships, foundAsteroids, miningDroneAllocation, galaxies, weapons, missions, activeMissions, missionTimers, missionCooldowns]);
 
     // Load game state on initial render
     useEffect(() => {
@@ -128,6 +143,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 setMiningDroneAllocation(savedState.allocatedDrones?.mining || {});
                 setUnlockedGalaxies(savedState.galaxies || initialGalaxies);
                 setMainShip(savedState.mainShip || initialMainShip);
+                setMissions(savedState.missions || initialMissions);
+                setActiveMissions(savedState.activeMissions || []);
+                setMissionTimers(savedState.missionTimers || {});
+                setMissionCooldowns(savedState.missionCooldowns || {});
 
                 const upgradesFromSaveFile = initialUpgradeList.map((defaultUpgrade) => {
                     const savedUpgrade = savedState.upgrades?.find((u) => u.id === defaultUpgrade.id);
@@ -488,14 +507,14 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         } else if (id === "core_operations_efficiency") {
             console.log("Upgrade core operations efficiency");
             setMainShip((prev) => {
-                const efficiencyMultiplier = 1.05;  // 5% increase per level
-                const upgradeLevel = upgrade.level;
+                const efficiencyBonus = 1.05; // 5% multiplicative increase per level
+                
                 const updatedResources = Object.fromEntries(
                     Object.entries(prev.resources).map(([key, value]) => [
                         key,
-                        {
+                        key === "energy" ? value : { // Don't modify energy efficiency
                             ...value,
-                            efficiency: Math.round(value.efficiency * Math.pow(efficiencyMultiplier, upgradeLevel))
+                            efficiency: Math.round((value.efficiency * efficiencyBonus) * 100) / 100 // Round to 2 decimal places
                         },
                     ])
                 ) as PlayerResources;
@@ -520,46 +539,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         updateAchievProgressForShips(shipType, amount);
     };
 
-    // TO:DO Downgrading
-    const downgradeUpgrade = (id: string) => {
-        const upgrade = initialUpgradeList.find((u: Upgrade) => u.id === id);
-        if (!upgrade) return;
 
-        const currentUpgrade = upgrades[id as any];
-        const refundPercentage = 0.2; // Refund 20% of the cost
-
-        if (currentUpgrade.level > 0) {
-            // Refund part of the costs
-            currentUpgrade.costs.forEach((cost: UpgradeCost) => {
-                const refundAmount = Math.floor(cost.amount * refundPercentage);
-                updateResources(cost.resourceType, {
-                    current: Math.min(
-                        mainShip.resources[cost.resourceType].max,
-                        mainShip.resources[cost.resourceType].current + refundAmount
-                    ),
-                });
-            });
-
-            // Decrease the upgrade level and adjust costs
-            setUpgrades((prevUpgrades) => ({
-                ...prevUpgrades,
-                [id]: {
-                    level: currentUpgrade.level - 1,
-                    costs: currentUpgrade.costs.map((cost: UpgradeCost) => ({
-                        ...cost,
-                        amount: Math.floor(cost.amount / upgrade.baseCostMultiplier),
-                    })),
-                },
-            }));
-
-            // Revert any special effects caused by the upgrade
-            if (id === "reactor_storage") {
-                updateResources("energy", { max: mainShip.resources.energy.max - 100 });
-            }
-        } else {
-            alert("No upgrades to downgrade!");
-        }
-    };
 
     // Reset resources to initial state
     const resetResources = () => setMainShip({ ...mainShip, resources: initialMainShip.resources });
@@ -647,11 +627,14 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 let updatedMainShip = { ...prevMainShip, resources: updatedResources };
 
                 // Auto-generate energy based on reactor optimization level
-                //
                 const reactorOptimizationUpgrade = upgrades.find((u) => u.id === "reactor_optimization");
                 const optimizationLevel = reactorOptimizationUpgrade?.level || 0;
+                
                 if (optimizationLevel > 0) {
-                    const energyGenerationRate = (optimizationLevel * prevMainShip.resources.energy.efficiency);
+                    // Base energy generation rate of 1.85 per level (as described in upgrade description)
+                    const baseEnergyRate = 1.85;
+                    const energyGenerationRate = optimizationLevel * baseEnergyRate;
+                    
                     updatedResources.energy = {
                         ...updatedResources.energy,
                         current: Math.round(Math.min(
@@ -662,7 +645,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 }
 
                 // Generate resources for mining drones
-                //
                 Object.entries(miningDroneAllocation).forEach(([asteroidId, count]) => {
                     const asteroid = foundAsteroids.find((a) => a.id.toString() === asteroidId);
                     const asteroidResourceType = asteroid?.resource as keyof PlayerResources;
@@ -692,6 +674,233 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         return () => clearInterval(interval);
     }, [miningDroneAllocation, upgrades, setMainShip, mineAsteroid, foundAsteroids]);
 
+    // NEW: Mission management functions
+    const startMission = (missionId: string) => {
+        const mission = missions.find(m => m.id === missionId);
+        if (!mission || !canStartMission(missionId)) return;
+
+        // Check and deduct requirements
+        const requirements = mission.requirements;
+        Object.entries(requirements).forEach(([key, value]) => {
+            if (key === 'ships') return; // Handle ships separately
+            if (typeof value === 'number') {
+                const currentResource = mainShip.resources[key as keyof PlayerResources];
+                if (currentResource && currentResource.current >= value) {
+                    updateResources(key as keyof PlayerResources, {
+                        current: currentResource.current - value
+                    });
+                }
+            }
+        });
+
+        // Update mission status
+        const updatedMission = { ...mission, active: true };
+        setMissions(prev => prev.map(m => m.id === missionId ? updatedMission : m));
+        setActiveMissions(prev => [...prev, updatedMission]);
+
+        // Set timer if duration exists
+        if (mission.duration) {
+            setMissionTimers(prev => ({
+                ...prev,
+                [missionId]: mission.duration!
+            }));
+        }
+    };
+
+    const completeMission = (missionId: string) => {
+        const mission = missions.find(m => m.id === missionId);
+        if (!mission) return;
+
+        // Award rewards
+        const rewards = mission.rewards;
+        Object.entries(rewards).forEach(([key, value]) => {
+            if (key === 'experience' || key === 'unlocks' || key === 'ships') return;
+            if (typeof value === 'number') {
+                const currentResource = mainShip.resources[key as keyof PlayerResources];
+                if (currentResource) {
+                    updateResources(key as keyof PlayerResources, {
+                        current: Math.min(currentResource.current + value, currentResource.max)
+                    });
+                }
+            }
+        });
+
+        // Update mission status
+        setMissions(prev => prev.map(m => 
+            m.id === missionId ? { ...m, active: false, completed: true } : m
+        ));
+        setActiveMissions(prev => prev.filter(m => m.id !== missionId));
+        
+        // Remove timer
+        setMissionTimers(prev => {
+            const newTimers = { ...prev };
+            delete newTimers[missionId];
+            return newTimers;
+        });
+
+        // Set cooldown
+        if (mission.cooldown) {
+            setMissionCooldowns(prev => ({
+                ...prev,
+                [missionId]: mission.cooldown!
+            }));
+        }
+    };
+
+    const cancelMission = (missionId: string) => {
+        setMissions(prev => prev.map(m => 
+            m.id === missionId ? { ...m, active: false } : m
+        ));
+        setActiveMissions(prev => prev.filter(m => m.id !== missionId));
+        
+        // Remove timer
+        setMissionTimers(prev => {
+            const newTimers = { ...prev };
+            delete newTimers[missionId];
+            return newTimers;
+        });
+    };
+
+    const canStartMission = (missionId: string): boolean => {
+        const mission = missions.find(m => m.id === missionId);
+        if (!mission || mission.active || missionCooldowns[missionId] > 0) return false;
+
+        // Check requirements
+        const requirements = mission.requirements;
+        for (const [key, value] of Object.entries(requirements)) {
+            if (key === 'ships') {
+                const shipReqs = value as Partial<Ships>;
+                for (const [shipType, count] of Object.entries(shipReqs)) {
+                    if (ships[shipType as keyof Ships] < (count || 0)) return false;
+                }
+            } else if (typeof value === 'number') {
+                const currentResource = mainShip.resources[key as keyof PlayerResources];
+                if (!currentResource || currentResource.current < value) return false;
+            }
+        }
+        return true;
+    };
+
+    const formatTime = (seconds: number): string => {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        
+        if (hours > 0) {
+            return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    // Mission timer and automatic resource generation effect
+    useEffect(() => {
+        const interval = setInterval(() => {
+            // Handle mission timers
+            setMissionTimers(prev => {
+                const newTimers = { ...prev };
+                Object.keys(newTimers).forEach(missionId => {
+                    if (newTimers[missionId] > 0) {
+                        newTimers[missionId] -= 1;
+                    } else {
+                        completeMission(missionId);
+                        delete newTimers[missionId];
+                    }
+                });
+                return newTimers;
+            });
+
+            // Handle mission cooldowns
+            setMissionCooldowns(prev => {
+                const newCooldowns = { ...prev };
+                Object.keys(newCooldowns).forEach(missionId => {
+                    if (newCooldowns[missionId] > 0) {
+                        newCooldowns[missionId] -= 1;
+                    } else {
+                        delete newCooldowns[missionId];
+                    }
+                });
+                return newCooldowns;
+            });
+
+            // Handle automatic resource generation
+            setMainShip(prevMainShip => {
+                const updatedResources = { ...prevMainShip.resources };
+                
+                // Energy generation from reactor optimization
+                const reactorLevel = upgrades.find(upgrade => upgrade.id === "reactor_optimization")?.level || 0;
+                if (reactorLevel > 0) {
+                    const baseEnergyRate = 1.85;
+                    const energyGeneration = reactorLevel * baseEnergyRate;
+                    
+                    updatedResources.energy = {
+                        ...updatedResources.energy,
+                        current: Math.min(
+                            updatedResources.energy.current + energyGeneration,
+                            updatedResources.energy.max
+                        )
+                    };
+                }
+
+                // Research Points generation from research lab
+                const researchLabLevel = upgrades.find(upgrade => upgrade.id === "research_lab")?.level || 0;
+                if (researchLabLevel > 0 && !updatedResources.researchPoints.locked) {
+                    const baseResearchRate = 0.5; // 0.5 research points per second per level
+                    const researchGeneration = researchLabLevel * baseResearchRate;
+                    
+                    updatedResources.researchPoints = {
+                        ...updatedResources.researchPoints,
+                        current: Math.min(
+                            updatedResources.researchPoints.current + researchGeneration,
+                            updatedResources.researchPoints.max
+                        )
+                    };
+                }
+
+                // Enhanced resource generation from quantum computing
+                const quantumLevel = upgrades.find(upgrade => upgrade.id === "quantum_computing")?.level || 0;
+                if (quantumLevel > 0) {
+                    const quantumBonus = 1 + (quantumLevel * 0.05); // 5% bonus per level
+                    
+                    // Apply quantum bonus to fuel generation (if player has fuel generation)
+                    if (!updatedResources.fuel.locked && updatedResources.fuel.efficiency > 1) {
+                        const fuelGeneration = 0.1 * quantumBonus; // Small passive fuel generation
+                        updatedResources.fuel = {
+                            ...updatedResources.fuel,
+                            current: Math.min(
+                                updatedResources.fuel.current + fuelGeneration,
+                                updatedResources.fuel.max
+                            )
+                        };
+                    }
+                }
+
+                // Automated mining bonus from fleet AI
+                const fleetAILevel = upgrades.find(upgrade => upgrade.id === "fleet_ai")?.level || 0;
+                if (fleetAILevel > 0) {
+                    // This would affect mining drone efficiency, but we'll implement that separately
+                    // For now, just add a small passive alloy generation if unlocked
+                    if (!updatedResources.alloys.locked) {
+                        const alloyGeneration = fleetAILevel * 0.05; // Very small passive generation
+                        updatedResources.alloys = {
+                            ...updatedResources.alloys,
+                            current: Math.min(
+                                updatedResources.alloys.current + alloyGeneration,
+                                updatedResources.alloys.max
+                            )
+                        };
+                    }
+                }
+                
+                return {
+                    ...prevMainShip,
+                    resources: updatedResources
+                };
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [upgrades]); // Include upgrades in dependency array
+
     return (
         <GameContext.Provider
             value={{
@@ -704,27 +913,35 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 foundAsteroids,
                 galaxies,
                 weapons,
+                missions,
+                activeMissions,
+                missionTimers,
+                missionCooldowns,
+                allocateMiningDrones,
                 updateResources,
+                upgradeResourceEfficiency,
                 updateMainShip,
                 updateWeapons,
                 manufactureWeapon,
                 setMainShip,
-                upgradeResourceEfficiency,
+                updateAchievProgressFromResources,
+                updateAchievProgressForUpgrades,
+                updateAchievProgressForShips,
+                isAchievementUnlocked,
+                isUpgradeUnlocked,
                 purchaseUpgrade,
-                downgradeUpgrade,
                 resetResources,
                 repairShip,
                 generateResource,
-                updateAchievProgressFromResources,
-                updateAchievProgressForUpgrades,
-                isAchievementUnlocked,
-                isUpgradeUnlocked,
                 updateShips,
-                allocateMiningDrones,
-                setFoundAsteroids,
                 updateAchievToCompleted,
-                updateAchievProgressForShips,
+                setFoundAsteroids,
                 setUnlockedGalaxies,
+                startMission,
+                completeMission,
+                cancelMission,
+                canStartMission,
+                formatTime,
             }}
         >
             {children}

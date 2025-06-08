@@ -260,14 +260,16 @@ const Dashboard = () => {
                         <View style={styles.panel}>
                             <Text style={styles.panelTitle}>Core Operations</Text>
                             <View style={styles.cardContent}>
-                                {/* Core operations Section */}
-                                <Collapsible title="Generate Core Resources">
-                                    <CoreOperations
-
-                                        defaultResourceGenerationValue={defaultResourceGenerationValue}
-                                        generateResource={generateResource}
-                                    />
-                                </Collapsible>
+                                <CoreOperations
+                                    defaultResourceGenerationValue={{
+                                        fuel: 3,
+                                        solarPlasma: 2,
+                                        researchPoints: 1,
+                                        exoticMatter: 1,
+                                        quantumCores: 1,
+                                    }}
+                                    generateResource={generateResource}
+                                />
                             </View>
                         </View>
                     )}

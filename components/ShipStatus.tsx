@@ -21,11 +21,13 @@ const ShipStatus = () => {
         : 0;
 
     const getGenerationRate = () => {
-
-        let rate = upgrades.find((upgrade: Upgrade) => upgrade.id === "reactor_optimization")?.level;
-        if (rate) rate = rate * resources.energy.efficiency;
-
-        return rate ?? 0;
+        let level = upgrades.find((upgrade: Upgrade) => upgrade.id === "reactor_optimization")?.level;
+        if (level && level > 0) {
+            // Match the energy generation calculation from GameContext
+            const baseEnergyRate = 1.85;
+            return Math.round((level * baseEnergyRate) * 10) / 10; // Round to 1 decimal place
+        }
+        return 0;
     };
 
     const shipCount = Object.keys(ships).length;
@@ -59,20 +61,25 @@ const ShipStatus = () => {
                         if (resource.locked) {
                             return (
                                 <View key={key} style={styles.resource}>
-                                    <Ionicons name="lock-closed" size={20} color={colors.disabledIcon} />
+                                    <Ionicons name="lock-closed" size={16} color={colors.disabledIcon} />
                                     <Text style={styles.lockedText}>Locked</Text>
                                 </View>
                             );
                         }
 
-                        return (
-                            <View style={styles.resource} key={key}>
-                                <ResourceIcon type={key as keyof typeof resources} />
-                                <Text style={styles.resourceText}>
-                                    {Math.round(resource.current)}/{resource.max}
-                                </Text>
-                            </View>
-                        );
+                        // Only show resources that have some amount or are unlocked
+                        if (resource.current > 0 || resource.max > 100) {
+                            return (
+                                <View style={styles.resource} key={key}>
+                                    <ResourceIcon type={key as keyof typeof resources} size={16} />
+                                    <Text style={styles.resourceText}>
+                                        {Math.round(resource.current)}
+                                        {resource.max < 1000000 ? `/${resource.max}` : ''}
+                                    </Text>
+                                </View>
+                            );
+                        }
+                        return null;
                     })}
                 </View>
 
