@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useGame } from "@/context/GameContext";
 import ResourceIcon from "./ResourceIcon";
 import colors from "@/utils/colors";
+import { formatLargeNumber } from "@/utils/numberFormatter";
 
 const ActiveGoal = () => {
   const game = useGame();
@@ -78,7 +79,7 @@ const ActiveGoal = () => {
                   {upgrade.replace(/_/g, " ").toUpperCase()}
                 </Text>
                 <View style={styles.progressContainer}>
-                  <Text style={styles.goalText}>{`${current}/${goal}`}</Text>
+                  <Text style={styles.goalText}>{`${formatLargeNumber(current)}/${formatLargeNumber(goal)}`}</Text>
                   <View style={styles.progressBar}>
                     <LinearGradient
                       colors={[colors.successGradient[0], colors.successGradient[1]]}
@@ -102,7 +103,7 @@ const ActiveGoal = () => {
                 <View style={styles.progressContainer}>
                   <Text style={styles.goalText}>
                     <ResourceIcon type={ship as keyof typeof ships} size={20} />{" "}
-                    {`${current}/${goal}`}
+                    {`${formatLargeNumber(current)}/${formatLargeNumber(goal)}`}
                   </Text>
                   <View style={styles.progressBar}>
                     <LinearGradient

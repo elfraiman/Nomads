@@ -6,6 +6,11 @@ import initialMissions from "@/data/missions";
 import { IResource, PlayerResources, Ships, initialShips, IAsteroid, IGalaxy, initialGalaxies, IMainShip, initialMainShip, IMission } from "@/utils/defaults";
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { Alert, AppState, AppStateStatus, Platform } from "react-native";
+import Constants from 'expo-constants';
+import { CompletionReward } from "@/components/ui/CompletionNotification";
+import CompletionNotification from "@/components/ui/CompletionNotification";
+import KillTrackingNotification from "@/components/KillTrackingNotification";
+import GeneralNotification from "@/components/GeneralNotification";
 
 export interface GameContextType {
     resources: PlayerResources; // Tracks resource states like energy, fuel, etc.
@@ -21,6 +26,14 @@ export interface GameContextType {
     activeMissions: IMission[]; // NEW: Currently active missions
     missionTimers: Record<string, number>; // NEW: Mission timers
     missionCooldowns: Record<string, number>; // NEW: Mission cooldowns
+
+    // DEV MODE
+    isDevMode: boolean;
+    toggleDevMode: () => void;
+    giveDevResources: () => void;
+    simulateEnemyKill: (enemyType: string) => void;
+    devResetWithCompletedAchievements: () => void;
+    logFoundAsteroids: () => void;
 
     // Combat
     updateMainShip: (updatedMainShip: IMainShip) => void;
@@ -63,7 +76,63 @@ export interface GameContextType {
     completeMission: (missionId: string) => void;
     cancelMission: (missionId: string) => void;
     canStartMission: (missionId: string) => boolean;
+    canCompleteMission: (missionId: string) => boolean;
     formatTime: (seconds: number) => string;
+
+    // Combat tracking
+    combatStats: {
+        enemiesKilled: Record<string, number>;
+        totalKills: number;
+    };
+    recordEnemyKill: (enemyName: string) => void;
+
+    // Notification system
+    notification: {
+        visible: boolean;
+        title: string;
+        description: string;
+        rewards: CompletionReward[];
+        type: 'mission' | 'achievement';
+    } | null;
+    showNotification: (notification: {
+        title: string;
+        description: string;
+        rewards: CompletionReward[];
+        type: 'mission' | 'achievement';
+    }) => void;
+    hideNotification: () => void;
+
+    // Kill tracking notification
+    killNotification: {
+        visible: boolean;
+        enemyName: string;
+        currentKills: number;
+        targetKills: number;
+        missionTitle: string;
+    } | null;
+    showKillNotification: (data: {
+        enemyName: string;
+        currentKills: number;
+        targetKills: number;
+        missionTitle: string;
+    }) => void;
+    hideKillNotification: () => void;
+
+    // General notification system (for asteroid discoveries, warnings, etc.)
+    generalNotification: {
+        visible: boolean;
+        title: string;
+        message: string;
+        type: 'success' | 'warning' | 'info' | 'error';
+        icon?: string;
+    } | null;
+    showGeneralNotification: (data: {
+        title: string;
+        message: string;
+        type: 'success' | 'warning' | 'info' | 'error';
+        icon?: string;
+    }) => void;
+    hideGeneralNotification: () => void;
 }
 
 
@@ -82,6 +151,39 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const [activeMissions, setActiveMissions] = useState<IMission[]>([]);
     const [missionTimers, setMissionTimers] = useState<Record<string, number>>({});
     const [missionCooldowns, setMissionCooldowns] = useState<Record<string, number>>({});
+    const [notification, setNotification] = useState<{
+        visible: boolean;
+        title: string;
+        description: string;
+        rewards: CompletionReward[];
+        type: 'mission' | 'achievement';
+    } | null>(null);
+
+    const [killNotification, setKillNotification] = useState<{
+        visible: boolean;
+        enemyName: string;
+        currentKills: number;
+        targetKills: number;
+        missionTitle: string;
+    } | null>(null);
+
+    const [generalNotification, setGeneralNotification] = useState<{
+        visible: boolean;
+        title: string;
+        message: string;
+        type: 'success' | 'warning' | 'info' | 'error';
+        icon?: string;
+    } | null>(null);
+    const [combatStats, setCombatStats] = useState<{
+        enemiesKilled: Record<string, number>;
+        totalKills: number;
+    }>({
+        enemiesKilled: {},
+        totalKills: 0,
+    });
+    
+    // DEV MODE - Only enabled in development
+    const [isDevMode, setIsDevMode] = useState(__DEV__);
 
     // Save state
     //
@@ -587,44 +689,15 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         }, cooldown * 1000);
     };
 
-    // Mining
-    const mineAsteroid = (asteroidId: number, amount: number) => {
-        setFoundAsteroids((prev) =>
-            prev
-                .map((asteroid) =>
-                    asteroid.id === asteroidId
-                        ? {
-                            ...asteroid,
-                            maxResources: asteroid.maxResources - amount,
-                        }
-                        : asteroid
-                )
-        );
-    };
-
-    // When an asteroid is mined to 0, it will get depleted
-    // we handle returning the drones and alerting the player.
-    //
-    const handleDepletedAsteroid = (asteroidId: string) => {
-        setFoundAsteroids((prev) => prev.filter((a) => a.id.toString() !== asteroidId));
-        setMiningDroneAllocation((prev) => {
-            const { [asteroidId]: removed, ...remainingAllocation } = prev;
-            return remainingAllocation;
-        });
-
-        const depletedAsteroid = foundAsteroids.find((a) => a.id.toString() === asteroidId);
-        if (depletedAsteroid) {
-            alert(`${depletedAsteroid.name} has been depleted!`);
-        }
-    };
+    // Mining functions are now handled directly in the useEffect for better performance
 
 
-    // Auto ticker for resources
+    // Auto ticker for resources and mining
     useEffect(() => {
         const interval = setInterval(() => {
+            // Handle energy generation
             setMainShip((prevMainShip) => {
                 let updatedResources = { ...prevMainShip.resources };
-                let updatedMainShip = { ...prevMainShip, resources: updatedResources };
 
                 // Auto-generate energy based on reactor optimization level
                 const reactorOptimizationUpgrade = upgrades.find((u) => u.id === "reactor_optimization");
@@ -644,35 +717,62 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     };
                 }
 
-                // Generate resources for mining drones
-                Object.entries(miningDroneAllocation).forEach(([asteroidId, count]) => {
-                    const asteroid = foundAsteroids.find((a) => a.id.toString() === asteroidId);
-                    const asteroidResourceType = asteroid?.resource as keyof PlayerResources;
-
-                    if (asteroid && prevMainShip.resources[asteroidResourceType]) {
-                        if (asteroid.maxResources > 0) {
-                            const resourcesToMine = Math.min(count, asteroid.maxResources);
-
-                            updatedResources[asteroidResourceType] = {
-                                ...updatedResources[asteroidResourceType],
-                                current: Math.min(
-                                    updatedResources[asteroidResourceType].current + resourcesToMine,
-                                    updatedResources[asteroidResourceType].max
-                                ),
-                            };
-
-                            mineAsteroid(asteroid.id, resourcesToMine);
-                        } else {
-                            handleDepletedAsteroid(asteroidId);
-                        }
-                    }
-                });
-                return updatedMainShip;
+                return { ...prevMainShip, resources: updatedResources };
             });
+
+            // Handle mining drone resource generation
+            if (Object.keys(miningDroneAllocation).length > 0) {
+                setFoundAsteroids((prevAsteroids) => {
+                    const updatedAsteroids = prevAsteroids.map((asteroid) => {
+                        const allocationCount = miningDroneAllocation[asteroid.id.toString()];
+                        if (allocationCount && allocationCount > 0 && asteroid.maxResources > 0) {
+                            const resourcesToMine = Math.min(allocationCount, asteroid.maxResources);
+                            
+                            // Update resources for this asteroid type
+                            setMainShip((prevMainShip) => ({
+                                ...prevMainShip,
+                                resources: {
+                                    ...prevMainShip.resources,
+                                    [asteroid.resource]: {
+                                        ...prevMainShip.resources[asteroid.resource as keyof PlayerResources],
+                                        current: Math.min(
+                                            prevMainShip.resources[asteroid.resource as keyof PlayerResources].current + resourcesToMine,
+                                            prevMainShip.resources[asteroid.resource as keyof PlayerResources].max
+                                        ),
+                                    },
+                                },
+                            }));
+
+                            return {
+                                ...asteroid,
+                                maxResources: asteroid.maxResources - resourcesToMine,
+                            };
+                        }
+                        return asteroid;
+                    });
+
+                    // Filter out depleted asteroids and handle cleanup
+                    const filteredAsteroids = updatedAsteroids.filter((asteroid) => {
+                        const allocationCount = miningDroneAllocation[asteroid.id.toString()];
+                        if (allocationCount && allocationCount > 0 && asteroid.maxResources <= 0) {
+                            // Handle depleted asteroid
+                            setMiningDroneAllocation((prev) => {
+                                const { [asteroid.id.toString()]: removed, ...remainingAllocation } = prev;
+                                return remainingAllocation;
+                            });
+                            alert(`${asteroid.name} has been depleted!`);
+                            return false;
+                        }
+                        return true;
+                    });
+
+                    return filteredAsteroids;
+                });
+            }
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [miningDroneAllocation, upgrades, setMainShip, mineAsteroid, foundAsteroids]);
+    }, [miningDroneAllocation, upgrades]);
 
     // NEW: Mission management functions
     const startMission = (missionId: string) => {
@@ -713,22 +813,75 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
         // Award rewards
         const rewards = mission.rewards;
+        const notificationRewards: CompletionReward[] = [];
+        
         Object.entries(rewards).forEach(([key, value]) => {
             if (key === 'experience' || key === 'unlocks' || key === 'ships') return;
-            if (typeof value === 'number') {
+            
+            // Handle weapon rewards
+            if (key === 'weapons' && typeof value === 'object') {
+                const weaponRewards = value as Record<string, number>;
+                Object.entries(weaponRewards).forEach(([weaponId, amount]) => {
+                    updateWeapons(weaponId, amount);
+                    notificationRewards.push({
+                        type: weaponId,
+                        amount: amount,
+                    });
+                });
+            } else if (typeof value === 'number') {
                 const currentResource = mainShip.resources[key as keyof PlayerResources];
                 if (currentResource) {
                     updateResources(key as keyof PlayerResources, {
                         current: Math.min(currentResource.current + value, currentResource.max)
                     });
+                    
+                    // Add to notification rewards
+                    notificationRewards.push({
+                        type: key,
+                        amount: value,
+                    });
                 }
             }
         });
 
-        // Update mission status
-        setMissions(prev => prev.map(m => 
-            m.id === missionId ? { ...m, active: false, completed: true } : m
-        ));
+        // Show completion notification
+        showNotification({
+            title: mission.title,
+            description: `Mission completed successfully! ${mission.description}`,
+            rewards: notificationRewards,
+            type: 'mission',
+        });
+
+        // Update mission status and unlock new missions
+        setMissions(prev => prev.map(m => {
+            if (m.id === missionId) {
+                const completedMission = { 
+                    ...m, 
+                    active: false, 
+                    completed: true,
+                    // For combat missions, preserve the objective progress
+                    objective: m.type === 'combat' && m.objective ? {
+                        ...m.objective,
+                        currentAmount: m.objective.targetAmount // Set to completed amount
+                    } : m.objective
+                };
+                
+                // Unlock missions that this mission unlocks
+                if (completedMission.unlocks) {
+                    setTimeout(() => {
+                        setMissions(prevMissions => prevMissions.map(mission => {
+                            if (completedMission.unlocks!.includes(mission.id) && mission.locked) {
+                                return { ...mission, locked: false };
+                            }
+                            return mission;
+                        }));
+                    }, 100); // Small delay to ensure proper state updates
+                }
+                
+                return completedMission;
+            }
+            return m;
+        }));
         setActiveMissions(prev => prev.filter(m => m.id !== missionId));
         
         // Remove timer
@@ -763,7 +916,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
     const canStartMission = (missionId: string): boolean => {
         const mission = missions.find(m => m.id === missionId);
-        if (!mission || mission.active || missionCooldowns[missionId] > 0) return false;
+        if (!mission || mission.active || mission.locked || missionCooldowns[missionId] > 0) return false;
 
         // Check requirements
         const requirements = mission.requirements;
@@ -773,11 +926,56 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 for (const [shipType, count] of Object.entries(shipReqs)) {
                     if (ships[shipType as keyof Ships] < (count || 0)) return false;
                 }
+            } else if (key === 'weapons') {
+                const weaponReqs = value as Record<string, number>;
+                for (const [weaponId, count] of Object.entries(weaponReqs)) {
+                    const weapon = weapons.find(w => w.id === weaponId);
+                    if (!weapon || weapon.amount < count) return false;
+                }
+            } else if (key === 'enemyKills') {
+                const killReqs = value as Record<string, number>;
+                for (const [enemyType, count] of Object.entries(killReqs)) {
+                    const currentKills = combatStats.enemiesKilled[enemyType] || 0;
+                    if (currentKills < count) return false;
+                }
             } else if (typeof value === 'number') {
                 const currentResource = mainShip.resources[key as keyof PlayerResources];
                 if (!currentResource || currentResource.current < value) return false;
             }
         }
+        return true;
+    };
+
+    const canCompleteMission = (missionId: string): boolean => {
+        const mission = missions.find(m => m.id === missionId);
+        if (!mission || !mission.active) return false;
+
+        // Combat missions auto-complete, so they never show a "Complete Now" button
+        if (mission.type === 'combat') return false;
+
+        // For timed missions, check if time limit has passed or if they can be completed early
+        if (mission.type === 'timed') {
+            // Allow early completion if the mission is active (player has met requirements to start)
+            return true;
+        }
+
+        // For resource_chain missions, check if all steps are completed
+        if (mission.type === 'resource_chain') {
+            // Check mission progress - if it has steps, they need to be completed
+            if (mission.steps && mission.progress !== undefined) {
+                return mission.progress >= mission.steps.length;
+            }
+            // If no steps defined or progress tracking, allow completion
+            return true;
+        }
+
+        // For exploration and trading missions with duration timers
+        // These can be completed early with "Complete Now" functionality
+        if (mission.type === 'exploration' || mission.type === 'trading') {
+            return true;
+        }
+
+        // Default: allow completion for active non-combat missions
         return true;
     };
 
@@ -790,6 +988,172 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
         return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    // Notification functions
+    const showNotification = (notificationData: {
+        title: string;
+        description: string;
+        rewards: CompletionReward[];
+        type: 'mission' | 'achievement';
+    }) => {
+        setNotification({
+            visible: true,
+            ...notificationData,
+        });
+    };
+
+    const hideNotification = () => {
+        setNotification(null);
+    };
+
+    const showKillNotification = (data: {
+        enemyName: string;
+        currentKills: number;
+        targetKills: number;
+        missionTitle: string;
+    }) => {
+        setKillNotification({
+            visible: true,
+            ...data
+        });
+    };
+
+    const hideKillNotification = () => {
+        setKillNotification(null);
+    };
+
+    const showGeneralNotification = (data: {
+        title: string;
+        message: string;
+        type: 'success' | 'warning' | 'info' | 'error';
+        icon?: string;
+    }) => {
+        setGeneralNotification({
+            visible: true,
+            ...data
+        });
+    };
+
+    const hideGeneralNotification = () => {
+        setGeneralNotification(null);
+    };
+
+    // Combat tracking functions
+    const recordEnemyKill = (enemyName: string) => {
+        setCombatStats(prev => ({
+            enemiesKilled: {
+                ...prev.enemiesKilled,
+                [enemyName]: (prev.enemiesKilled[enemyName] || 0) + 1,
+            },
+            totalKills: prev.totalKills + 1,
+        }));
+
+        // Update mission progress for kill objectives and show notification
+        setMissions(prev => prev.map(mission => {
+            if (mission.active && mission.objective?.type === 'kill') {
+                const target = mission.objective.target;
+                let shouldUpdate = false;
+
+                // Check if this kill applies to the mission
+                if (target === enemyName) {
+                    shouldUpdate = true;
+                }
+
+                if (shouldUpdate) {
+                    const newCurrentAmount = (mission.objective.currentAmount || 0) + 1;
+                    const updatedMission = {
+                        ...mission,
+                        objective: {
+                            ...mission.objective,
+                            currentAmount: newCurrentAmount
+                        }
+                    };
+
+                    // Show kill tracking notification
+                    showKillNotification({
+                        enemyName: enemyName,
+                        currentKills: newCurrentAmount,
+                        targetKills: mission.objective.targetAmount!,
+                        missionTitle: mission.title
+                    });
+
+                    // Auto-complete mission if target reached
+                    if (newCurrentAmount >= mission.objective.targetAmount!) {
+                        setTimeout(() => completeMission(mission.id), 1000); // Small delay for better UX
+                    }
+
+                    return updatedMission;
+                }
+            }
+            return mission;
+        }));
+    };
+
+    // DEV MODE FUNCTIONS
+    const toggleDevMode = () => {
+        if (__DEV__) {
+            setIsDevMode(prev => !prev);
+        }
+    };
+
+    const giveDevResources = () => {
+        if (!__DEV__ || !isDevMode) return;
+        
+        setMainShip(prevMainShip => {
+            const updatedResources = { ...prevMainShip.resources };
+            
+            // Give max resources for all unlocked resources
+            Object.keys(updatedResources).forEach(resourceKey => {
+                const resource = updatedResources[resourceKey as keyof PlayerResources];
+                if (!resource.locked) {
+                    resource.current = resource.max;
+                }
+            });
+            
+            return {
+                ...prevMainShip,
+                resources: updatedResources
+            };
+        });
+        
+        // Also give ships
+        setShips(prevShips => ({
+            ...prevShips,
+            miningDrones: Math.max(prevShips.miningDrones, 20),
+            scanningDrones: Math.max(prevShips.scanningDrones, 10),
+        }));
+    };
+
+    const simulateEnemyKill = (enemyType: string) => {
+        if (!__DEV__ || !isDevMode) return;
+        recordEnemyKill(enemyType);
+    };
+
+    const devResetWithCompletedAchievements = () => {
+        const completedAchievements = achievements.filter(ach => ach.completed);
+        setMainShip(initialMainShip);
+        setAchievements(prev => prev.map(ach => ({
+            ...ach,
+            completed: completedAchievements.some(ca => ca.id === ach.id)
+        })));
+        setShips(initialShips);
+        setMiningDroneAllocation({});
+        setMissions(initialMissions);
+        setActiveMissions([]);
+        setMissionTimers({});
+        setMissionCooldowns({});
+        setCombatStats({ enemiesKilled: {}, totalKills: 0 });
+    };
+
+    const logFoundAsteroids = () => {
+        console.log('=== FOUND ASTEROIDS DEBUG ===');
+        console.log('foundAsteroids array:', foundAsteroids);
+        console.log('foundAsteroids length:', foundAsteroids.length);
+        foundAsteroids.forEach((asteroid, index) => {
+            console.log(`Asteroid ${index}:`, asteroid);
+        });
+        console.log('=== END DEBUG ===');
     };
 
     // Mission timer and automatic resource generation effect
@@ -826,11 +1190,14 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             setMainShip(prevMainShip => {
                 const updatedResources = { ...prevMainShip.resources };
                 
+                // Apply dev mode multiplier if active
+                const devMultiplier = (isDevMode && __DEV__) ? 10 : 1;
+                
                 // Energy generation from reactor optimization
                 const reactorLevel = upgrades.find(upgrade => upgrade.id === "reactor_optimization")?.level || 0;
                 if (reactorLevel > 0) {
                     const baseEnergyRate = 1.85;
-                    const energyGeneration = reactorLevel * baseEnergyRate;
+                    const energyGeneration = reactorLevel * baseEnergyRate * devMultiplier;
                     
                     updatedResources.energy = {
                         ...updatedResources.energy,
@@ -845,7 +1212,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 const researchLabLevel = upgrades.find(upgrade => upgrade.id === "research_lab")?.level || 0;
                 if (researchLabLevel > 0 && !updatedResources.researchPoints.locked) {
                     const baseResearchRate = 0.5; // 0.5 research points per second per level
-                    const researchGeneration = researchLabLevel * baseResearchRate;
+                    const researchGeneration = researchLabLevel * baseResearchRate * devMultiplier;
                     
                     updatedResources.researchPoints = {
                         ...updatedResources.researchPoints,
@@ -863,7 +1230,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     
                     // Apply quantum bonus to fuel generation (if player has fuel generation)
                     if (!updatedResources.fuel.locked && updatedResources.fuel.efficiency > 1) {
-                        const fuelGeneration = 0.1 * quantumBonus; // Small passive fuel generation
+                        const fuelGeneration = 0.1 * quantumBonus * devMultiplier; // Small passive fuel generation
                         updatedResources.fuel = {
                             ...updatedResources.fuel,
                             current: Math.min(
@@ -880,7 +1247,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     // This would affect mining drone efficiency, but we'll implement that separately
                     // For now, just add a small passive alloy generation if unlocked
                     if (!updatedResources.alloys.locked) {
-                        const alloyGeneration = fleetAILevel * 0.05; // Very small passive generation
+                        const alloyGeneration = fleetAILevel * 0.05 * devMultiplier; // Very small passive generation
                         updatedResources.alloys = {
                             ...updatedResources.alloys,
                             current: Math.min(
@@ -917,6 +1284,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 activeMissions,
                 missionTimers,
                 missionCooldowns,
+                isDevMode,
+                toggleDevMode,
+                giveDevResources,
                 allocateMiningDrones,
                 updateResources,
                 upgradeResourceEfficiency,
@@ -941,10 +1311,61 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 completeMission,
                 cancelMission,
                 canStartMission,
+                canCompleteMission,
                 formatTime,
+                notification,
+                showNotification,
+                hideNotification,
+                killNotification,
+                showKillNotification,
+                hideKillNotification,
+                generalNotification,
+                showGeneralNotification,
+                hideGeneralNotification,
+                combatStats,
+                recordEnemyKill,
+                simulateEnemyKill,
+                devResetWithCompletedAchievements,
+                logFoundAsteroids,
             }}
         >
             {children}
+            
+            {/* Global notification system */}
+            {notification && (
+                <CompletionNotification
+                    visible={notification.visible}
+                    title={notification.title}
+                    description={notification.description}
+                    rewards={notification.rewards}
+                    type={notification.type}
+                    onClose={hideNotification}
+                />
+            )}
+            
+            {/* Kill tracking notification */}
+            {killNotification && (
+                <KillTrackingNotification
+                    visible={killNotification.visible}
+                    enemyName={killNotification.enemyName}
+                    currentKills={killNotification.currentKills}
+                    targetKills={killNotification.targetKills}
+                    missionTitle={killNotification.missionTitle}
+                    onAnimationComplete={hideKillNotification}
+                />
+            )}
+            
+            {/* General notification */}
+            {generalNotification && (
+                <GeneralNotification
+                    visible={generalNotification.visible}
+                    title={generalNotification.title}
+                    message={generalNotification.message}
+                    type={generalNotification.type}
+                    icon={generalNotification.icon}
+                    onAnimationComplete={hideGeneralNotification}
+                />
+            )}
         </GameContext.Provider>
     );
 };

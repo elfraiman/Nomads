@@ -124,6 +124,48 @@ const ShopItem = ({
     );
 };
 
+const DevPanel = () => {
+    const game = useGame();
+    const { isDevMode, toggleDevMode, giveDevResources } = game;
+
+    // Only show dev panel in development mode
+    if (!__DEV__) return null;
+
+    return (
+        <View style={styles.devPanel}>
+            <Text style={styles.devPanelTitle}>🔧 Developer Panel</Text>
+            <View style={styles.devControls}>
+                <TouchableOpacity
+                    onPress={toggleDevMode}
+                    style={[
+                        styles.devButton,
+                        isDevMode ? styles.devButtonActive : styles.devButtonInactive
+                    ]}
+                >
+                    <Text style={styles.devButtonText}>
+                        Dev Mode: {isDevMode ? 'ON' : 'OFF'}
+                    </Text>
+                </TouchableOpacity>
+                
+                {isDevMode && (
+                    <TouchableOpacity
+                        onPress={giveDevResources}
+                        style={[styles.devButton, styles.devButtonResource]}
+                    >
+                        <Text style={styles.devButtonText}>Give Resources</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+            
+            {isDevMode && (
+                <Text style={styles.devStatusText}>
+                    🚀 Resource generation is 10x faster!
+                </Text>
+            )}
+        </View>
+    );
+};
+
 const Dashboard = () => {
     const game = useGame();
 
@@ -136,7 +178,6 @@ const Dashboard = () => {
         generateResource,
         isUpgradeUnlocked,
         purchaseUpgrade,
-        downgradeUpgrade,
         achievements,
         updateShips,
         mainShip,
@@ -247,6 +288,8 @@ const Dashboard = () => {
                 style={styles.container}
             >
                 <ScrollView contentContainerStyle={styles.scrollViewContent}>
+                    <DevPanel />
+                    
                     {/* Actions Section */}
                     <View style={styles.panel}>
                         <Text style={styles.panelTitle}>Actions</Text>
@@ -288,7 +331,7 @@ const Dashboard = () => {
                                     title={upgrade.title}
                                     costs={upgrade.costs}
                                     onUpgrade={() => purchaseUpgrade(upgrade.id)}
-                                    onRemove={() => downgradeUpgrade(upgrade.id)}
+                                    onRemove={() => {}} // No downgrade function available
                                     description={upgrade.description(upgrade.level || 0)}
                                     locked={!isUpgradeUnlocked(upgrade.id)}
                                     resources={resources}
@@ -598,6 +641,58 @@ const styles = StyleSheet.create({
         backgroundColor: colors.panelBackground, // Slightly lighter dark background for expanded sections
         borderColor: colors.border, // Bright gold border for emphasis
         borderWidth: 1,
+    },
+    // Dev Panel Styles
+    devPanel: {
+        backgroundColor: colors.primary,
+        padding: 12,
+        marginBottom: 16,
+        borderRadius: 8,
+        borderWidth: 2,
+        borderColor: colors.secondary,
+    },
+    devPanelTitle: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 12,
+    },
+    devControls: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    devButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 6,
+        borderWidth: 1,
+    },
+    devButtonActive: {
+        backgroundColor: colors.secondary,
+        borderColor: 'white',
+    },
+    devButtonInactive: {
+        backgroundColor: colors.disabledBackground,
+        borderColor: colors.disabledBorder,
+    },
+    devButtonResource: {
+        backgroundColor: colors.error,
+        borderColor: 'white',
+    },
+    devButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    devStatusText: {
+        color: 'white',
+        fontSize: 12,
+        textAlign: 'center',
+        fontStyle: 'italic',
+        marginTop: 4,
     },
 });
 

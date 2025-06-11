@@ -485,13 +485,18 @@ export interface IMission {
   title: string;
   description: string;
   type: "exploration" | "combat" | "trading" | "research" | "timed" | "resource_chain";
-  requirements: { [key: string]: number } & { ships?: Partial<Ships> };
+  requirements: { [key: string]: any } & { 
+    ships?: Partial<Ships>; 
+    weapons?: Record<string, number>;
+    enemyKills?: Record<string, number>;
+  };
   duration?: number; // in seconds for timed missions
   timeLimit?: number; // for challenges
-  rewards: { [key: string]: number } & { 
+  rewards: { [key: string]: any } & { 
     ships?: Partial<Ships>;
     unlocks?: string[];
     experience?: number;
+    weapons?: Record<string, number>;
   };
   difficulty: "Easy" | "Medium" | "Hard" | "Extreme";
   faction?: string;
@@ -501,6 +506,15 @@ export interface IMission {
   completed: boolean;
   active: boolean;
   progress?: number;
+  locked?: boolean; // if mission is locked
+  unlocks?: string[]; // mission IDs this mission unlocks
+  location?: string; // where to find enemies for combat missions
+  objective?: {
+    type: "kill" | "collect" | "explore" | "timer";
+    target?: string; // enemy type for kill missions
+    targetAmount?: number; // amount needed
+    currentAmount?: number; // current progress
+  };
 }
 
 export interface IFaction {

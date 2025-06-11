@@ -8,7 +8,7 @@ import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
-import { StatusBar } from 'react-native';
+import { StatusBar, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import CombatPage from './combatPage';
 import Dashboard from './dashboard';
 import DroneManagement from './dronemanagment';
@@ -34,6 +34,48 @@ function ExplorationStack() {
   );
 }
 
+function DevResetScreen() {
+  const { devResetWithCompletedAchievements } = useGame();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Execute reset when component mounts
+    devResetWithCompletedAchievements();
+    
+    // Navigate back to dashboard after reset
+    const timer = setTimeout(() => {
+      router.replace('/dashboard');
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [devResetWithCompletedAchievements, router]);
+
+  return (
+    <View style={styles.devResetContainer}>
+      <Text style={styles.devResetText}>🔧 Resetting game state...</Text>
+      <Text style={styles.devResetSubtext}>All achievements completed, 100k resources added</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  devResetContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  devResetText: {
+    fontSize: 18,
+    color: colors.textPrimary,
+    marginBottom: 10,
+  },
+  devResetSubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+});
 
 function WrappedRootLayout() {
   const router = useRouter();
@@ -54,7 +96,7 @@ function WrappedRootLayout() {
   if (!loaded) {
     return null;
   }
-  const { isAchievementUnlocked } = useGame(); // Example: `{ exploration: true, droneManagement: false }`
+  const { isAchievementUnlocked, isDevMode, devResetWithCompletedAchievements } = useGame(); // Example: `{ exploration: true, droneManagement: false }`
 
 
   return (
@@ -197,6 +239,19 @@ function WrappedRootLayout() {
               title: 'Locked',
               drawerIcon: ({ color }) => <Ionicons name="lock-closed-outline" size={24} color={color} />,
               drawerItemStyle: { backgroundColor: colors.lockedBackground },
+            }}
+          />
+        )}
+
+        {/* Dev Mode Button - Only show in dev mode */}
+        {__DEV__ && isDevMode && (
+          <Drawer.Screen
+            name="devReset"
+            component={DevResetScreen}
+            options={{
+              title: '🔧 DEV: Reset + Complete All',
+              drawerIcon: ({ color }) => <Ionicons name="refresh-outline" size={24} color={color} />,
+              drawerItemStyle: { backgroundColor: '#ff4444' }, // Red background for dev button
             }}
           />
         )}

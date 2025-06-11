@@ -14,7 +14,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
   if (!game) return null;
 
-  const { mainShip, setMainShip } = game;
+  const { mainShip, setMainShip, recordEnemyKill } = game;
 
 
   const generateEnemies = () => {
@@ -348,6 +348,9 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
           ...prev,
           { text: `${pirate.name} has been defeated!`, color: colors.successGradient[0] },
         ]);
+
+        // Record the enemy kill for mission tracking
+        recordEnemyKill(pirate.name);
 
         setEnemies((prev) => prev.filter((_, index) => index !== currentEnemyIndex));
         spawnNextPirate();

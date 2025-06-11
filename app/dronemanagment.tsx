@@ -11,6 +11,7 @@ import ShipStatus from "@/components/ShipStatus";
 import ResourceIcon from "@/components/ui/ResourceIcon";
 import { LinearGradient } from "expo-linear-gradient";
 import colors from "@/utils/colors";
+import { formatLargeNumber } from "@/utils/numberFormatter";
 
 const DroneManagement = () => {
   const game = useGame();
@@ -47,7 +48,7 @@ const DroneManagement = () => {
                 renderItem={({ item: asteroid }) => (
                   <View style={styles.taskContainer}>
                     <Text style={styles.taskText}>
-                      {asteroid.name} ({asteroid.maxResources}{" "}
+                      {asteroid.name} ({formatLargeNumber(asteroid.maxResources)}{" "}
                       <ResourceIcon type={asteroid.resource} size={14} />)
                     </Text>
                     <View style={styles.allocationControls}>

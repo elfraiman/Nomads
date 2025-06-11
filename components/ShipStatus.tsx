@@ -7,10 +7,14 @@ import ActiveGoal from "./ui/ActiveGoal";
 import ResourceIcon from "./ui/ResourceIcon";
 import colors from "@/utils/colors";
 import { Ionicons } from "@expo/vector-icons";
+import { formatResourceDisplaySmart, formatLargeNumber } from "@/utils/numberFormatter";
 
 const ShipStatus = () => {
     const game = useGame();
     const [isDronesExpanded, setIsDronesExpanded] = useState(false);
+    const [isAdvancedResourcesExpanded, setIsAdvancedResourcesExpanded] = useState(false);
+    const [isPremiumResourcesExpanded, setIsPremiumResourcesExpanded] = useState(false);
+    const [isResourcePanelExpanded, setIsResourcePanelExpanded] = useState(false);
 
     if (!game) return null;
 
@@ -48,40 +52,159 @@ const ShipStatus = () => {
                     <View style={styles.energyBarTextContainer}>
                         <ResourceIcon type="energy" size={20} />
                         <Text style={styles.energyBarText}>
-                            {Math.round(resources?.energy.current)}/{resources?.energy.max} ({getGenerationRate()}/sec)
+                            {formatResourceDisplaySmart(resources?.energy.current, resources?.energy.max)} ({getGenerationRate()}/sec)
                         </Text>
                     </View>
                 </View>
 
-                <View style={styles.otherResources}>
-                    {/* Other Resources */}
-                    {Object.entries(resources).map(([key, resource]) => {
-                        if (key === "energy") return null;
-
-                        if (resource.locked) {
-                            return (
-                                <View key={key} style={styles.resource}>
-                                    <Ionicons name="lock-closed" size={16} color={colors.disabledIcon} />
-                                    <Text style={styles.lockedText}>Locked</Text>
-                                </View>
-                            );
-                        }
-
-                        // Only show resources that have some amount or are unlocked
-                        if (resource.current > 0 || resource.max > 100) {
-                            return (
-                                <View style={styles.resource} key={key}>
-                                    <ResourceIcon type={key as keyof typeof resources} size={16} />
-                                    <Text style={styles.resourceText}>
-                                        {Math.round(resource.current)}
-                                        {resource.max < 1000000 ? `/${resource.max}` : ''}
-                                    </Text>
-                                </View>
-                            );
-                        }
-                        return null;
+                {/* Compact Resource Summary - Always Visible */}
+                <View style={styles.compactResourceBar}>
+                    {['fuel', 'solarPlasma', 'alloys', 'frozenHydrogen', 'darkMatter'].map(key => {
+                        const resource = resources[key as keyof typeof resources];
+                        if (!resource || resource.locked || (resource.current === 0 && resource.max <= 100)) return null;
+                        
+                        return (
+                            <View style={styles.compactResource} key={key}>
+                                <ResourceIcon type={key as keyof typeof resources} size={12} />
+                                <Text style={styles.compactResourceText}>
+                                    {formatLargeNumber(resource.current)}
+                                </Text>
+                            </View>
+                        );
                     })}
+                    
+                    <TouchableOpacity 
+                        style={styles.expandToggle}
+                        onPress={() => setIsResourcePanelExpanded(!isResourcePanelExpanded)}
+                    >
+                        <Ionicons 
+                            name={isResourcePanelExpanded ? "chevron-up" : "chevron-down"} 
+                            size={16} 
+                            color={colors.textSecondary} 
+                        />
+                        <Text style={styles.expandToggleText}>
+                            {isResourcePanelExpanded ? "Less" : "More"}
+                        </Text>
+                    </TouchableOpacity>
                 </View>
+
+                {/* Expanded Resource Panel */}
+                {isResourcePanelExpanded && (
+                    <View style={styles.expandedResourcePanel}>
+
+                        {/* Advanced Resources - Collapsible */}
+                        {(() => {
+                            const advancedKeys = ['darkMatter', 'researchPoints', 'diplomaticInfluence'];
+                            const hasAdvancedResources = advancedKeys.some(key => {
+                                const resource = resources[key as keyof typeof resources];
+                                return resource && !resource.locked && (resource.current > 0 || resource.max > 100);
+                            });
+
+                            if (!hasAdvancedResources) return null;
+
+                            return (
+                                <View style={styles.categoryContainer}>
+                                    <TouchableOpacity 
+                                        style={styles.categoryHeader}
+                                        onPress={() => setIsAdvancedResourcesExpanded(!isAdvancedResourcesExpanded)}
+                                    >
+                                        <Text style={styles.categoryTitle}>🔬 Advanced</Text>
+                                        <Ionicons 
+                                            name={isAdvancedResourcesExpanded ? "chevron-up" : "chevron-down"} 
+                                            size={14} 
+                                            color={colors.textSecondary} 
+                                        />
+                                    </TouchableOpacity>
+                                    {isAdvancedResourcesExpanded && (
+                                        <View style={styles.categoryResources}>
+                                            {advancedKeys.map(key => {
+                                                const resource = resources[key as keyof typeof resources];
+                                                if (!resource) return null;
+                                                
+                                                if (resource.locked) {
+                                                    return (
+                                                        <View key={key} style={styles.secondaryResource}>
+                                                            <Ionicons name="lock-closed" size={10} color={colors.disabledIcon} />
+                                                            <Text style={styles.lockedText}>Locked</Text>
+                                                        </View>
+                                                    );
+                                                }
+                                                
+                                                if (resource.current > 0 || resource.max > 100) {
+                                                    return (
+                                                        <View style={styles.secondaryResource} key={key}>
+                                                            <ResourceIcon type={key as keyof typeof resources} size={10} />
+                                                            <Text style={styles.secondaryResourceText}>
+                                                                {formatResourceDisplaySmart(resource.current, resource.max)}
+                                                            </Text>
+                                                        </View>
+                                                    );
+                                                }
+                                                return null;
+                                            })}
+                                        </View>
+                                    )}
+                                </View>
+                            );
+                        })()}
+
+                        {/* Premium Resources - Collapsible */}
+                        {(() => {
+                            const premiumKeys = ['exoticMatter', 'quantumCores', 'ancientArtifacts'];
+                            const hasPremiumResources = premiumKeys.some(key => {
+                                const resource = resources[key as keyof typeof resources];
+                                return resource && !resource.locked && (resource.current > 0 || resource.max > 100);
+                            });
+
+                            if (!hasPremiumResources) return null;
+
+                            return (
+                                <View style={styles.categoryContainer}>
+                                    <TouchableOpacity 
+                                        style={styles.categoryHeader}
+                                        onPress={() => setIsPremiumResourcesExpanded(!isPremiumResourcesExpanded)}
+                                    >
+                                        <Text style={styles.categoryTitle}>💎 Premium</Text>
+                                        <Ionicons 
+                                            name={isPremiumResourcesExpanded ? "chevron-up" : "chevron-down"} 
+                                            size={14} 
+                                            color={colors.textSecondary} 
+                                        />
+                                    </TouchableOpacity>
+                                    {isPremiumResourcesExpanded && (
+                                        <View style={styles.categoryResources}>
+                                            {premiumKeys.map(key => {
+                                                const resource = resources[key as keyof typeof resources];
+                                                if (!resource) return null;
+                                                
+                                                if (resource.locked) {
+                                                    return (
+                                                        <View key={key} style={styles.secondaryResource}>
+                                                            <Ionicons name="lock-closed" size={10} color={colors.disabledIcon} />
+                                                            <Text style={styles.lockedText}>Locked</Text>
+                                                        </View>
+                                                    );
+                                                }
+                                                
+                                                if (resource.current > 0 || resource.max > 100) {
+                                                    return (
+                                                        <View style={styles.secondaryResource} key={key}>
+                                                            <ResourceIcon type={key as keyof typeof resources} size={10} />
+                                                            <Text style={styles.secondaryResourceText}>
+                                                                {formatResourceDisplaySmart(resource.current, resource.max)}
+                                                            </Text>
+                                                        </View>
+                                                    );
+                                                }
+                                                return null;
+                                            })}
+                                        </View>
+                                    )}
+                                </View>
+                            );
+                        })()}
+                    </View>
+                )}
 
                 <ActiveGoal />
             </View>
@@ -118,8 +241,7 @@ const ShipStatus = () => {
                                                 size={18}
                                             />
                                             <Text style={styles.shipText}>
-                                                {availableDrones <= 0 ? 0 : (availableDrones / count)}
-
+                                                {availableDrones}
                                             </Text>
                                         </View>
                                     );
@@ -186,24 +308,116 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         marginLeft: 5,
     },
-    otherResources: {
-        display: "flex",
+    primaryResources: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        justifyContent: "flex-start",
+        marginBottom: 8,
+    },
+    primaryResource: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.panelBackground,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        marginRight: 8,
+        marginBottom: 4,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: colors.border,
+        minWidth: 80,
+    },
+    primaryResourceText: {
+        color: colors.textPrimary,
+        fontSize: 13,
+        marginLeft: 6,
+        fontWeight: '600',
+    },
+    categoryContainer: {
+        marginBottom: 6,
+    },
+    categoryHeader: {
         flexDirection: "row",
         justifyContent: "space-between",
-    },
-    resource: {
-        flexDirection: "column",
         alignItems: "center",
+        backgroundColor: colors.background,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 6,
+        marginBottom: 4,
     },
-    resourceText: {
+    categoryTitle: {
+        color: colors.textSecondary,
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    categoryResources: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        paddingHorizontal: 8,
+    },
+    secondaryResource: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.background,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        marginRight: 6,
+        marginBottom: 3,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: colors.border,
+        minWidth: 65,
+    },
+    secondaryResourceText: {
         color: colors.textPrimary,
-        fontSize: 14,
-        marginLeft: 6,
+        fontSize: 11,
+        marginLeft: 4,
+        fontWeight: '500',
+    },
+    compactResourceBar: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+    },
+    compactResource: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.background,
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+        borderRadius: 8,
+        marginRight: 4,
+    },
+    compactResourceText: {
+        color: colors.textPrimary,
+        fontSize: 12,
+        marginLeft: 3,
+        fontWeight: '600',
+    },
+    expandToggle: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.background,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    expandToggleText: {
+        color: colors.textSecondary,
+        fontSize: 10,
+        marginLeft: 4,
+        fontWeight: '500',
+    },
+    expandedResourcePanel: {
+        paddingTop: 4,
     },
     lockedText: {
         color: colors.textSecondary,
-
-        marginTop: 4,
+        fontSize: 10,
+        marginLeft: 4,
     },
     shipsContainer: {
         position: "absolute",
