@@ -3,11 +3,12 @@ import ResourceIcon from "@/components/ui/ResourceIcon";
 import { useGame } from "@/context/GameContext"; // Assuming a game context
 import achievements from "@/data/achievements";
 import colors from "@/utils/colors";
-import { IAsteroid, IGalaxy, IPlanet, PlayerResources } from "@/utils/defaults";
+import { IAsteroid, IGalaxy, IPlanet, PlayerResources, IMerchant } from "@/utils/defaults";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View, Animated } from "react-native";
 import { Circle, Defs, G, Polygon, RadialGradient, Stop, Svg, Image as SvgImage, Text as SvgText, Line, Path } from "react-native-svg";
+import MerchantTradingModal from "@/components/MerchantTradingModal";
 
 
 const { width: fullWidth, height: fullHeight } = Dimensions.get("window");
@@ -88,7 +89,7 @@ const ScanningAnimation = ({ isScanning, width, height }: { isScanning: boolean,
     // Calculate animation values based on phase
     const rotationAngle = animationPhase * 360;
     const pulseScale = 0.8 + 0.4 * Math.sin(animationPhase * Math.PI * 4);
-    const ringScale = Math.sin(animationPhase * Math.PI * 2) * 1.5 + 0.5;
+    const ringScale = Math.max(0.1, Math.sin(animationPhase * Math.PI * 2) * 1.5 + 0.5);
     const ringOpacity = Math.max(0.2, 1 - Math.abs(animationPhase - 0.5) * 2);
 
     return (
@@ -191,17 +192,78 @@ const ScanningAnimation = ({ isScanning, width, height }: { isScanning: boolean,
     );
 };
 
+// Helper functions for collision detection
+interface MapObject {
+    x: number;
+    y: number;
+    radius: number;
+}
+
+const checkCollision = (obj1: MapObject, obj2: MapObject, minDistance: number = 10): boolean => {
+    const dx = obj1.x - obj2.x;
+    const dy = obj1.y - obj2.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    return distance < (obj1.radius + obj2.radius + minDistance);
+};
+
+const findNonOverlappingPosition = (
+    proposedObject: MapObject,
+    existingObjects: MapObject[],
+    safeArea: { x: number; y: number; width: number; height: number },
+    maxAttempts: number = 50,
+    minDistance: number = 10
+): { x: number; y: number } | null => {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const x = Math.random() * safeArea.width + safeArea.x;
+        const y = Math.random() * safeArea.height + safeArea.y;
+        
+        const testObject = { ...proposedObject, x, y };
+        
+        // Check if this position collides with any existing objects
+        const hasCollision = existingObjects.some(existing => 
+            checkCollision(testObject, existing, minDistance)
+        );
+        
+        if (!hasCollision) {
+            return { x, y };
+        }
+    }
+    
+    // If we couldn't find a non-overlapping position, return null
+    return null;
+};
+
 const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => {
     const game = useGame();
     const navigator = useNavigation<NavigationProp<RootStackParamList>>();
 
 
     if (!game) return null;
-    const { updateResources, resources, setFoundAsteroids, foundAsteroids, ships, updateShips, updateAchievToCompleted, isAchievementUnlocked, showGeneralNotification, showNotification } = game;
+    const { updateResources, resources, setFoundAsteroids, foundAsteroids, ships, updateShips, updateAchievToCompleted, isAchievementUnlocked, showGeneralNotification, showNotification, merchants, spawnMerchant, isDevMode, devSpawnMerchantAt, achievements } = game;
     const [isScanning, setIsScanning] = useState(false);
     const [scanCooldown, setScanCooldown] = useState(0);
+    const [selectedMerchant, setSelectedMerchant] = useState<IMerchant | null>(null);
+    const [tradingModalVisible, setTradingModalVisible] = useState(false);
+    const [currentTime, setCurrentTime] = useState(Date.now());
     const scanCost = { fuel: 100, solarPlasma: 100, energy: 100 };
     const stars = useMemo(() => generateRandomStars(300), []);
+
+    // Update current time every second for merchant timers
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(Date.now());
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, []);
+
+    // Helper function to format time remaining
+    const formatTimeRemaining = (endTime: number) => {
+        const remaining = Math.max(0, endTime - currentTime);
+        const minutes = Math.floor(remaining / (60 * 1000));
+        const seconds = Math.floor((remaining % (60 * 1000)) / 1000);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    };
 
     // Helper function to check if the player can afford the scan cost
     const canAffordScan = () => {
@@ -301,12 +363,55 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                 const safeWidth = width - (sideMargin * 2) - (asteroidRadius * 2);
                 const safeHeight = height - topMenuHeight - bottomMenuHeight - (asteroidRadius * 2) - textHeight;
 
+                // Get existing objects to avoid collisions
+                const existingObjects: MapObject[] = [
+                    // Existing asteroids in this galaxy
+                    ...foundAsteroids
+                        .filter(a => a.galaxyId === galaxy.id && a.x !== undefined && a.y !== undefined)
+                        .map(a => ({
+                            x: a.x!,
+                            y: a.y!,
+                            radius: Math.max(8, 8 + (a.maxResources / 1000) * 8) + 20 // Extra space for text
+                        })),
+                    // Planets in this galaxy
+                    ...galaxy.planets
+                        .filter((p: IPlanet) => !p.locked)
+                        .map((p: IPlanet) => ({
+                            x: p.position.x,
+                            y: p.position.y,
+                            radius: 40 // Planet size + margin
+                        })),
+                    // Merchants in this galaxy
+                    ...merchants
+                        .filter(m => m.galaxyId === galaxy.id)
+                        .map(m => ({
+                            x: m.x,
+                            y: m.y,
+                            radius: 35 // Merchant size + margin
+                        }))
+                ];
+
+                const safeArea = {
+                    x: safeX,
+                    y: safeY,
+                    width: safeWidth,
+                    height: safeHeight
+                };
+
+                const proposedAsteroid = {
+                    x: 0, // Will be set by findNonOverlappingPosition
+                    y: 0, // Will be set by findNonOverlappingPosition
+                    radius: asteroidRadius + 20 // Extra space for text
+                };
+
+                const newPosition = findNonOverlappingPosition(proposedAsteroid, existingObjects, safeArea, 50, 15);
+
                 const newAsteroid = {
                     ...foundAsteroid,
                     galaxyId: galaxy.id,
                     maxResources,
-                    x: Math.random() * safeWidth + safeX,
-                    y: Math.random() * safeHeight + safeY,
+                    x: newPosition?.x || (Math.random() * safeWidth + safeX), // Fallback to random if no position found
+                    y: newPosition?.y || (Math.random() * safeHeight + safeY), // Fallback to random if no position found
                 };
 
                 setFoundAsteroids([
@@ -340,10 +445,114 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
         [foundAsteroids, galaxy.id]
     );
 
+    // Memoize the merchants for this galaxy
+    const visibleMerchants = useMemo(
+        () => merchants.filter((merchant) => merchant.galaxyId === galaxy.id),
+        [merchants, galaxy.id]
+    );
+
+    // Merchant spawn timer - try to spawn merchants periodically
+    useEffect(() => {
+        const interval = setInterval(() => {
+            spawnMerchant();
+        }, 5 * 60 * 1000); // Check every 5 minutes
+
+        return () => clearInterval(interval);
+    }, [spawnMerchant]);
+
+    // Check for merchants leaving soon and warn player
+    useEffect(() => {
+        visibleMerchants.forEach(merchant => {
+            const timeUntilLeaving = merchant.nextMoveTime - currentTime;
+            
+            // Warn when merchant has 2 minutes left and hasn't been warned recently
+            if (timeUntilLeaving > 0 && timeUntilLeaving <= (2 * 60 * 1000) && timeUntilLeaving > (119 * 1000)) {
+                showGeneralNotification({
+                    title: "Merchant Leaving Soon! ⏰",
+                    message: `${merchant.name} will depart in 2 minutes!`,
+                    type: "warning",
+                    icon: "⚠️"
+                });
+            }
+        });
+    }, [currentTime, visibleMerchants, showGeneralNotification]);
+
+    // Handle merchant click
+    const handleMerchantPress = (merchant: IMerchant) => {
+        setSelectedMerchant(merchant);
+        setTradingModalVisible(true);
+    };
+
+    // Handle dev mode background click for spawning merchants
+    const handleBackgroundPress = (event: any) => {
+        if (isDevMode && event.nativeEvent) {
+            // For web, use different event properties
+            const locationX = event.nativeEvent.locationX || event.nativeEvent.offsetX || event.nativeEvent.clientX;
+            const locationY = event.nativeEvent.locationY || event.nativeEvent.offsetY || event.nativeEvent.clientY;
+            
+            // Check if the click position would overlap with existing objects
+            let x = (locationX && !isNaN(locationX)) ? locationX : Math.random() * (width - 100) + 50;
+            let y = (locationY && !isNaN(locationY)) ? locationY : Math.random() * (height - 100) + 50;
+            
+            // Get existing objects to avoid collisions
+            const existingObjects: MapObject[] = [
+                // Existing asteroids in this galaxy
+                ...foundAsteroids
+                    .filter(a => a.galaxyId === galaxy.id && a.x !== undefined && a.y !== undefined)
+                    .map(a => ({
+                        x: a.x!,
+                        y: a.y!,
+                        radius: Math.max(8, 8 + (a.maxResources / 1000) * 8) + 20
+                    })),
+                // Planets in this galaxy
+                ...galaxy.planets
+                    .filter((p: IPlanet) => !p.locked)
+                    .map((p: IPlanet) => ({
+                        x: p.position.x,
+                        y: p.position.y,
+                        radius: 40
+                    })),
+                // Other merchants in this galaxy
+                ...merchants
+                    .filter(m => m.galaxyId === galaxy.id)
+                    .map(m => ({
+                        x: m.x,
+                        y: m.y,
+                        radius: 35
+                    }))
+            ];
+
+            const proposedMerchant = { x, y, radius: 35 };
+            
+            // Check if click position would cause overlap
+            const hasCollision = existingObjects.some(existing => 
+                checkCollision(proposedMerchant, existing, 15)
+            );
+            
+            if (hasCollision) {
+                // Find a safe position instead
+                const safeArea = {
+                    x: 80,
+                    y: 80,
+                    width: width - 160,
+                    height: height - 200
+                };
+                
+                const newPosition = findNonOverlappingPosition(proposedMerchant, existingObjects, safeArea, 30, 15);
+                if (newPosition) {
+                    x = newPosition.x;
+                    y = newPosition.y;
+                }
+            }
+            
+            devSpawnMerchantAt(x, y, galaxy.id);
+        }
+    };
+
     return (
         <>
             <View style={styles.container}>
-                <Svg height="100%" width="100%">
+                <Svg height="100%" width="100%" onPress={handleBackgroundPress}>
                     <Defs>
                         <RadialGradient id="stargradient" cx="50%" cy="50%" r="50%">
                             <Stop offset="0%" stopColor="rgba(255, 255, 255, 1)" />
@@ -435,10 +644,31 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                                 width={60}
                                 height={60}
                                 onPress={() => {
-                                    if (planet.pirateCount > 0) {
-                                        navigator.navigate("CombatPage", { planet });
+                                    // Check if this is the first time entering a planet's orbit
+                                    if (!isAchievementUnlocked("enter_a_planet")) {
+                                        updateAchievToCompleted("enter_a_planet");
+                                        const achievement = achievements.find((ach) => ach.id === "enter_a_planet");
+                                        if (achievement) {
+                                            showNotification({
+                                                title: achievement.title,
+                                                description: achievement.story,
+                                                rewards: [],
+                                                type: 'achievement',
+                                            });
+                                        }
                                     }
 
+                                    if (planet.pirateCount > 0) {
+                                        navigator.navigate("CombatPage", { planet });
+                                    } else {
+                                        // Show info for planets with no pirates
+                                        showGeneralNotification({
+                                            title: `${planet.name} - Peaceful`,
+                                            message: "This planet is peaceful and has no hostile activity detected. Continue exploring to find planets with pirates to fight!",
+                                            type: "info",
+                                            icon: "🌍"
+                                        });
+                                    }
                                 }}
                             />
 
@@ -457,6 +687,87 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                             </SvgText>
                         </React.Fragment>
                     ))}
+
+                    {/* Render merchants */}
+                    {visibleMerchants.map((merchant) => {
+                        const timeRemaining = formatTimeRemaining(merchant.nextMoveTime);
+                        const isLeavingSoon = (merchant.nextMoveTime - currentTime) < (5 * 60 * 1000); // Less than 5 minutes
+                        
+                        return (
+                            <G key={merchant.id} onPress={() => handleMerchantPress(merchant)}>
+                                {/* Merchant Ship */}
+                                <Circle
+                                    cx={merchant.x}
+                                    cy={merchant.y}
+                                    r={20}
+                                    fill={isLeavingSoon ? "#FF6B6B" : "#FFD700"}
+                                    stroke={isLeavingSoon ? "#FF4444" : "#FFA500"}
+                                    strokeWidth="2"
+                                />
+                                {/* Merchant Icon */}
+                                <SvgText
+                                    x={merchant.x}
+                                    y={merchant.y + 6}
+                                    fill="black"
+                                    fontSize={16}
+                                    fontWeight="bold"
+                                    textAnchor="middle"
+                                >
+                                    🛸
+                                </SvgText>
+                                {/* Merchant Name */}
+                                <SvgText
+                                    x={merchant.x}
+                                    y={merchant.y + 35}
+                                    fill={isLeavingSoon ? "#FF6B6B" : "#FFD700"}
+                                    fontSize={12}
+                                    fontWeight="bold"
+                                    textAnchor="middle"
+                                    stroke="black"
+                                    strokeWidth="0.5"
+                                >
+                                    {merchant.name}
+                                </SvgText>
+                                {/* Merchant Type */}
+                                <SvgText
+                                    x={merchant.x}
+                                    y={merchant.y + 48}
+                                    fill={isLeavingSoon ? "#FF8888" : "#FFA500"}
+                                    fontSize={10}
+                                    textAnchor="middle"
+                                    stroke="black"
+                                    strokeWidth="0.5"
+                                >
+                                    {merchant.type.charAt(0).toUpperCase() + merchant.type.slice(1)} Trader
+                                </SvgText>
+                                {/* Countdown Timer */}
+                                <SvgText
+                                    x={merchant.x}
+                                    y={merchant.y + 61}
+                                    fill={isLeavingSoon ? "#FF4444" : "#FFFFFF"}
+                                    fontSize={9}
+                                    fontWeight="bold"
+                                    textAnchor="middle"
+                                    stroke="black"
+                                    strokeWidth="0.5"
+                                >
+                                    Leaves in: {timeRemaining}
+                                </SvgText>
+                                {/* Pulsing effect for merchants leaving soon */}
+                                {isLeavingSoon && (
+                                    <Circle
+                                        cx={merchant.x}
+                                        cy={merchant.y}
+                                        r={25}
+                                        fill="none"
+                                        stroke="#FF4444"
+                                        strokeWidth="1"
+                                        opacity="0.6"
+                                    />
+                                )}
+                            </G>
+                        );
+                    })}
 
                 </Svg>
 
@@ -496,11 +807,29 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                                     : "Scan for Asteroids"}
                         </Text>
                     </TouchableOpacity>
+                                    )}
+
+                {/* Dev Mode Indicator */}
+                {isDevMode && (
+                    <View style={styles.devModeIndicator}>
+                        <Text style={styles.devModeText}>🛠️ DEV MODE</Text>
+                        <Text style={styles.devModeSubtext}>Tap anywhere to spawn merchant</Text>
+                    </View>
                 )}
 
                 <TouchableOpacity style={styles.backButton} onPress={onBack}>
                     <Text style={styles.backButtonText}>Back</Text>
                 </TouchableOpacity>
+
+                {/* Merchant Trading Modal */}
+                <MerchantTradingModal
+                    visible={tradingModalVisible}
+                    merchant={selectedMerchant}
+                    onClose={() => {
+                        setTradingModalVisible(false);
+                        setSelectedMerchant(null);
+                    }}
+                />
             </View>
             <ShipStatus />
         </>
@@ -659,6 +988,28 @@ const styles = StyleSheet.create({
     backButtonText: {
         color: "white",
         fontWeight: "bold",
+    },
+    devModeIndicator: {
+        position: "absolute",
+        top: 16,
+        left: 16,
+        backgroundColor: "rgba(255, 165, 0, 0.9)",
+        padding: 10,
+        borderRadius: 8,
+        borderWidth: 2,
+        borderColor: "#FF8C00",
+    },
+    devModeText: {
+        color: "white",
+        fontWeight: "bold",
+        fontSize: 14,
+        textAlign: "center",
+    },
+    devModeSubtext: {
+        color: "white",
+        fontSize: 10,
+        textAlign: "center",
+        marginTop: 2,
     },
 });
 

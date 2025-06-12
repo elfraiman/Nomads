@@ -5,7 +5,7 @@ import { IWeapon } from "@/data/weapons";
 import colors from "@/utils/colors";
 import { IMainShip, IPirate, PlayerResources, resourceColors } from "@/utils/defaults";
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Animated, ImageBackground, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Svg, { Rect } from "react-native-svg";
 
 const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
@@ -14,7 +14,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
   if (!game) return null;
 
-  const { mainShip, setMainShip, recordEnemyKill } = game;
+  const { mainShip, setMainShip, recordEnemyKill, combatStats } = game;
 
 
   const generateEnemies = () => {
@@ -22,10 +22,90 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
       return [];
     }
 
-    const randomEnemies = Array.from({ length: planet.pirateCount }, () => ({
-      ...planet.enemies[Math.floor(Math.random() * planet.enemies.length)],
-    }));
-    return [...randomEnemies, planet.enemies[1], planet.enemies[2]];
+    // Linear difficulty progression based on planet and player progress
+    const getEnemyDifficultyRange = () => {
+      const totalKills = combatStats.totalKills || 0;
+      
+      // Planet A1: Beginner-friendly progression
+      if (planet.id === 1) {
+        if (totalKills < 5) {
+          return { minIndex: 0, maxIndex: 0 }; // Only Corvettes for first 5 kills
+        } else if (totalKills < 15) {
+          return { minIndex: 0, maxIndex: 1 }; // Corvettes to Cruisers
+        } else {
+          return { minIndex: 0, maxIndex: 1 }; // Stay at Corvette-Cruiser level
+        }
+      }
+      // Planet A2: Intermediate progression
+      else if (planet.id === 2) {
+        if (totalKills < 10) {
+          return { minIndex: 0, maxIndex: 1 }; // Start easier even on A2
+        } else if (totalKills < 25) {
+          return { minIndex: 0, maxIndex: 2 }; // Corvettes to Dreadnoughts
+        } else {
+          return { minIndex: 1, maxIndex: 2 }; // Cruisers to Dreadnoughts
+        }
+      }
+      // Planet A3: Advanced progression
+      else if (planet.id === 3) {
+        if (totalKills < 20) {
+          return { minIndex: 0, maxIndex: 2 }; // Still allow easier enemies
+        } else if (totalKills < 40) {
+          return { minIndex: 1, maxIndex: 3 }; // Cruisers to Battleships
+        } else {
+          return { minIndex: 2, maxIndex: 3 }; // Dreadnoughts to Battleships
+        }
+      }
+      // Planet A4: Expert progression
+      else if (planet.id === 4) {
+        if (totalKills < 30) {
+          return { minIndex: 1, maxIndex: 3 }; // Don't throw Titans immediately
+        } else if (totalKills < 60) {
+          return { minIndex: 2, maxIndex: 4 }; // Dreadnoughts to Titans
+        } else {
+          return { minIndex: 3, maxIndex: 4 }; // Battleships to Titans
+        }
+      }
+      // Default fallback for any other planets
+      else {
+        return { minIndex: 0, maxIndex: planet.enemies.length - 1 };
+      }
+    };
+
+    const { minIndex, maxIndex } = getEnemyDifficultyRange();
+    const availableEnemies = planet.enemies.slice(minIndex, maxIndex + 1);
+
+    // Generate enemies with progressive difficulty within the allowed range
+    const enemies = [];
+    const totalEnemies = Math.min(planet.pirateCount, 15); // Cap at 15 enemies for performance
+
+    for (let i = 0; i < totalEnemies; i++) {
+      // Progressive difficulty: start with easier enemies, gradually introduce harder ones
+      const progressRatio = i / (totalEnemies - 1); // 0 to 1
+      
+      // Early enemies (first 30%) are from the easier half of available enemies
+      // Later enemies (last 30%) can be from the harder half
+      // Middle enemies (40%) are mixed
+      let enemyIndex;
+      
+      if (progressRatio < 0.3) {
+        // Early enemies: easier half
+        const easyRange = Math.ceil(availableEnemies.length / 2);
+        enemyIndex = Math.floor(Math.random() * easyRange);
+      } else if (progressRatio > 0.7) {
+        // Later enemies: harder half (but still within planet's range)
+        const hardStart = Math.floor(availableEnemies.length / 2);
+        enemyIndex = hardStart + Math.floor(Math.random() * (availableEnemies.length - hardStart));
+      } else {
+        // Middle enemies: full range with slight bias toward easier
+        const biasedRandom = Math.random() * Math.random(); // Bias toward 0
+        enemyIndex = Math.floor(biasedRandom * availableEnemies.length);
+      }
+
+      enemies.push({ ...availableEnemies[enemyIndex] });
+    }
+
+    return enemies;
   };
 
 
@@ -49,7 +129,81 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
     }))
   );
 
+  // Floating damage numbers state
+  const [floatingDamage, setFloatingDamage] = useState<{
+    id: string;
+    damage: number;
+    animation: Animated.Value;
+    opacity: Animated.Value;
+    isCritical?: boolean;
+    weaponType?: string;
+    startOffset?: number;
+    verticalOffset?: number;
+  }[]>([]);
+
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Function to create floating damage numbers
+  const createFloatingDamage = (damage: number, isCritical: boolean = false, weaponType?: string) => {
+    const id = Date.now().toString() + Math.random().toString();
+    const animation = new Animated.Value(0);
+    const opacity = new Animated.Value(1);
+    
+    // Calculate horizontal offset based on existing floating damage to prevent stacking
+    const currentTime = Date.now();
+    const recentDamage = floatingDamage.filter(item => 
+      currentTime - parseInt(item.id.split('.')[0]) < 200 // Within 200ms
+    );
+    
+    // Spread out simultaneous hits horizontally from center
+    const totalWidth = Math.max(recentDamage.length, 1) * 80; // Total width needed
+    const startPosition = -totalWidth / 2; // Start from left of center
+    const baseOffset = startPosition + (recentDamage.length * 80); // Position for this hit
+    const randomOffset = (Math.random() - 0.5) * 20; // Small random variation
+    const horizontalOffset = baseOffset + randomOffset;
+    
+    // Stagger vertical start positions slightly for simultaneous hits
+    const verticalOffset = recentDamage.length * 10; // 10px vertical stagger
+
+    const newFloatingDamage = {
+      id,
+      damage,
+      animation,
+      opacity,
+      isCritical,
+      weaponType,
+      startOffset: horizontalOffset,
+      verticalOffset,
+    };
+
+    setFloatingDamage(prev => [...prev, newFloatingDamage]);
+
+    // Animate the floating effect with slight delay for simultaneous hits
+    const duration = isCritical ? 2000 : 1500; // Critical hits last longer
+    const animationDelay = recentDamage.length * 50; // 50ms delay between simultaneous hits
+    
+    Animated.sequence([
+      Animated.delay(animationDelay), // Stagger the start of animations
+      Animated.parallel([
+        Animated.timing(animation, {
+          toValue: 1,
+          duration,
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.delay(isCritical ? 800 : 500),
+          Animated.timing(opacity, {
+            toValue: 0,
+            duration: isCritical ? 1200 : 1000,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]),
+    ]).start(() => {
+      // Remove the floating damage after animation completes
+      setFloatingDamage(prev => prev.filter(item => item.id !== id));
+    });
+  };
 
   const calculateHitChance = (
     weaponAccuracy: number,
@@ -201,13 +355,22 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
         if (hit) {
           const randomMultiplier = Math.random() * 0.4 + 0.8; // Random between 0.8 and 1.2
+          const isCritical = randomMultiplier > 1.1; // Critical hit if multiplier is high
           const damage = Math.floor(
             weaponCooldown.weaponDetails.power * randomMultiplier * (1 - pirate.defense / 100)
           );
           totalDamage += damage;
+          
+          // Create floating damage number with critical hit detection
+          createFloatingDamage(damage, isCritical, weaponCooldown.weaponDetails.cost.type);
+          
+          const hitText = isCritical 
+            ? `${weaponCooldown.weaponDetails.name} CRITICAL HIT for ${damage} damage!`
+            : `${weaponCooldown.weaponDetails.name} hit for ${damage} damage!`;
+          
           setCombatLog((prev) => [
             ...prev,
-            { text: `${weaponCooldown.weaponDetails.name} hit for ${damage} damage!`, color: resourceColors[weaponCooldown.weaponDetails.cost.type] },
+            { text: hitText, color: resourceColors[weaponCooldown.weaponDetails.cost.type] },
           ]);
         } else {
           setCombatLog((prev) => [
@@ -332,6 +495,9 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
             baseStats: { ...prev.baseStats, health: Math.max(prev.baseStats.health - damage, 0) },
           }));
 
+          // Create floating damage number for player taking damage (different style)
+          createFloatingDamage(damage, false, 'incoming');
+
           setCombatLog((prev) => [
             ...prev,
             { text: `${pirate.name} hit for ${damage} damage!`, color: colors.error },
@@ -382,6 +548,30 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
     return () => clearInterval(interval); // Clean up interval on unmount
   }, [weaponCooldowns]);
+
+  // Display difficulty progression info when combat starts
+  useEffect(() => {
+    const totalKills = combatStats.totalKills || 0;
+    const enemyTypes = enemies.map((enemy: any) => enemy.category).join(', ');
+    
+    // Add informational message to combat log
+    if (totalKills < 5) {
+      setCombatLog(prev => [...prev, { 
+        text: `🎯 Beginner Mode: Facing ${enemyTypes} (${totalKills} total kills)`, 
+        color: colors.primary 
+      }]);
+    } else if (totalKills < 30) {
+      setCombatLog(prev => [...prev, { 
+        text: `⚔️ Difficulty scaling with experience: ${enemyTypes} (${totalKills} total kills)`, 
+        color: colors.warning 
+      }]);
+    } else {
+      setCombatLog(prev => [...prev, { 
+        text: `💀 Veteran Mode: Facing ${enemyTypes} (${totalKills} total kills)`, 
+        color: colors.error 
+      }]);
+    }
+  }, []); // Run only once when component mounts
 
 
   return (
@@ -574,6 +764,54 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
           </View>
 
         </ScrollView>
+
+        {/* Floating Damage Numbers - Positioned at top level to float above everything */}
+        {floatingDamage.map((item) => {
+          const isIncoming = item.weaponType === 'incoming';
+          const weaponColor = isIncoming ? colors.error : 
+            (item.weaponType ? resourceColors[item.weaponType] : colors.error);
+          
+          return (
+                         <Animated.View
+               key={item.id}
+               style={[
+                 styles.floatingDamageOverlay,
+                 isIncoming && styles.floatingDamageIncoming,
+                 {
+                   opacity: item.opacity,
+                   top: 200 + (item.verticalOffset || 0), // Apply vertical offset
+                   left: '50%', // Center horizontally
+                   transform: [
+                     {
+                       translateX: (item.startOffset || 0), // Apply horizontal offset from center
+                     },
+                     {
+                       translateY: item.animation.interpolate({
+                         inputRange: [0, 1],
+                         outputRange: isIncoming ? [0, 50] : [0, -60],
+                       }),
+                     },
+                     {
+                       scale: item.animation.interpolate({
+                         inputRange: [0, 0.2, 1],
+                         outputRange: [1, 1.3, 1],
+                       }),
+                     },
+                   ],
+                 },
+               ]}
+            >
+              <Text style={[
+                styles.floatingDamageText,
+                item.isCritical && styles.floatingDamageCritical,
+                isIncoming && styles.floatingDamageIncomingText,
+                { color: weaponColor }
+              ]}>
+                {isIncoming ? '+' : (item.isCritical ? 'CRIT! -' : '-')}{item.damage}
+              </Text>
+            </Animated.View>
+          );
+        })}
 
       </ImageBackground>
 
@@ -920,6 +1158,62 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: colors.primary,
     alignItems: "center",
+  },
+  floatingDamage: {
+    position: "absolute",
+    top: 10,
+    left: 50,
+    right: 50,
+    zIndex: 9999,
+    elevation: 9999, // For Android
+    pointerEvents: "none",
+    alignItems: "center",
+  },
+  floatingDamageText: {
+    fontSize: 26,
+    fontWeight: "900", // Extra bold for futuristic look
+    color: colors.error,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', // Monospace for tech feel
+    textShadowColor: '#000000',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8, // Glow effect
+    letterSpacing: 1.5, // Spaced out letters
+    textTransform: 'uppercase',
+  },
+  floatingDamageCritical: {
+    fontSize: 32,
+    fontWeight: "900",
+    color: colors.warning,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    textShadowColor: colors.warning,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12, // Stronger glow for critical hits
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  floatingDamageIncoming: {
+    top: 60, // Position lower for incoming damage
+  },
+  floatingDamageIncomingText: {
+    color: colors.error,
+    fontSize: 22,
+    fontWeight: "800",
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    textShadowColor: colors.error,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  floatingDamageOverlay: {
+    position: "absolute",
+    zIndex: 9999,
+    elevation: 9999, // For Android
+    pointerEvents: "none",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 80, // Ensure enough space for the text
+    marginLeft: -40, // Half of minWidth to center properly
   },
 
 });

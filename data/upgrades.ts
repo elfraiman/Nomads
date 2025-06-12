@@ -57,7 +57,7 @@ const initialUpgradeList: Upgrade[] = [
         id: "core_operations_efficiency",
         title: "Core Operations Efficiency",
         description: (level: number) =>
-            `Refine and streamline the ship's core operational subsystems, increasing their output efficiency by ${5}% to a total of ${(level + 1) * 5}%. The advanced diagnostics minimize energy waste.`,
+            `Refine and streamline the ship's core operational subsystems. Each level increases ALL resource generation efficiency by 20% (multiplicative). Current level: ${level}, total efficiency boost: ${level === 0 ? 0 : ((Math.pow(1.05, level) - 1) * 100).toFixed(1)}%`,
         costs: [
             { resourceType: "energy", amount: 50 },
             { resourceType: "fuel", amount: 100 },

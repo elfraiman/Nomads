@@ -3,9 +3,10 @@ import { loadGameState, saveGameState } from "@/data/asyncStorage";
 import initialUpgradeList, { Upgrade, UpgradeCost } from "@/data/upgrades";
 import initialWeapons, { IWeapon } from "@/data/weapons";
 import initialMissions from "@/data/missions";
-import { IResource, PlayerResources, Ships, initialShips, IAsteroid, IGalaxy, initialGalaxies, IMainShip, initialMainShip, IMission } from "@/utils/defaults";
+import researchData, { IResearchNode } from "@/data/research";
+import { IResource, PlayerResources, Ships, initialShips, IAsteroid, IGalaxy, initialGalaxies, IMainShip, initialMainShip, IMission, IMerchant, IMerchantTransaction } from "@/utils/defaults";
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { Alert, AppState, AppStateStatus, Platform } from "react-native";
+import { AppState, AppStateStatus, Platform } from "react-native";
 import Constants from 'expo-constants';
 import { CompletionReward } from "@/components/ui/CompletionNotification";
 import CompletionNotification from "@/components/ui/CompletionNotification";
@@ -27,6 +28,16 @@ export interface GameContextType {
     missionTimers: Record<string, number>; // NEW: Mission timers
     missionCooldowns: Record<string, number>; // NEW: Mission cooldowns
 
+    // NEW: Merchant system
+    merchants: IMerchant[];
+    merchantTransactions: IMerchantTransaction[];
+    lastMerchantSpawnTime: number;
+
+    // NEW: Research system
+    researchNodes: IResearchNode[];
+    activeResearch: string | null; // Currently researching node ID
+    researchTimer: number; // Time remaining for current research
+
     // DEV MODE
     isDevMode: boolean;
     toggleDevMode: () => void;
@@ -34,6 +45,7 @@ export interface GameContextType {
     simulateEnemyKill: (enemyType: string) => void;
     devResetWithCompletedAchievements: () => void;
     logFoundAsteroids: () => void;
+    devSpawnMerchantAt: (x: number, y: number, galaxyId: number) => void;
 
     // Combat
     updateMainShip: (updatedMainShip: IMainShip) => void;
@@ -71,6 +83,12 @@ export interface GameContextType {
     setFoundAsteroids: (asteroids: IAsteroid[]) => void;
     setUnlockedGalaxies: (galaxies: IGalaxy[]) => void;
 
+    // NEW: Merchant functions
+    spawnMerchant: () => void;
+    moveMerchant: (merchantId: string, newGalaxyId: number) => void;
+    tradeMerchant: (merchantId: string, itemType: "weapon" | "resource" | "special", itemId: string) => boolean;
+    setMerchants: (merchants: IMerchant[]) => void;
+
     // NEW: Mission management functions
     startMission: (missionId: string) => void;
     completeMission: (missionId: string) => void;
@@ -78,6 +96,11 @@ export interface GameContextType {
     canStartMission: (missionId: string) => boolean;
     canCompleteMission: (missionId: string) => boolean;
     formatTime: (seconds: number) => string;
+
+    // NEW: Research management functions
+    startResearch: (nodeId: string) => void;
+    completeResearch: (nodeId: string) => void;
+    updateResearchProgress: (nodeId: string, progress: number) => void;
 
     // Combat tracking
     combatStats: {
@@ -151,6 +174,16 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const [activeMissions, setActiveMissions] = useState<IMission[]>([]);
     const [missionTimers, setMissionTimers] = useState<Record<string, number>>({});
     const [missionCooldowns, setMissionCooldowns] = useState<Record<string, number>>({});
+    const [merchants, setMerchants] = useState<IMerchant[]>([]);
+    const [merchantTransactions, setMerchantTransactions] = useState<IMerchantTransaction[]>([]);
+
+    // Research system state
+    const [researchNodes, setResearchNodes] = useState<IResearchNode[]>(
+        researchData.flatMap(category => category.trees.flatMap(tree => tree.nodes))
+    );
+    const [activeResearch, setActiveResearch] = useState<string | null>(null);
+    const [researchTimer, setResearchTimer] = useState<number>(0);
+    const [lastMerchantSpawnTime, setLastMerchantSpawnTime] = useState<number>(0);
     const [notification, setNotification] = useState<{
         visible: boolean;
         title: string;
@@ -204,6 +237,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 ships, allocatedDrones: { mining: miningDroneAllocation },
                 foundAsteroids, galaxies, weapons,
                 missions, activeMissions, missionTimers, missionCooldowns,
+                merchants, merchantTransactions, lastMerchantSpawnTime,
+                researchNodes, activeResearch, researchTimer,
             });
         };
 
@@ -232,7 +267,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 subscription.remove();
             };
         }
-    }, [mainShip, achievements, upgrades, ships, foundAsteroids, miningDroneAllocation, galaxies, weapons, missions, activeMissions, missionTimers, missionCooldowns]);
+    }, [mainShip, achievements, upgrades, ships, foundAsteroids, miningDroneAllocation, galaxies, weapons, missions, activeMissions, missionTimers, missionCooldowns, researchNodes, activeResearch, researchTimer]);
 
     // Load game state on initial render
     useEffect(() => {
@@ -249,6 +284,16 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 setActiveMissions(savedState.activeMissions || []);
                 setMissionTimers(savedState.missionTimers || {});
                 setMissionCooldowns(savedState.missionCooldowns || {});
+                setMerchants(savedState.merchants || []);
+                setMerchantTransactions(savedState.merchantTransactions || []);
+                setLastMerchantSpawnTime(savedState.lastMerchantSpawnTime || 0);
+
+                // Load research data
+                if (savedState.researchNodes) {
+                    setResearchNodes(savedState.researchNodes);
+                }
+                setActiveResearch(savedState.activeResearch || null);
+                setResearchTimer(savedState.researchTimer || 0);
 
                 const upgradesFromSaveFile = initialUpgradeList.map((defaultUpgrade) => {
                     const savedUpgrade = savedState.upgrades?.find((u) => u.id === defaultUpgrade.id);
@@ -410,7 +455,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
                 // If all goals are met, mark as completed and trigger `onComplete`
                 if (isComplete) {
-                    alert(`Achievement Unlocked: ${achievement.title}\n\n${achievement.story}`);
+                    showNotification({
+                        title: achievement.title,
+                        description: achievement.story,
+                        rewards: [],
+                        type: 'achievement'
+                    });
                     achievement.onComplete?.();
 
                     return {
@@ -468,7 +518,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                         }));
                     }
 
-                    Alert.alert(`Achievement Unlocked: ${achievement.title}\n\n${achievement.story}`);
+                    showNotification({
+                        title: achievement.title,
+                        description: achievement.story,
+                        rewards: [],
+                        type: 'achievement'
+                    });
                     return { ...achievement, completed: true, progress: { upgrades: updatedProgress } };
                 }
 
@@ -498,10 +553,20 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     // Custom logic for specific ship-related achievements
                     //
                     if (achievement.id === "build_scout_fleet") {
-                        alert("You have built your first Scout Fleet! This unlocks advanced exploration features.");
+                        showGeneralNotification({
+                            title: "Scout Fleet Ready!",
+                            message: "You have built your first Scout Fleet! This unlocks advanced exploration features.",
+                            type: "success",
+                            icon: "🚀"
+                        });
                     }
 
-                    alert(`Achievement Unlocked: ${achievement.title}\n\n${achievement.story}`);
+                    showNotification({
+                        title: achievement.title,
+                        description: achievement.story,
+                        rewards: [],
+                        type: 'achievement'
+                    });
                     return { ...achievement, completed: true, progress: { ships: updatedProgress } };
                 }
 
@@ -518,6 +583,22 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const updateAchievToCompleted = (id: string) => {
         if (id === "build_scanning_drones") {
             unlockGalaxy(1);
+            
+            // Unlock basic weapon modules when exploration is unlocked
+            const basicWeapons = ["light_plasma_blaster", "light_pulse_laser", "light_rocket_launcher", "light_railgun"];
+            basicWeapons.forEach(weaponId => {
+                const weapon = weapons.find(w => w.id === weaponId);
+                if (weapon && weapon.amount === 0) {
+                    updateWeapons(weaponId, 1); // Give 1 of each basic weapon
+                }
+            });
+            
+            showGeneralNotification({
+                title: "Weapon Modules Unlocked! ⚔️",
+                message: "Basic weapon crafting is now available! Check the Dashboard to craft advanced weapons.",
+                type: "success",
+                icon: "🔧"
+            });
         }
 
         setAchievements((prev) =>
@@ -548,7 +629,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         const upgrade = upgrades.find((u) => u.id === id);
 
         if (!upgrade || !isUpgradeUnlocked(id)) {
-            alert("Upgrade not unlocked!");
+            showGeneralNotification({
+                title: "Upgrade Locked",
+                message: "This upgrade is not unlocked yet!",
+                type: "warning",
+                icon: "🔐"
+            });
             return;
         }
 
@@ -559,7 +645,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (!canAfford) {
-            alert("Not enough resources to purchase this upgrade!");
+            showGeneralNotification({
+                title: "Insufficient Resources",
+                message: "Not enough resources to purchase this upgrade!",
+                type: "error",
+                icon: "💰"
+            });
             return;
         }
 
@@ -607,10 +698,15 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 };
             });
         } else if (id === "core_operations_efficiency") {
-            console.log("Upgrade core operations efficiency");
+            console.log("Upgrade core operations efficiency - Level:", newLevel);
             setMainShip((prev) => {
-                const efficiencyBonus = 1.05; // 5% multiplicative increase per level
+                const efficiencyBonus = 1.20; // 20% multiplicative increase per level
                 
+                // Log previous efficiency values
+                console.log("Previous efficiency values:", Object.fromEntries(
+                    Object.entries(prev.resources).map(([key, value]) => [key, value.efficiency])
+                ));
+
                 const updatedResources = Object.fromEntries(
                     Object.entries(prev.resources).map(([key, value]) => [
                         key,
@@ -620,6 +716,19 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                         },
                     ])
                 ) as PlayerResources;
+
+                // Log new efficiency values
+                console.log("New efficiency values:", Object.fromEntries(
+                    Object.entries(updatedResources).map(([key, value]) => [key, value.efficiency])
+                ));
+
+                // Show notification about efficiency improvement
+                showGeneralNotification({
+                    title: "Core Operations Efficiency Upgraded! 🔧",
+                    message: `All resource generation efficiency increased by 5%! Level ${newLevel} efficiency boost active.`,
+                    type: "success",
+                    icon: "⚡"
+                });
 
                 return {
                     ...prev,
@@ -652,7 +761,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             updateResources("energy", { current: mainShip.resources.energy.current - 20 });
             updateResources("fuel", { current: mainShip.resources.fuel.current + 10 });
         } else {
-            alert("Not enough energy to repair the ship!");
+            showGeneralNotification({
+                title: "Insufficient Energy",
+                message: "Not enough energy to repair the ship!",
+                type: "error",
+                icon: "⚡"
+            });
         }
     };
 
@@ -664,7 +778,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         cooldown: number
     ) => {
         if (mainShip.resources.energy.current < energyCost) {
-            alert("Not enough energy!");
+            showGeneralNotification({
+                title: "Insufficient Energy",
+                message: "Not enough energy!",
+                type: "error",
+                icon: "⚡"
+            });
             return;
         }
 
@@ -760,7 +879,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                                 const { [asteroid.id.toString()]: removed, ...remainingAllocation } = prev;
                                 return remainingAllocation;
                             });
-                            alert(`${asteroid.name} has been depleted!`);
+                            showGeneralNotification({
+                                title: "Asteroid Depleted",
+                                message: `${asteroid.name} has been depleted!`,
+                                type: "info",
+                                icon: "🪨"
+                            });
                             return false;
                         }
                         return true;
@@ -1041,13 +1165,166 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
     // Combat tracking functions
     const recordEnemyKill = (enemyName: string) => {
+        // Get current stats before updating
+        const currentEnemyKills = combatStats.enemiesKilled[enemyName] || 0;
+        const currentTotalKills = combatStats.totalKills || 0;
+        const newTotalKills = currentTotalKills + 1;
+        const newEnemyKills = currentEnemyKills + 1;
+
         setCombatStats(prev => ({
             enemiesKilled: {
                 ...prev.enemiesKilled,
-                [enemyName]: (prev.enemiesKilled[enemyName] || 0) + 1,
+                [enemyName]: newEnemyKills,
             },
-            totalKills: prev.totalKills + 1,
+            totalKills: newTotalKills,
         }));
+
+        // Award scaled resources based on enemy difficulty
+        const rewardResources = (enemyName: string) => {
+            // Define enemy categories and their reward multipliers
+            const enemyRewards: Record<string, { 
+                category: string, 
+                baseReward: number, 
+                primaryResource: keyof PlayerResources,
+                secondaryResource: keyof PlayerResources 
+            }> = {
+                // Nebula Marauders
+                "Missile Corvette": { category: "Corvette", baseReward: 1, primaryResource: "fuel", secondaryResource: "energy" },
+                "Laser Interceptor": { category: "Cruiser", baseReward: 1.5, primaryResource: "energy", secondaryResource: "alloys" },
+                "Nebula Ravager": { category: "Dreadnought", baseReward: 3, primaryResource: "solarPlasma", secondaryResource: "fuel" },
+                "Titan Breaker": { category: "Battleship", baseReward: 5, primaryResource: "alloys", secondaryResource: "solarPlasma" },
+                "Nebula Titan": { category: "Titan", baseReward: 8, primaryResource: "quantumCores", secondaryResource: "darkMatter" },
+                
+                // Void Corsairs
+                "Stealth Raider": { category: "Corvette", baseReward: 1.2, primaryResource: "darkMatter", secondaryResource: "energy" },
+                "Ion Saboteur": { category: "Cruiser", baseReward: 1.8, primaryResource: "energy", secondaryResource: "frozenHydrogen" },
+                "Corsair Warlord": { category: "Dreadnought", baseReward: 3.5, primaryResource: "darkMatter", secondaryResource: "alloys" },
+                "Void Destroyer": { category: "Battleship", baseReward: 6, primaryResource: "exoticMatter", secondaryResource: "darkMatter" },
+                "Corsair Titan": { category: "Titan", baseReward: 10, primaryResource: "exoticMatter", secondaryResource: "quantumCores" },
+                
+                // Star Scavengers
+                "Salvage Fighter": { category: "Corvette", baseReward: 1.3, primaryResource: "alloys", secondaryResource: "fuel" },
+                "Repurposed Frigate": { category: "Cruiser", baseReward: 2, primaryResource: "alloys", secondaryResource: "solarPlasma" },
+                "Scavenger Overseer": { category: "Dreadnought", baseReward: 4, primaryResource: "alloys", secondaryResource: "exoticMatter" },
+                "Junkyard Marauder": { category: "Battleship", baseReward: 6.5, primaryResource: "quantumCores", secondaryResource: "alloys" },
+                "Scavenger Colossus": { category: "Titan", baseReward: 12, primaryResource: "ancientArtifacts", secondaryResource: "quantumCores" },
+                
+                // Titan Vanguard
+                "Titan Enforcer": { category: "Corvette", baseReward: 1.5, primaryResource: "tokens", secondaryResource: "energy" },
+                "Shieldbreaker Cruiser": { category: "Cruiser", baseReward: 2.5, primaryResource: "tokens", secondaryResource: "quantumCores" },
+                "Titan Dreadnought": { category: "Dreadnought", baseReward: 5, primaryResource: "tokens", secondaryResource: "exoticMatter" },
+                "Vanguard Battleship": { category: "Battleship", baseReward: 8, primaryResource: "tokens", secondaryResource: "ancientArtifacts" },
+                "Titan Colossus": { category: "Titan", baseReward: 15, primaryResource: "ancientArtifacts", secondaryResource: "tokens" },
+            };
+
+            const enemyData = enemyRewards[enemyName];
+            if (!enemyData) return; // Unknown enemy, no rewards
+
+            // Calculate rewards based on enemy difficulty
+            const primaryAmount = Math.floor(enemyData.baseReward * 50); // Base 50 resources
+            const secondaryAmount = Math.floor(enemyData.baseReward * 25); // Base 25 resources
+            const bonusTokens = Math.floor(enemyData.baseReward * 10); // Base 10 tokens
+
+            // Award primary resource
+            const primaryResource = mainShip.resources[enemyData.primaryResource];
+            if (primaryResource) {
+                updateResources(enemyData.primaryResource, {
+                    current: Math.min(primaryResource.current + primaryAmount, primaryResource.max)
+                });
+            }
+
+            // Award secondary resource
+            const secondaryResource = mainShip.resources[enemyData.secondaryResource];
+            if (secondaryResource) {
+                updateResources(enemyData.secondaryResource, {
+                    current: Math.min(secondaryResource.current + secondaryAmount, secondaryResource.max)
+                });
+            }
+
+            // Award bonus tokens (universal currency)
+            const tokensResource = mainShip.resources.tokens;
+            updateResources("tokens", {
+                current: Math.min(tokensResource.current + bonusTokens, tokensResource.max)
+            });
+
+            // Show reward notification
+            showGeneralNotification({
+                title: `${enemyName} Defeated! 💰`,
+                message: `Gained ${primaryAmount} ${enemyData.primaryResource}, ${secondaryAmount} ${enemyData.secondaryResource}, ${bonusTokens} tokens`,
+                type: "success",
+                icon: "⚔️"
+            });
+        };
+
+        // Award the resources
+        rewardResources(enemyName);
+
+        // Bonus rewards for milestones and streaks
+        const totalKills = newTotalKills;
+        const enemyKillCount = newEnemyKills;
+
+        // First kill bonus for each enemy type
+        if (enemyKillCount === 1) {
+            const bonusAmount = 100;
+            updateResources("energy", {
+                current: Math.min(mainShip.resources.energy.current + bonusAmount, mainShip.resources.energy.max)
+            });
+            
+            showGeneralNotification({
+                title: `First ${enemyName} Kill! 🎯`,
+                message: `Bonus: +${bonusAmount} Energy for first-time defeat!`,
+                type: "success",
+                icon: "🏆"
+            });
+        }
+
+        // Kill milestone bonuses
+        if (totalKills % 10 === 0) {
+            const milestoneBonus = totalKills * 5; // Scaling bonus
+            updateResources("tokens", {
+                current: Math.min(mainShip.resources.tokens.current + milestoneBonus, mainShip.resources.tokens.max)
+            });
+            
+            showGeneralNotification({
+                title: `Combat Milestone! 🏆`,
+                message: `${totalKills} total kills achieved! Bonus: +${milestoneBonus} tokens`,
+                type: "success",
+                icon: "💫"
+            });
+        }
+
+        // Special bonuses for major milestones
+        if (totalKills === 25) {
+            updateResources("quantumCores", {
+                current: Math.min(mainShip.resources.quantumCores.current + 50, mainShip.resources.quantumCores.max)
+            });
+            showGeneralNotification({
+                title: "Veteran Pilot! 🚀",
+                message: "25 kills achieved! Bonus: +50 Quantum Cores",
+                type: "success",
+                icon: "⭐"
+            });
+        } else if (totalKills === 50) {
+            updateResources("exoticMatter", {
+                current: Math.min(mainShip.resources.exoticMatter.current + 100, mainShip.resources.exoticMatter.max)
+            });
+            showGeneralNotification({
+                title: "Elite Commander! 👑",
+                message: "50 kills achieved! Bonus: +100 Exotic Matter",
+                type: "success",
+                icon: "🌟"
+            });
+        } else if (totalKills === 100) {
+            updateResources("ancientArtifacts", {
+                current: Math.min(mainShip.resources.ancientArtifacts.current + 25, mainShip.resources.ancientArtifacts.max)
+            });
+            showGeneralNotification({
+                title: "Legendary Warrior! 👑",
+                message: "100 kills achieved! Bonus: +25 Ancient Artifacts",
+                type: "success",
+                icon: "💎"
+            });
+        }
 
         // Update mission progress for kill objectives and show notification
         setMissions(prev => prev.map(mission => {
@@ -1156,6 +1433,553 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         console.log('=== END DEBUG ===');
     };
 
+    // Research system functions
+    const startResearch = (nodeId: string) => {
+        const node = researchNodes.find(n => n.id === nodeId);
+        if (!node) return;
+
+        // Check if player can afford the research
+        const canAfford = node.costs.every(cost => 
+            mainShip.resources[cost.resourceType].current >= cost.amount
+        );
+
+        if (!canAfford) {
+            showGeneralNotification({
+                title: "Insufficient Resources",
+                message: "Not enough resources to start this research!",
+                type: "error",
+                icon: "🧪"
+            });
+            return;
+        }
+
+        // Check prerequisites
+        const prereqsMet = !node.prerequisites || node.prerequisites.every(prereqId => {
+            const prereqNode = researchNodes.find(n => n.id === prereqId);
+            return prereqNode?.completed || false;
+        });
+
+        if (!prereqsMet) {
+            showGeneralNotification({
+                title: "Prerequisites Required",
+                message: "Complete prerequisite research first!",
+                type: "warning",
+                icon: "⚠️"
+            });
+            return;
+        }
+
+        // Deduct resources
+        node.costs.forEach(cost => {
+            updateResources(cost.resourceType, {
+                current: mainShip.resources[cost.resourceType].current - cost.amount,
+            });
+        });
+
+        // Start research
+        setResearchNodes(prev => prev.map(n => 
+            n.id === nodeId 
+                ? { ...n, inProgress: true, progress: 0 }
+                : n
+        ));
+        setActiveResearch(nodeId);
+        setResearchTimer(node.duration);
+
+        showGeneralNotification({
+            title: "Research Started! 🧪",
+            message: `${node.title} research is now in progress.`,
+            type: "success",
+            icon: "🔬"
+        });
+    };
+
+    const completeResearch = (nodeId: string) => {
+        const node = researchNodes.find(n => n.id === nodeId);
+        if (!node) return;
+
+        // Apply research effects
+        node.effects.forEach(effect => {
+            switch (effect.type) {
+                case 'passive_efficiency':
+                    if (effect.target && effect.value) {
+                        setMainShip(prev => {
+                            const updatedResources = { ...prev.resources };
+                            if (effect.target === 'all_materials' || effect.target === 'all_core_operations' || effect.target === 'all_systems') {
+                                // Apply to multiple resources
+                                Object.keys(updatedResources).forEach(key => {
+                                    if (key !== 'energy') {
+                                        updatedResources[key as keyof PlayerResources] = {
+                                            ...updatedResources[key as keyof PlayerResources],
+                                            efficiency: updatedResources[key as keyof PlayerResources].efficiency * effect.value!
+                                        };
+                                    }
+                                });
+                            } else {
+                                // Apply to specific resource
+                                const resourceKey = effect.target as keyof PlayerResources;
+                                if (updatedResources[resourceKey] && effect.value) {
+                                    updatedResources[resourceKey] = {
+                                        ...updatedResources[resourceKey],
+                                        efficiency: updatedResources[resourceKey].efficiency * effect.value
+                                    };
+                                }
+                            }
+                            return { ...prev, resources: updatedResources };
+                        });
+                    }
+                    break;
+                case 'increase_capacity':
+                    if (effect.target && effect.value) {
+                        setMainShip(prev => {
+                            const updatedResources = { ...prev.resources };
+                            if (effect.target === 'all_resources') {
+                                Object.keys(updatedResources).forEach(key => {
+                                    updatedResources[key as keyof PlayerResources] = {
+                                        ...updatedResources[key as keyof PlayerResources],
+                                        max: updatedResources[key as keyof PlayerResources].max + effect.value!
+                                    };
+                                });
+                            }
+                            return { ...prev, resources: updatedResources };
+                        });
+                    }
+                    break;
+                case 'unlock_slot':
+                    if (effect.target === 'weapon_slots' && effect.value) {
+                        setMainShip(prev => ({
+                            ...prev,
+                            maxWeaponSlots: prev.maxWeaponSlots + effect.value!
+                        }));
+                    }
+                    break;
+                // TODO: Implement unlock_weapon and unlock_upgrade cases
+            }
+        });
+
+        // Mark research as completed
+        setResearchNodes(prev => prev.map(n => 
+            n.id === nodeId 
+                ? { ...n, completed: true, inProgress: false, progress: 100 }
+                : n
+        ));
+        setActiveResearch(null);
+        setResearchTimer(0);
+
+        showGeneralNotification({
+            title: "Research Complete! 🎉",
+            message: `${node.title} research has been completed! Effects applied.`,
+            type: "success",
+            icon: "✅"
+        });
+    };
+
+    const updateResearchProgress = (nodeId: string, progress: number) => {
+        setResearchNodes(prev => prev.map(n => 
+            n.id === nodeId 
+                ? { ...n, progress }
+                : n
+        ));
+    };
+
+    const devSpawnMerchantAt = (x: number, y: number, galaxyId: number) => {
+        if (!__DEV__ || !isDevMode) return;
+
+        const now = Date.now();
+        const merchantTypes: ("weapons" | "resources" | "general")[] = ["weapons", "resources", "general"];
+        const merchantType = merchantTypes[Math.floor(Math.random() * merchantTypes.length)];
+
+        // Get the galaxy to check for existing objects
+        const targetGalaxy = galaxies.find(g => g.id === galaxyId);
+        if (!targetGalaxy) return;
+
+        // Get existing objects in this galaxy to check for collisions
+        const existingObjects = [
+            // Existing asteroids in this galaxy
+            ...foundAsteroids
+                .filter(a => a.galaxyId === galaxyId && a.x !== undefined && a.y !== undefined)
+                .map(a => ({
+                    x: a.x!,
+                    y: a.y!,
+                    radius: Math.max(8, 8 + (a.maxResources / 1000) * 8) + 20
+                })),
+            // Planets in this galaxy
+            ...targetGalaxy.planets
+                .filter((p: any) => !p.locked)
+                .map((p: any) => ({
+                    x: p.position.x,
+                    y: p.position.y,
+                    radius: 40
+                })),
+            // Other merchants in this galaxy
+            ...merchants
+                .filter(m => m.galaxyId === galaxyId)
+                .map(m => ({
+                    x: m.x,
+                    y: m.y,
+                    radius: 35
+                }))
+        ];
+
+        // Helper function for collision detection (simplified version for GameContext)
+        const checkCollision = (obj1: any, obj2: any, minDistance: number = 10): boolean => {
+            const dx = obj1.x - obj2.x;
+            const dy = obj1.y - obj2.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            return distance < (obj1.radius + obj2.radius + minDistance);
+        };
+
+        let finalX = x;
+        let finalY = y;
+        const proposedMerchant = { x: finalX, y: finalY, radius: 35 };
+        
+        // Check if the proposed position would cause overlap
+        const hasCollision = existingObjects.some(existing => 
+            checkCollision(proposedMerchant, existing, 15)
+        );
+        
+        if (hasCollision) {
+            // Try to find a nearby non-overlapping position
+            const attempts = 20;
+            let found = false;
+            
+            for (let attempt = 0; attempt < attempts && !found; attempt++) {
+                const angle = (Math.PI * 2 * attempt) / attempts;
+                const distance = 50 + (attempt * 10); // Gradually increase distance
+                const testX = x + Math.cos(angle) * distance;
+                const testY = y + Math.sin(angle) * distance;
+                
+                // Keep within bounds
+                if (testX >= 80 && testX <= 400 - 80 && testY >= 80 && testY <= 600 - 80) {
+                    const testMerchant = { x: testX, y: testY, radius: 35 };
+                    
+                    const testCollision = existingObjects.some(existing => 
+                        checkCollision(testMerchant, existing, 15)
+                    );
+                    
+                    if (!testCollision) {
+                        finalX = testX;
+                        finalY = testY;
+                        found = true;
+                    }
+                }
+            }
+        }
+
+        const newMerchant: IMerchant = {
+            id: `dev_merchant_${now}`,
+            name: `DEV ${merchantType.charAt(0).toUpperCase() + merchantType.slice(1)} Trader`,
+            type: merchantType,
+            galaxyId: galaxyId,
+            x: finalX,
+            y: finalY,
+            spawnTime: now,
+            nextMoveTime: now + (15 * 60 * 1000), // Stay for 15 minutes
+            inventory: generateMerchantInventory(merchantType),
+            image: "🛸"
+        };
+
+        setMerchants(prev => [...prev, newMerchant]);
+
+        const positionText = (finalX !== x || finalY !== y) ? 
+            ` (adjusted to ${Math.round(finalX)}, ${Math.round(finalY)} to avoid overlap)` : 
+            ` at (${Math.round(finalX)}, ${Math.round(finalY)})`;
+
+        showGeneralNotification({
+            title: "DEV: Merchant Spawned! 🚀",
+            message: `Dev spawned ${merchantType} trader${positionText}`,
+            type: "info",
+            icon: "🛸"
+        });
+    };
+
+    // Merchant system functions
+    const generateMerchantInventory = (type: "weapons" | "resources" | "general") => {
+        const inventory: IMerchant['inventory'] = {};
+        
+        if (type === "weapons" || type === "general") {
+            // Generate 2-4 random weapons for sale
+            const availableWeapons = weapons.filter(w => w.amount === 0); // Weapons player doesn't have
+            const selectedWeapons = availableWeapons
+                .sort(() => Math.random() - 0.5)
+                .slice(0, Math.floor(Math.random() * 3) + 2);
+            
+            inventory.weapons = selectedWeapons.map(weapon => ({
+                weaponId: weapon.id,
+                price: {
+                    energy: Math.floor((weapon.costs.find(c => c.resourceType === 'energy')?.amount || 1000) * 1.5),
+                    fuel: Math.floor((weapon.costs.find(c => c.resourceType === 'fuel')?.amount || 500) * 1.5),
+                    solarPlasma: Math.floor((weapon.costs.find(c => c.resourceType === 'solarPlasma')?.amount || 300) * 1.5),
+                },
+                quantity: Math.floor(Math.random() * 3) + 1
+            }));
+        }
+        
+        if (type === "resources" || type === "general") {
+            // Generate random resource packages
+            const resourceTypes: (keyof PlayerResources)[] = ['fuel', 'solarPlasma', 'darkMatter', 'alloys', 'frozenHydrogen'];
+            const selectedResources = resourceTypes
+                .filter(resource => !mainShip.resources[resource].locked) // Only include unlocked resources
+                .sort(() => Math.random() - 0.5)
+                .slice(0, Math.floor(Math.random() * 3) + 2);
+            
+            inventory.resources = selectedResources.map(resourceType => ({
+                resourceType,
+                amount: Math.floor(Math.random() * 500) + 200,
+                price: {
+                    energy: Math.floor(Math.random() * 200) + 100,
+                    fuel: Math.floor(Math.random() * 150) + 75,
+                }
+            }));
+        }
+        
+        return inventory;
+    };
+
+    const spawnMerchant = () => {
+        // Only spawn if enough time has passed (30 minutes minimum)
+        const now = Date.now();
+        if (now - lastMerchantSpawnTime < 30 * 60 * 1000) return;
+        
+        // Random chance to spawn (30% chance every 30 minutes)
+        if (Math.random() > 0.3) return;
+        
+        const unlockedGalaxies = galaxies.filter(g => g.found);
+        if (unlockedGalaxies.length === 0) return;
+        
+        const randomGalaxy = unlockedGalaxies[Math.floor(Math.random() * unlockedGalaxies.length)];
+        const merchantTypes: ("weapons" | "resources" | "general")[] = ["weapons", "resources", "general"];
+        const merchantType = merchantTypes[Math.floor(Math.random() * merchantTypes.length)];
+        
+        // Calculate safe positioning with collision detection
+        const topMenuHeight = 80;
+        const bottomMenuHeight = 120;
+        const sideMargin = 80;
+        const merchantRadius = 35;
+        
+        const safeX = sideMargin + merchantRadius;
+        const safeY = topMenuHeight + merchantRadius;
+        const safeWidth = (400 - (sideMargin * 2) - (merchantRadius * 2)); // Use a fixed width
+        const safeHeight = (600 - topMenuHeight - bottomMenuHeight - (merchantRadius * 2)); // Use a fixed height
+        
+        // Get existing objects in this galaxy to avoid collisions
+        const existingObjects = [
+            // Existing asteroids in this galaxy
+            ...foundAsteroids
+                .filter(a => a.galaxyId === randomGalaxy.id && a.x !== undefined && a.y !== undefined)
+                .map(a => ({
+                    x: a.x!,
+                    y: a.y!,
+                    radius: Math.max(8, 8 + (a.maxResources / 1000) * 8) + 20
+                })),
+            // Planets in this galaxy
+            ...randomGalaxy.planets
+                .filter((p: any) => !p.locked)
+                .map((p: any) => ({
+                    x: p.position.x,
+                    y: p.position.y,
+                    radius: 40
+                })),
+            // Other merchants in this galaxy
+            ...merchants
+                .filter(m => m.galaxyId === randomGalaxy.id)
+                .map(m => ({
+                    x: m.x,
+                    y: m.y,
+                    radius: 35
+                }))
+        ];
+
+        // Helper function for collision detection (simplified version for GameContext)
+        const checkCollision = (obj1: any, obj2: any, minDistance: number = 10): boolean => {
+            const dx = obj1.x - obj2.x;
+            const dy = obj1.y - obj2.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            return distance < (obj1.radius + obj2.radius + minDistance);
+        };
+
+        // Try to find a non-overlapping position
+        let merchantX = Math.random() * safeWidth + safeX;
+        let merchantY = Math.random() * safeHeight + safeY;
+        
+        for (let attempt = 0; attempt < 50; attempt++) {
+            const proposedMerchant = { x: merchantX, y: merchantY, radius: merchantRadius };
+            
+            const hasCollision = existingObjects.some(existing => 
+                checkCollision(proposedMerchant, existing, 15)
+            );
+            
+            if (!hasCollision) {
+                break; // Found a good position
+            }
+            
+            // Try a new random position
+            merchantX = Math.random() * safeWidth + safeX;
+            merchantY = Math.random() * safeHeight + safeY;
+        }
+        
+        const newMerchant: IMerchant = {
+            id: `merchant_${now}`,
+            name: `${merchantType.charAt(0).toUpperCase() + merchantType.slice(1)} Trader`,
+            type: merchantType,
+            galaxyId: randomGalaxy.id,
+            x: merchantX,
+            y: merchantY,
+            spawnTime: now,
+            nextMoveTime: now + (15 * 60 * 1000), // Stay for 15 minutes
+            inventory: generateMerchantInventory(merchantType),
+            image: "🛸" // Using emoji for now, can be replaced with actual image
+        };
+        
+        setMerchants(prev => [...prev, newMerchant]);
+        setLastMerchantSpawnTime(now);
+        
+        showGeneralNotification({
+            title: "Merchant Arrived! 🚀",
+            message: `A ${merchantType} trader has appeared in ${randomGalaxy.name}! They won't stay long.`,
+            type: "info",
+            icon: "🛸"
+        });
+    };
+
+    const moveMerchant = (merchantId: string, newGalaxyId: number) => {
+        setMerchants(prev => prev.map(merchant => 
+            merchant.id === merchantId 
+                ? { 
+                    ...merchant, 
+                    galaxyId: newGalaxyId,
+                    nextMoveTime: Date.now() + (15 * 60 * 1000) // Stay for another 15 minutes
+                }
+                : merchant
+        ));
+    };
+
+    const tradeMerchant = (merchantId: string, itemType: "weapon" | "resource" | "special", itemId: string): boolean => {
+        const merchant = merchants.find(m => m.id === merchantId);
+        if (!merchant) return false;
+        
+        let item: any = null;
+        let canAfford = false;
+        
+        if (itemType === "weapon" && merchant.inventory.weapons) {
+            item = merchant.inventory.weapons.find(w => w.weaponId === itemId);
+            if (item) {
+                canAfford = Object.entries(item.price).every(([resource, amount]) => 
+                    mainShip.resources[resource as keyof PlayerResources]?.current >= (amount as number)
+                );
+                
+                if (canAfford) {
+                    // Deduct resources
+                    Object.entries(item.price).forEach(([resource, amount]) => {
+                        updateResources(resource as keyof PlayerResources, {
+                            current: mainShip.resources[resource as keyof PlayerResources].current - (amount as number)
+                        });
+                    });
+                    
+                    // Add weapon to inventory
+                    const weapon = weapons.find(w => w.id === itemId);
+                    if (weapon) {
+                        updateWeapons(itemId, weapon.amount + item.quantity);
+                    }
+                    
+                    // Remove item from merchant inventory
+                    setMerchants(prev => prev.map(m => 
+                        m.id === merchantId 
+                            ? {
+                                ...m,
+                                inventory: {
+                                    ...m.inventory,
+                                    weapons: m.inventory.weapons?.filter(w => w.weaponId !== itemId)
+                                }
+                            }
+                            : m
+                    ));
+                }
+            }
+        } else if (itemType === "resource" && merchant.inventory.resources) {
+            item = merchant.inventory.resources.find(r => r.resourceType === itemId);
+            if (item) {
+                canAfford = Object.entries(item.price).every(([resource, amount]) => 
+                    mainShip.resources[resource as keyof PlayerResources]?.current >= (amount as number)
+                );
+                
+                if (canAfford) {
+                    // Deduct payment resources
+                    Object.entries(item.price).forEach(([resource, amount]) => {
+                        updateResources(resource as keyof PlayerResources, {
+                            current: mainShip.resources[resource as keyof PlayerResources].current - (amount as number)
+                        });
+                    });
+                    
+                    // Add purchased resource
+                    const resourceType = item.resourceType as keyof PlayerResources;
+                    updateResources(resourceType, {
+                        current: Math.min(
+                            mainShip.resources[resourceType].current + item.amount,
+                            mainShip.resources[resourceType].max
+                        )
+                    });
+                    
+                    // Remove item from merchant inventory
+                    setMerchants(prev => prev.map(m => 
+                        m.id === merchantId 
+                            ? {
+                                ...m,
+                                inventory: {
+                                    ...m.inventory,
+                                    resources: m.inventory.resources?.filter(r => r.resourceType !== (itemId as keyof PlayerResources))
+                                }
+                            }
+                            : m
+                    ));
+                }
+            }
+        }
+        
+        if (canAfford) {
+            // Record transaction
+            const transaction: IMerchantTransaction = {
+                id: `transaction_${Date.now()}`,
+                merchantId,
+                itemType,
+                itemId,
+                price: item.price,
+                timestamp: Date.now()
+            };
+            setMerchantTransactions(prev => [...prev, transaction]);
+            
+            // Check for first merchant encounter achievement
+            if (!isAchievementUnlocked("first_merchant_encounter")) {
+                updateAchievToCompleted("first_merchant_encounter");
+                const achievement = achievements.find(ach => ach.id === "first_merchant_encounter");
+                if (achievement) {
+                    showNotification({
+                        title: achievement.title,
+                        description: achievement.story,
+                        rewards: [],
+                        type: 'achievement',
+                    });
+                }
+            }
+            
+            showGeneralNotification({
+                title: "Trade Successful! 💰",
+                message: `You successfully traded with ${merchant.name}!`,
+                type: "success",
+                icon: "✅"
+            });
+            
+            return true;
+        } else {
+            showGeneralNotification({
+                title: "Insufficient Resources",
+                message: "You don't have enough resources for this trade.",
+                type: "error",
+                icon: "❌"
+            });
+            return false;
+        }
+    };
+
     // Mission timer and automatic resource generation effect
     useEffect(() => {
         const interval = setInterval(() => {
@@ -1185,6 +2009,44 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 });
                 return newCooldowns;
             });
+
+            // Handle research timer
+            if (activeResearch && researchTimer > 0) {
+                setResearchTimer(prev => {
+                    const newTimer = prev - 1;
+                    if (newTimer <= 0) {
+                        // Research completed
+                        completeResearch(activeResearch);
+                        return 0;
+                    }
+                    return newTimer;
+                });
+            }
+
+            // Handle merchant movement and removal
+            const now = Date.now();
+            setMerchants(prev => prev.filter(merchant => {
+                if (now > merchant.nextMoveTime) {
+                    // Merchant moves to a different galaxy or leaves
+                    const unlockedGalaxies = galaxies.filter(g => g.found && g.id !== merchant.galaxyId);
+                    if (unlockedGalaxies.length > 0 && Math.random() < 0.7) {
+                        // 70% chance to move to another galaxy
+                        const newGalaxy = unlockedGalaxies[Math.floor(Math.random() * unlockedGalaxies.length)];
+                        moveMerchant(merchant.id, newGalaxy.id);
+                        return true; // Keep the merchant
+                    } else {
+                        // 30% chance to leave entirely
+                        showGeneralNotification({
+                            title: "Merchant Departed 🚀",
+                            message: `${merchant.name} has left this sector.`,
+                            type: "info",
+                            icon: "👋"
+                        });
+                        return false; // Remove the merchant
+                    }
+                }
+                return true; // Keep the merchant
+            }));
 
             // Handle automatic resource generation
             setMainShip(prevMainShip => {
@@ -1266,7 +2128,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [upgrades]); // Include upgrades in dependency array
+    }, [upgrades, galaxies, moveMerchant, showGeneralNotification, activeResearch, researchTimer, completeResearch]); // Include dependencies
 
     return (
         <GameContext.Provider
@@ -1284,6 +2146,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 activeMissions,
                 missionTimers,
                 missionCooldowns,
+                merchants,
+                merchantTransactions,
+                lastMerchantSpawnTime,
+                researchNodes,
+                activeResearch,
+                researchTimer,
                 isDevMode,
                 toggleDevMode,
                 giveDevResources,
@@ -1307,12 +2175,19 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 updateAchievToCompleted,
                 setFoundAsteroids,
                 setUnlockedGalaxies,
+                spawnMerchant,
+                moveMerchant,
+                tradeMerchant,
+                setMerchants,
                 startMission,
                 completeMission,
                 cancelMission,
                 canStartMission,
                 canCompleteMission,
                 formatTime,
+                startResearch,
+                completeResearch,
+                updateResearchProgress,
                 notification,
                 showNotification,
                 hideNotification,
@@ -1327,6 +2202,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 simulateEnemyKill,
                 devResetWithCompletedAchievements,
                 logFoundAsteroids,
+                devSpawnMerchantAt,
             }}
         >
             {children}

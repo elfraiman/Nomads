@@ -170,7 +170,12 @@ const BuildOperations = ({
       // Add one mining drone
       updateShips("miningDrones", ships.miningDrones + 1);
     } else {
-      alert("Not enough resources to build a Mining Drone.");
+      game.showGeneralNotification({
+        title: "Insufficient Resources",
+        message: "Not enough resources to build a Mining Drone.",
+        type: "error",
+        icon: "🤖"
+      });
     }
   };
 
@@ -195,7 +200,12 @@ const BuildOperations = ({
       // Add one mining drone
       updateShips("scanningDrones", ships.scanningDrones + 1);
     } else {
-      alert("Not enough resources to build a Mining Drone.");
+      game.showGeneralNotification({
+        title: "Insufficient Resources",
+        message: "Not enough resources to build a Scanning Drone.",
+        type: "error",
+        icon: "🛸"
+      });
     }
   };
 

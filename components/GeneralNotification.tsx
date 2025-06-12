@@ -182,48 +182,48 @@ const GeneralNotification: React.FC<GeneralNotificationProps> = ({
 const styles = StyleSheet.create({
     container: {
         position: 'absolute',
-        top: 80, // Below the header
-        right: 16,
-        left: 16,
+        top: 70,
+        right: 12,
+        left: 12,
         zIndex: 1000,
         elevation: 1000,
+        opacity: 0.95,
     },
     notificationCard: {
-        borderRadius: 12,
-        padding: 16,
-        borderWidth: 2,
-        backgroundColor: 'rgba(12, 20, 30, 0.95)', // Dark space background
+        borderRadius: 10,
+        padding: 12,
+        borderWidth: 1.5,
+        backgroundColor: 'rgba(12, 20, 30, 0.95)',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.9,
-        shadowRadius: 15, // Increased for better glow
+        shadowRadius: 12,
         elevation: 12,
         flexDirection: 'row',
         alignItems: 'center',
-        minWidth: 280,
+        minWidth: 240,
         maxWidth: '100%',
-        // Additional glow effect
         borderStyle: 'solid',
     },
     notificationIcon: {
-        fontSize: 28,
-        marginRight: 12,
+        fontSize: 24,
+        marginRight: 10,
     },
     textContainer: {
         flex: 1,
     },
     titleText: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: 'bold',
-        color: '#E0E6ED', // Bright space white
-        marginBottom: 4,
+        color: '#E0E6ED',
+        marginBottom: 3,
         textShadowColor: 'rgba(255, 255, 255, 0.3)',
         textShadowOffset: { width: 0, height: 0 },
         textShadowRadius: 4,
     },
     messageText: {
-        fontSize: 14,
-        color: '#B0BEC5', // Soft space gray
-        lineHeight: 20,
+        fontSize: 12,
+        color: '#B0BEC5',
+        lineHeight: 16,
         textShadowColor: 'rgba(255, 255, 255, 0.2)',
         textShadowOffset: { width: 0, height: 0 },
         textShadowRadius: 2,

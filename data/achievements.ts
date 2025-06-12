@@ -353,6 +353,19 @@ const achievements: IAchievement[] = [
         },
     },
     {
+        id: "first_merchant_encounter",
+        title: "Galactic Merchant",
+        description: "Encounter your first merchant in space and make a trade.",
+        story: `A mysterious merchant vessel has appeared in your vicinity! These wandering traders travel between galaxies, offering rare weapons and resources for trade. They don't stay in one place for long, so make your deals quickly.
+        
+        MERCHANT TRADING SYSTEM UNLOCKED - Keep an eye out for merchants in your exploration!`,
+        unlocks: ["merchant_beacon"],
+        completed: false,
+        onComplete: () => {
+            console.log("First merchant encounter achievement completed!");
+        },
+    },
+    {
         id: "deep_space_explorer",
         title: "Deep Space Explorer",
         description: "Discover 20 unique astronomical phenomena.",

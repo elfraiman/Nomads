@@ -1,11 +1,12 @@
 // src/data/gameState.ts
 
 
-import { IAsteroid, IGalaxy, IMainShip, PlayerResources, Ships, IMission } from "@/utils/defaults";
+import { IAsteroid, IGalaxy, IMainShip, PlayerResources, Ships, IMission, IMerchant, IMerchantTransaction } from "@/utils/defaults";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Upgrade } from "./upgrades";
 import { IAchievement } from "./achievements";
 import { IWeapon } from "./weapons";
+import { IResearchNode } from "./research";
 
 export interface GameState {
     mainShip: IMainShip;
@@ -22,6 +23,13 @@ export interface GameState {
     activeMissions?: IMission[];
     missionTimers?: Record<string, number>;
     missionCooldowns?: Record<string, number>;
+    merchants?: IMerchant[];
+    merchantTransactions?: IMerchantTransaction[];
+    lastMerchantSpawnTime?: number;
+    // Research system
+    researchNodes?: IResearchNode[];
+    activeResearch?: string | null;
+    researchTimer?: number;
 }
 
 const GAME_STATE_KEY = "GAME_STATE";

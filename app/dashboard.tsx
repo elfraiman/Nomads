@@ -26,17 +26,13 @@ const UpgradeModule = ({
     title,
     costs,
     onUpgrade,
-    // onRemove,
     description,
-    locked,
     resources,
 }: {
     title: string;
     costs: any[];
     onUpgrade: () => void;
-    onRemove: () => void;
     description: string;
-    locked: boolean;
     resources: any;
 }) => {
     // Check if the player can afford the upgrade
@@ -47,44 +43,31 @@ const UpgradeModule = ({
     return (
         <Collapsible title={title}>
             <View style={styles.upgradeContainer}>
-                {locked ? (
-                    <LockedPanel
-                        title="Locked"
-                        unlockHint="Complete goals" />
-                ) : (
-                    <>
-                        <View style={styles.costContainer}>
-                            <Text style={styles.costText}>Cost:</Text>
-                            {costs.map((cost, index) => (
-                                <View key={index} style={styles.resourceContainer}>
-                                    <ResourceIcon type={cost.resourceType} size={20} />
-                                    <Text style={styles.costText}>{cost.amount}</Text>
-                                </View>
-                            ))}
+                <View style={styles.costContainer}>
+                    <Text style={styles.costText}>Cost:</Text>
+                    {costs.map((cost, index) => (
+                        <View key={index} style={styles.resourceContainer}>
+                            <ResourceIcon type={cost.resourceType} size={20} />
+                            <Text style={styles.costText}>{cost.amount}</Text>
                         </View>
+                    ))}
+                </View>
 
-
-                        <Text style={styles.description}>{description}</Text>
-                        <View style={styles.buttonsContainer}>
-                            <TouchableOpacity
-                                onPress={onUpgrade}
-                                style={[
-                                    styles.upgradeButton,
-                                    !canAfford && styles.disabledButton,
-                                ]}
-                                disabled={!canAfford}
-                            >
-                                <Text style={styles.upgradeButtonText}>Upgrade</Text>
-                            </TouchableOpacity>
-                            {/*        <TouchableOpacity onPress={onRemove} style={styles.deleteButton}>
-                                <Ionicons name="trash" size={20} color={colors.textPrimary} />
-                            </TouchableOpacity> */}
-                        </View>
-                    </>
-                )}
+                <Text style={styles.description}>{description}</Text>
+                <View style={styles.buttonsContainer}>
+                    <TouchableOpacity
+                        onPress={onUpgrade}
+                        style={[
+                            styles.upgradeButton,
+                            !canAfford && styles.disabledButton,
+                        ]}
+                        disabled={!canAfford}
+                    >
+                        <Text style={styles.upgradeButtonText}>Upgrade</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         </Collapsible>
-
     );
 };
 
@@ -184,7 +167,9 @@ const Dashboard = () => {
         setMainShip,
         isAchievementUnlocked,
         ships,
-        weapons
+        weapons,
+        showGeneralNotification,
+        combatStats
     } = game;
 
     const handleGenerateEnergy = () => {
@@ -215,7 +200,12 @@ const Dashboard = () => {
         );
 
         if (!canAfford) {
-            alert("Not enough resources to craft this weapon!");
+            showGeneralNotification({
+                title: "Insufficient Resources",
+                message: "Not enough resources to craft this weapon!",
+                type: "error",
+                icon: "⚔️"
+            });
             return;
         }
 
@@ -244,6 +234,38 @@ const Dashboard = () => {
 
     const anyUpgradeUnlocked = useMemo(() => upgrades.some((upgrade) => isUpgradeUnlocked(upgrade.id)), [achievements, upgrades]);
 
+    // Progressive weapon unlocking system
+    const getUnlockedWeapons = useMemo(() => {
+        const unlockedWeapons = new Set<string>();
+        
+        // Always unlock light/small weapons when exploration is unlocked
+        if (isAchievementUnlocked("build_scanning_drones")) {
+            unlockedWeapons.add("light_plasma_blaster");
+            unlockedWeapons.add("light_pulse_laser");
+            unlockedWeapons.add("light_rocket_launcher");
+            unlockedWeapons.add("light_railgun");
+        }
+        
+        // Unlock medium weapons based on combat experience
+        const totalKills = combatStats.totalKills || 0;
+        if (totalKills >= 10) {
+            unlockedWeapons.add("medium_plasma_blaster");
+            unlockedWeapons.add("medium_beam_laser");
+            unlockedWeapons.add("medium_missile_launcher");
+            unlockedWeapons.add("medium_railgun");
+        }
+        
+        // Unlock heavy weapons for experienced players
+        if (totalKills >= 50) {
+            unlockedWeapons.add("heavy_plasma_blaster");
+            unlockedWeapons.add("heavy_beam_laser");
+            unlockedWeapons.add("heavy_torpedo_launcher");
+            unlockedWeapons.add("heavy_railgun");
+        }
+        
+        return unlockedWeapons;
+    }, [isAchievementUnlocked, combatStats]);
+
     // Default resource generation values for Core Operations
     const defaultResourceGenerationValue = {
         fuel: 15,
@@ -257,7 +279,12 @@ const Dashboard = () => {
         const currentTokens = mainShip.resources.tokens.current; // Access tokens from mainShip
 
         if (currentTokens < 100) {
-            alert("Not enough tokens to purchase this upgrade!");
+            showGeneralNotification({
+                title: "Insufficient Tokens",
+                message: "Not enough tokens to purchase this upgrade!",
+                type: "error",
+                icon: "🪙"
+            });
             return;
         }
 
@@ -276,7 +303,12 @@ const Dashboard = () => {
             },
         }));
 
-        alert(`Weapon Module Slots increased to ${newSlotCount}!`);
+        showGeneralNotification({
+            title: "Upgrade Complete!",
+            message: `Weapon Module Slots increased to ${newSlotCount}!`,
+            type: "success",
+            icon: "⚡"
+        });
     };
 
     return (
@@ -325,18 +357,31 @@ const Dashboard = () => {
                     ) : (
                         <View style={styles.panel}>
                             <Text style={styles.panelTitle}>Module Upgrades</Text>
-                            {upgrades.map((upgrade) => (
-                                <UpgradeModule
-                                    key={upgrade.id}
-                                    title={upgrade.title}
-                                    costs={upgrade.costs}
-                                    onUpgrade={() => purchaseUpgrade(upgrade.id)}
-                                    onRemove={() => {}} // No downgrade function available
-                                    description={upgrade.description(upgrade.level || 0)}
-                                    locked={!isUpgradeUnlocked(upgrade.id)}
-                                    resources={resources}
-                                />
-                            ))}
+                            {upgrades
+                                .filter((upgrade) => isUpgradeUnlocked(upgrade.id)) // Only show unlocked upgrades
+                                .map((upgrade) => (
+                                    <UpgradeModule
+                                        key={upgrade.id}
+                                        title={upgrade.title}
+                                        costs={upgrade.costs}
+                                        onUpgrade={() => purchaseUpgrade(upgrade.id)}
+                                        description={upgrade.description(upgrade.level || 0)}
+                                        resources={resources}
+                                    />
+                                ))}
+                            
+                            {/* Show hint about locked upgrades */}
+                            {upgrades.some(upgrade => !isUpgradeUnlocked(upgrade.id)) && (
+                                <View style={styles.moreContentHint}>
+                                    <Text style={styles.moreContentIcon}>🔮</Text>
+                                    <Text style={styles.moreContentText}>
+                                        More modules will unlock as you progress...
+                                    </Text>
+                                    <Text style={styles.moreContentSubtext}>
+                                        Complete achievements to discover new upgrades!
+                                    </Text>
+                                </View>
+                            )}
                         </View>
                     )}
 
@@ -364,18 +409,26 @@ const Dashboard = () => {
                     )}
 
                     {/* Weapon Crafting Section */}
-                    {!isAchievementUnlocked("upgrade_core_operations_storage") ? (
+                    {!isAchievementUnlocked("build_scanning_drones") ? (
                         <LockedPanel
-                            title="Locked"
-                            unlockHint="Complete goals to unlock Weapon Crafting"
+                            title="Weapon Modules - Locked"
+                            unlockHint="Build 5 Scanning Drones to unlock basic weapon crafting"
                         />
                     ) : (
                         <View style={styles.panel}>
                             <Text style={styles.panelTitle}>Weapon Modules</Text>
                             <View style={styles.cardContent}>
-                                {Object.entries(weaponCategories).map(([type, weapons]) => (
+                                {Object.entries(weaponCategories)
+                                    .filter(([type, weapons]) => 
+                                        weapons.some(weapon => 
+                                            getUnlockedWeapons.has(weapon.id) || weapon.amount > 0
+                                        )
+                                    ) // Only show categories with unlocked or available weapons
+                                    .map(([type, weapons]) => (
                                     <Collapsible key={type} title={`${type.charAt(0).toUpperCase() + type.slice(1)}s`}>
-                                        {weapons.map((weapon) => {
+                                        {weapons
+                                            .filter(weapon => getUnlockedWeapons.has(weapon.id) || weapon.amount > 0)
+                                            .map((weapon) => {
                                             // Check if the player can afford the weapon
                                             const canAfford = weapon.costs.every(
                                                 (cost) =>
@@ -424,6 +477,43 @@ const Dashboard = () => {
                                     </Collapsible>
                                 ))}
 
+                                {/* Weapon Progression Info */}
+                                <View style={styles.progressionInfo}>
+                                    <Text style={styles.progressionTitle}>🎯 Weapon Progression</Text>
+                                    <Text style={styles.progressionText}>
+                                        Combat Kills: {combatStats.totalKills || 0}
+                                    </Text>
+                                    {(combatStats.totalKills || 0) < 10 && (
+                                        <Text style={styles.progressionHint}>
+                                            🔓 Medium weapons unlock at 10 kills
+                                        </Text>
+                                    )}
+                                    {(combatStats.totalKills || 0) >= 10 && (combatStats.totalKills || 0) < 50 && (
+                                        <Text style={styles.progressionHint}>
+                                            🔓 Heavy weapons unlock at 50 kills
+                                        </Text>
+                                    )}
+                                    {(combatStats.totalKills || 0) >= 50 && (
+                                        <Text style={styles.progressionComplete}>
+                                            ✅ All weapon tiers unlocked!
+                                        </Text>
+                                    )}
+                                </View>
+
+                                {/* Show hint about more weapon categories */}
+                                {Object.entries(weaponCategories).some(([type, weapons]) => 
+                                    weapons.some(weapon => !getUnlockedWeapons.has(weapon.id) && weapon.amount === 0)
+                                ) && (
+                                    <View style={styles.moreContentHint}>
+                                        <Text style={styles.moreContentIcon}>⚔️</Text>
+                                        <Text style={styles.moreContentText}>
+                                            More weapon tiers await unlocking...
+                                        </Text>
+                                        <Text style={styles.moreContentSubtext}>
+                                            Gain combat experience to unlock advanced weapons!
+                                        </Text>
+                                    </View>
+                                )}
                             </View>
                         </View>
                     )}
@@ -693,6 +783,63 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontStyle: 'italic',
         marginTop: 4,
+    },
+    // More content hint styles
+    moreContentHint: {
+        backgroundColor: colors.panelBackground,
+        borderWidth: 2,
+        borderColor: colors.primary,
+        borderStyle: 'dashed',
+        padding: 16,
+        marginTop: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    moreContentIcon: {
+        fontSize: 24,
+        marginBottom: 8,
+    },
+    moreContentText: {
+        color: colors.primary,
+        fontSize: 16,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 4,
+    },
+    moreContentSubtext: {
+        color: colors.textSecondary,
+        fontSize: 12,
+        textAlign: 'center',
+        fontStyle: 'italic',
+    },
+    progressionInfo: {
+        backgroundColor: colors.panelBackground,
+        padding: 12,
+        marginVertical: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    progressionTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: colors.textPrimary,
+        marginBottom: 6,
+    },
+    progressionText: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        marginBottom: 4,
+    },
+    progressionHint: {
+        fontSize: 12,
+        color: colors.warning,
+        fontStyle: 'italic',
+    },
+    progressionComplete: {
+        fontSize: 12,
+        color: colors.successGradient[0],
+        fontWeight: 'bold',
     },
 });
 

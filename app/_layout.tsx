@@ -15,6 +15,7 @@ import DroneManagement from './dronemanagment';
 import Exploration from './exploration';
 import WeaponManagementPage from './weaponsManagmentPage';
 import MissionsPage from './missions';
+import Research from './research';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -237,6 +238,28 @@ function WrappedRootLayout() {
             component={MissionsPage}
             options={{
               title: 'Locked',
+              drawerIcon: ({ color }) => <Ionicons name="lock-closed-outline" size={24} color={color} />,
+              drawerItemStyle: { backgroundColor: colors.lockedBackground },
+            }}
+          />
+        )}
+
+        {/* Conditional rendering for Research */}
+        {isAchievementUnlocked("unlock_research_lab") ? (
+          <Drawer.Screen
+            name="research"
+            component={Research}
+            options={{
+              title: 'Research',
+              drawerIcon: ({ color }) => <Ionicons name="flask-outline" size={24} color={color} />,
+            }}
+          />
+        ) : (
+          <Drawer.Screen
+            name="researchLocked"
+            component={Dashboard}
+            options={{
+              title: 'Research',
               drawerIcon: ({ color }) => <Ionicons name="lock-closed-outline" size={24} color={color} />,
               drawerItemStyle: { backgroundColor: colors.lockedBackground },
             }}

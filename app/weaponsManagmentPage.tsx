@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert, Image, ImageBackground } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Image, ImageBackground } from "react-native";
 import { useGame } from "@/context/GameContext";
 import colors from "@/utils/colors";
 import ResourceIcon from "@/components/ui/ResourceIcon";
@@ -11,7 +11,7 @@ const WeaponManagementPage = () => {
 
   if (!game) return null;
 
-  const { weapons, mainShip, setMainShip, updateWeapons } = game;
+  const { weapons, mainShip, setMainShip, updateWeapons, showGeneralNotification } = game;
 
   const equipWeapon = (weaponId: string) => {
     const weapon = weapons.find((w) => w.id === weaponId);
@@ -63,23 +63,19 @@ const WeaponManagementPage = () => {
 
 
   const destroyWeapon = (uniqueId: string) => {
-    Alert.alert(
-      "Destroy Weapon",
-      "Are you sure you want to destroy this weapon? This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Destroy",
-          style: "destructive",
-          onPress: () => {
-            setMainShip((prev) => ({
-              ...prev,
-              equippedWeapons: prev.equippedWeapons.filter((w) => w.uniqueId !== uniqueId),
-            }));
-          },
-        },
-      ]
-    );
+    // For now, directly destroy the weapon and show notification
+    // TODO: Consider implementing a custom confirmation modal for better UX
+    setMainShip((prev) => ({
+      ...prev,
+      equippedWeapons: prev.equippedWeapons.filter((w) => w.uniqueId !== uniqueId),
+    }));
+    
+    showGeneralNotification({
+      title: "Weapon Destroyed",
+      message: "The weapon has been destroyed permanently.",
+      type: "warning",
+      icon: "💥"
+    });
   };
 
   const availableWeapons = weapons.filter((weapon) => weapon.amount > 0);

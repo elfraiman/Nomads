@@ -147,48 +147,49 @@ const KillTrackingNotification: React.FC<KillTrackingNotificationProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 20,
-    right: 16,
-    left: 16,
+    top: 16,
+    right: 12,
+    left: 12,
     zIndex: 1000,
     elevation: 1000,
+    opacity: 0.95,
   },
   notificationCard: {
-    backgroundColor: 'rgba(26, 35, 44, 0.95)', // Slightly more opaque for better readability
-    borderRadius: 12,
-    padding: 15,
-    borderWidth: 2,
+    backgroundColor: 'rgba(26, 35, 44, 0.95)',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1.5,
     borderColor: colors.primary,
     shadowColor: colors.glowEffect,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
-    shadowRadius: 10,
+    shadowRadius: 8,
     elevation: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    minWidth: 280,
-    maxWidth: '90%', // Ensure it doesn't overflow on smaller screens
+    minWidth: 240,
+    maxWidth: '90%',
   },
   completedCard: {
     borderColor: '#4CAF50',
-    backgroundColor: 'rgba(27, 94, 32, 0.95)', // More opaque for completed state
+    backgroundColor: 'rgba(27, 94, 32, 0.95)',
   },
   killIcon: {
-    fontSize: 32,
-    marginRight: 12,
+    fontSize: 26,
+    marginRight: 10,
   },
   textContainer: {
     flex: 1,
   },
   enemyText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   progressText: {
-    fontSize: 14,
-    marginBottom: 4,
+    fontSize: 12,
+    marginBottom: 3,
   },
   completedText: {
     color: '#4CAF50',
@@ -198,7 +199,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   counterText: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.primary,
     fontWeight: 'bold',
   },

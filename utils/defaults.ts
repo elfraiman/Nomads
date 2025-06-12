@@ -542,3 +542,29 @@ export interface IResearchProject {
   inProgress: boolean;
   progress: number;
 }
+
+export interface IMerchant {
+  id: string;
+  name: string;
+  type: "weapons" | "resources" | "general";
+  galaxyId: number;
+  x: number;
+  y: number;
+  spawnTime: number; // Timestamp when merchant spawned
+  nextMoveTime: number; // Timestamp when merchant will move to another galaxy
+  inventory: {
+    weapons?: { weaponId: string; price: Record<string, number>; quantity: number }[];
+    resources?: { resourceType: keyof PlayerResources; amount: number; price: Record<string, number> }[];
+    specialItems?: { id: string; name: string; description: string; price: Record<string, number>; effect: () => void }[];
+  };
+  image: any; // Image asset for the merchant
+}
+
+export interface IMerchantTransaction {
+  id: string;
+  merchantId: string;
+  itemType: "weapon" | "resource" | "special";
+  itemId: string;
+  price: Record<string, number>;
+  timestamp: number;
+}
