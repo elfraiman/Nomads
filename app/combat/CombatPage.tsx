@@ -1,21 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { ImageBackground, ScrollView, StyleSheet, Text, View, Animated, TouchableOpacity } from "react-native";
+import { ImageBackground, ScrollView, StyleSheet, Text, View } from "react-native";
 import ShipStatus from "@/components/ShipStatus";
 import { useGame } from "@/context/GameContext";
 import { IWeapon } from "@/data/weapons";
 import colors from "@/utils/colors";
 import { IMainShip, PlayerResources, resourceColors } from "@/utils/defaults";
-import CombatLog from "./combat/components/CombatLog";
-import FloatingDamageNumbers from "./combat/components/FloatingDamageNumbers";
-import HealthBars from "./combat/components/HealthBars";
-import WeaponGroups from "./combat/components/WeaponGroups";
-import { useCombatLogic } from "./combat/hooks/useCombatLogic";
-import { useEscapeLogic } from "./combat/hooks/useEscapeLogic";
-import { useFloatingDamage } from "./combat/hooks/useFloatingDamage";
-import { useWeaponCooldowns } from "./combat/hooks/useWeaponCooldowns";
-import { calculateHitChance, calculateDamage } from "./combat/utils/combatCalculations";
 
+// Combat components
+import HealthBars from "./components/HealthBars";
+import CombatLog from "./components/CombatLog";
+import WeaponGroups from "./components/WeaponGroups";
+import FloatingDamageNumbers from "./components/FloatingDamageNumbers";
+import CombatControls from "./components/CombatControls";
 
+// Combat hooks
+import { useFloatingDamage } from "./hooks/useFloatingDamage";
+import { useWeaponCooldowns } from "./hooks/useWeaponCooldowns";
+import { useEscapeLogic } from "./hooks/useEscapeLogic";
+import { useCombatLogic } from "./hooks/useCombatLogic";
+
+// Combat utilities
+import { calculateHitChance, calculateDamage } from "./utils/combatCalculations";
 
 const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
   const { planet } = route.params;
@@ -33,34 +38,6 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
   // State for firing and weapon groups
   const [isFiring, setIsFiring] = useState(false);
   const [weaponGroups, setWeaponGroups] = useState<{ [key: string]: IWeapon[] }>({});
-
-  // Screen shake animation for combat feedback
-  const [screenShake] = useState(new Animated.Value(0));
-
-  const triggerScreenShake = () => {
-    Animated.sequence([
-      Animated.timing(screenShake, {
-        toValue: 3,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(screenShake, {
-        toValue: -3,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(screenShake, {
-        toValue: 2,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(screenShake, {
-        toValue: 0,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
 
   // Unlock next planet function
   const unlockNextPlanet = () => {
@@ -184,11 +161,9 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
           createFloatingDamage(damage, isCritical, weaponCooldown.weaponDetails.cost.type);
 
-          const weaponName = weaponCooldown.weaponDetails.name;
-          const target = pirate.name;
           const hitText = isCritical
-            ? `${weaponName} → ${target}: CRITICAL HIT! ${damage} damage`
-            : `${weaponName} → ${target}: ${damage} damage`;
+            ? `${weaponCooldown.weaponDetails.name} CRITICAL HIT for ${damage} damage!`
+            : `${weaponCooldown.weaponDetails.name} hit for ${damage} damage!`;
 
           addLogEntry({
             text: hitText,
@@ -196,7 +171,7 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
           });
         } else {
           addLogEntry({
-            text: `${weaponCooldown.weaponDetails.name} → ${pirate.name}: MISS`,
+            text: `${weaponCooldown.weaponDetails.name} missed!`,
             color: colors.textSecondary,
           });
         }
@@ -226,12 +201,6 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
     setWeaponCooldowns(updatedWeaponCooldowns.filter((w): w is NonNullable<typeof w> => w !== null));
     setMainShip(newMainShip);
-
-    // Trigger screen shake if weapons fired
-    if (totalDamage > 0) {
-      triggerScreenShake();
-    }
-
     damagePirate(totalDamage);
     setIsFiring(false);
   };
@@ -261,87 +230,60 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
 
   return (
     <>
-      <Animated.View style={[
-        styles.backgroundImage,
-        {
-          transform: [{ translateX: screenShake }]
-        }
-      ]}>
-        <ImageBackground
-          source={require("@/assets/images/space-bg.png")}
-          style={styles.backgroundImage}
-        >
-          <HealthBars mainShip={mainShip} pirate={pirate} />
+      <ImageBackground
+        source={require("@/assets/images/space-bg.png")}
+        style={styles.backgroundImage}
+      >
+        <HealthBars mainShip={mainShip} pirate={pirate} />
 
-          <ScrollView style={[styles.container, { backgroundColor: "transparent" }]}>
-            {/* Combat Header */}
+        <ScrollView style={[styles.container, { backgroundColor: "transparent" }]} showsVerticalScrollIndicator={false}>
+          {/* Combat Status */}
+          <View style={styles.combatHeader}>
+            <Text style={styles.planetInfo}>
+              {planet.name} • {enemies.length} ENEMIES LEFT
+            </Text>
+
             {hasEscaped ? (
-              <Text style={styles.combatStatus}>ESCAPED!</Text>
+              <View style={styles.statusContainer}>
+                <Text style={styles.escapeStatus}>🚀 ESCAPED! 🚀</Text>
+              </View>
             ) : pirate ? (
-              <>
-                <Text style={styles.header}>
-                  {planet.name.toUpperCase()} COMBAT ZONE
-                </Text>
-                <Text style={[styles.header, { fontSize: 16, color: colors.warning, marginBottom: 16 }]}>
-                  [{enemies.length} HOSTILES REMAINING]
-                </Text>
-                <View style={styles.pirateContainer}>
-                  <Text style={styles.pirateTitle}>ENEMY CONTACT</Text>
-                  <Text style={styles.pirateName}>
-                    {pirate.name.toUpperCase()}
-                  </Text>
-                  <Text style={[styles.pirateName, { fontSize: 16, color: colors.warning, marginTop: 4 }]}>
-                    [{pirate.category}] • {pirate.health}/{pirate.maxHealth} HP
-                  </Text>
-                </View>
-              </>
+              <View style={styles.enemyInfo}>
+                <Text style={styles.enemyLabel}>CURRENT TARGET</Text>
+                <Text style={styles.enemyName}>{pirate.name}</Text>
+                <Text style={styles.enemyCategory}>{pirate.category} • {pirate.health}/{pirate.maxHealth} HP</Text>
+              </View>
             ) : (
-              <Text style={styles.combatStatus}>VICTORY ACHIEVED!</Text>
+              <View style={styles.statusContainer}>
+                <Text style={styles.victoryStatus}>🏆 VICTORY! 🏆</Text>
+              </View>
             )}
+          </View>
 
-            <CombatLog combatLog={combatLog} />
+          <CombatLog combatLog={combatLog} />
 
-            <WeaponGroups
-              weaponGroups={weaponGroups}
-              weaponCooldowns={weaponCooldowns}
-              mainShip={mainShip}
-              isFiring={isFiring}
-              onFireWeaponGroup={handleAttackByType}
+          <WeaponGroups
+            weaponGroups={weaponGroups}
+            weaponCooldowns={weaponCooldowns}
+            mainShip={mainShip}
+            isFiring={isFiring}
+            onFireWeaponGroup={handleAttackByType}
+          />
+
+          <View style={styles.controlsContainer}>
+            <CombatControls
+              hasEscaped={hasEscaped}
+              pirate={pirate}
+              canEscape={canEscape}
+              onEscape={handleEscape}
+              onBack={handleBack}
+              getEscapeCooldownRemaining={getEscapeCooldownRemaining}
             />
-          </ScrollView>
+          </View>
+        </ScrollView>
 
-          <FloatingDamageNumbers floatingDamage={floatingDamage} />
-
-          {/* Fixed Escape Button */}
-          {!hasEscaped && pirate ? (
-            <TouchableOpacity
-              style={[
-                styles.fixedEscapeButton,
-                {
-                  backgroundColor: canEscape ? colors.redButton : colors.disabledBackground,
-                  borderColor: canEscape ? colors.error : colors.disabledBorder,
-                }
-              ]}
-              onPress={handleEscape}
-              disabled={!canEscape}
-            >
-              <Text style={[
-                styles.escapeButtonText,
-                { color: canEscape ? colors.textPrimary : colors.disabledText }
-              ]}>
-                {canEscape ? "ESC" : `${getEscapeCooldownRemaining()}s`}
-              </Text>
-            </TouchableOpacity>
-          ) : hasEscaped || !pirate ? (
-            <TouchableOpacity
-              style={styles.fixedBackButton}
-              onPress={handleBack}
-            >
-              <Text style={styles.backButtonText}>BACK</Text>
-            </TouchableOpacity>
-          ) : null}
-        </ImageBackground>
-      </Animated.View>
+        <FloatingDamageNumbers floatingDamage={floatingDamage} />
+      </ImageBackground>
 
       <ShipStatus />
     </>
@@ -355,93 +297,78 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    padding: 16,
+    padding: 8,
   },
-  header: {
-    fontSize: 26,
-    fontWeight: "900",
+  combatHeader: {
+    marginBottom: 12,
+  },
+  planetInfo: {
+    fontSize: 14,
+    fontWeight: "600",
     color: colors.glowEffect,
     textAlign: "center",
-    textShadowColor: colors.glowEffect,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
-    marginBottom: 8,
-    letterSpacing: 1,
+    marginBottom: 6,
+    letterSpacing: 0.5,
   },
-  pirateContainer: {
+  statusContainer: {
     alignItems: "center",
-    marginBottom: 20,
-    backgroundColor: colors.transparentBackground,
-    borderRadius: 12,
+    backgroundColor: 'rgba(26, 26, 61, 0.8)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.glowEffect,
+    padding: 12,
+    marginHorizontal: 4,
+    marginTop: 8,
+  },
+  enemyInfo: {
+    alignItems: "center",
+    backgroundColor: 'rgba(26, 26, 61, 0.9)',
+    borderRadius: 8,
     borderWidth: 2,
     borderColor: colors.error,
-    padding: 16,
-    marginHorizontal: 8,
+    padding: 12,
+    marginHorizontal: 4,
+    marginTop: 68,
   },
-  pirateName: {
-    color: colors.textPrimary,
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-    textShadowColor: colors.error,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 6,
-  },
-  pirateTitle: {
+  enemyLabel: {
     color: colors.error,
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: "600",
     textAlign: "center",
     marginBottom: 4,
     letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  combatStatus: {
-    fontSize: 28,
-    fontWeight: "900",
+  enemyName: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 2,
+  },
+  enemyCategory: {
+    color: colors.warning,
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  escapeStatus: {
+    fontSize: 16,
+    fontWeight: "700",
     color: colors.successGradient[0],
     textAlign: "center",
-    textShadowColor: colors.successGradient[0],
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 12,
-    marginVertical: 20,
-    letterSpacing: 2,
+    letterSpacing: 1,
   },
-  fixedEscapeButton: {
-    position: 'absolute',
-    top: 16,
-    right: 12,
-    width: 32,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
+  victoryStatus: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.successGradient[0],
+    textAlign: "center",
+    letterSpacing: 1,
   },
-  escapeButtonText: {
-    fontSize: 8,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  fixedBackButton: {
-    position: 'absolute',
-    top: 16,
-    right: 12,
-    width: 36,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.glowEffect,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  backButtonText: {
-    fontSize: 8,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    textAlign: 'center',
+  controlsContainer: {
+    padding: 8,
+    marginTop: 8,
   },
 });
 

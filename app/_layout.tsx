@@ -9,13 +9,14 @@ import { useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
 import { StatusBar, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import CombatPage from './combatPage';
+
 import Dashboard from './dashboard';
 import DroneManagement from './dronemanagment';
 import Exploration from './exploration';
 import WeaponManagementPage from './weaponsManagmentPage';
 import MissionsPage from './missions';
 import Research from './research';
+import CombatPage from './combat/CombatPage';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -42,7 +43,7 @@ function DevResetScreen() {
   useEffect(() => {
     // Execute reset when component mounts
     devResetWithCompletedAchievements();
-    
+
     // Navigate back to dashboard after reset
     const timer = setTimeout(() => {
       router.replace('/dashboard');

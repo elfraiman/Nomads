@@ -1,0 +1,1105 @@
+{
+  "mainShip": {
+    "id": "main_ship",
+    "name": "Players Ship",
+    "baseStats": {
+      "health": 0,
+      "maxHealth": 500
+    },
+    "equippedWeapons": [
+    ],
+    "maxWeaponSlots": 6,
+    "resources": {
+      "energy": {
+        "current": 57305,
+        "max": 57305,
+        "efficiency": 2,
+        "locked": false
+      },
+      "fuel": {
+        "current": 14816,
+        "max": 95405,
+        "efficiency": 2,
+        "locked": false
+      },
+      "solarPlasma": {
+        "current": 8023,
+        "max": 95405,
+        "efficiency": 2,
+        "locked": false
+      },
+      "darkMatter": {
+        "current": 57005,
+        "max": 95405,
+        "efficiency": 1,
+        "locked": false
+      },
+      "frozenHydrogen": {
+        "current": 54505,
+        "max": 95405,
+        "efficiency": 1,
+        "locked": false
+      },
+      "alloys": {
+        "current": 17521,
+        "max": 95405,
+        "efficiency": 0,
+        "locked": false
+      },
+      "tokens": {
+        "current": 56405,
+        "max": 95405,
+        "efficiency": 1,
+        "locked": false
+      }
+    }
+  },
+  "achievements": [
+    {
+      "id": "gather_100_energy",
+      "title": "Energy Pioneer",
+      "description": "Gather 100 Energy to unlock Reactor Optimization upgrades.",
+      "resourceGoals": {
+        "energy": 100
+      },
+      "progress": {
+        "resources": {
+          "energy": 100
+        }
+      },
+      "story": "Your ship's systems spark to life as you gather the first units of energy. The reactor's hum grows steady, and you feel a sense of accomplishment. This is just the beginning of your journey to rebuild the ship's power core.",
+      "unlocks": [
+        ""
+      ],
+      "completed": true
+    },
+    {
+      "id": "gather_fuel",
+      "title": "Resource Collector",
+      "description": "Gather 100 Fuel.",
+      "resourceGoals": {
+        "fuel": 100
+      },
+      "progress": {
+        "resources": {
+          "fuel": 100
+        }
+      },
+      "story": "The ship's tanks begin to fill with fuel, a lifeblood that promises movement and exploration. As the reserves increase, the navigation systems flicker to life, urging you to venture further into the unknown.",
+      "completed": true,
+      "unlocks": [
+        "reactor_storage"
+      ]
+    },
+    {
+      "id": "upgrade_reactor_storage",
+      "title": "Energy Baron",
+      "description": "Upgrade your reactor storage to unlock Reactor Optimization upgrades.",
+      "upgradeGoals": {
+        "reactor_storage": 1
+      },
+      "progress": {
+        "upgrades": {
+          "reactor_storage": 1
+        }
+      },
+      "story": "With improved reactor storage, the ship feels alive. Power surges through the systems, and dormant modules begin to hum softly. The AI interface hints at greater upgrades awaiting your command.",
+      "unlocks": [
+        "reactor_optimization"
+      ],
+      "completed": true
+    },
+    {
+      "id": "upgrade_reactor_optimization",
+      "title": "Automated Systems",
+      "description": "Optimize your reactor to generate more Energy.",
+      "upgradeGoals": {
+        "reactor_optimization": 5
+      },
+      "progress": {
+        "upgrades": {
+          "reactor_optimization": 5
+        }
+      },
+      "story": "Your reactor now operates at peak efficiency, generating energy with precision. The ship's AI acknowledges your success, suggesting new pathways to explore and new resources to uncover.",
+      "unlocks": [
+        "core_operations_efficiency"
+      ],
+      "completed": true
+    },
+    {
+      "id": "upgrade_core_operations_efficiency",
+      "title": "Increase Core Operations Efficiency",
+      "description": "Upgrade your core operations to increase resource generation.",
+      "upgradeGoals": {
+        "core_operations_efficiency": 1
+      },
+      "progress": {
+        "upgrades": {
+          "core_operations_efficiency": 1
+        }
+      },
+      "story": "As core operations become streamlined, resource generation reaches unprecedented levels. The AI announces the detection of a nearby star, sparking a new era of exploration and discovery.",
+      "unlocks": [
+        "core_operations_storage"
+      ],
+      "completed": true
+    },
+    {
+      "id": "upgrade_core_operations_storage",
+      "title": "Increase Core Operations Storage",
+      "description": "Upgrade your core operations storage to store more resources.",
+      "upgradeGoals": {
+        "core_operations_storage": 2
+      },
+      "progress": {
+        "upgrades": {
+          "core_operations_storage": 2
+        }
+      },
+      "story": "Storage upgrades completed. The ship’s capacity to hold vital resources now allows for extended missions. The AI suggests building scanning drones to chart nearby star systems for potential riches.",
+      "unlocks": [
+        "drones_crafting"
+      ],
+      "completed": true
+    },
+    {
+      "id": "build_scanning_drones",
+      "title": "Exploration is Key to Survival",
+      "description": "Build 5 Scanning Drones to start exploring the galaxies.",
+      "shipGoals": {
+        "scanningDrones": 5
+      },
+      "progress": {
+        "ships": {
+          "scanningDrones": 5
+        }
+      },
+      "story": "With scanning drones assembled, your ship detects faint energy signals in distant galaxies. The onboard AI suggests deploying these drones to uncover nearby asteroid fields rich in untapped resources.",
+      "unlocks": [
+        "asteroid_scanning"
+      ],
+      "completed": true
+    },
+    {
+      "id": "find_an_asteroid",
+      "title": "Asteroid Hunter",
+      "description": "Find a resourceful asteroid using Scanning Drones.",
+      "story": "An asteroid has been detected, pulsating with precious resources. Your scanners indicate this will be a key turning point in your survival. Deploy mining drones to harvest its bounty.",
+      "unlocks": [
+        "mining_drones"
+      ],
+      "completed": true
+    },
+    {
+      "id": "build_mining_drones",
+      "title": "Mining Operations",
+      "description": "Build 2 Mining Drones to start mining the asteroid you found.",
+      "shipGoals": {
+        "miningDrones": 1
+      },
+      "progress": {
+        "ships": {
+          "miningDrones": 1
+        }
+      },
+      "story": "Mining drones deploy seamlessly onto the asteroid’s surface, extracting vital resources. The ship's AI commends your ingenuity, hinting at the vast potential for automation.",
+      "unlocks": [
+        ""
+      ],
+      "completed": true
+    }
+  ],
+  "upgrades": [
+    {
+      "id": "reactor_optimization",
+      "level": 26,
+      "costs": [
+        {
+          "resourceType": "energy",
+          "amount": 11735
+        }
+      ],
+      "title": "Reactor Optimization",
+      "baseCostMultiplier": 1.25
+    },
+    {
+      "id": "reactor_storage",
+      "level": 12,
+      "costs": [
+        {
+          "resourceType": "energy",
+          "amount": 287
+        },
+        {
+          "resourceType": "fuel",
+          "amount": 287
+        }
+      ],
+      "title": "Reactor Storage",
+      "baseCostMultiplier": 1.1
+    },
+    {
+      "id": "core_operations_storage",
+      "level": 8,
+      "costs": [
+        {
+          "resourceType": "energy",
+          "amount": 1194
+        },
+        {
+          "resourceType": "fuel",
+          "amount": 595
+        },
+        {
+          "resourceType": "solarPlasma",
+          "amount": 304
+        }
+      ],
+      "title": "Core Operations Storage",
+      "baseCostMultiplier": 1.25
+    },
+    {
+      "id": "core_operations_efficiency",
+      "level": 3,
+      "costs": [
+        {
+          "resourceType": "energy",
+          "amount": 170
+        },
+        {
+          "resourceType": "fuel",
+          "amount": 338
+        }
+      ],
+      "title": "Core Operations Efficiency",
+      "baseCostMultiplier": 1.5
+    }
+  ],
+  "ships": {
+    "miningDrones": 2,
+    "scanningDrones": 1
+  },
+  "allocatedDrones": {
+    "mining": {}
+  },
+  "foundAsteroids": [
+    {
+      "galaxyId": 1,
+      "id": 4,
+      "name": "Asteroid Ferra",
+      "resource": "alloys",
+      "findChance": 0.07,
+      "maxResources": 908,
+      "x": 40.014651037131074,
+      "y": 371.91265251915723
+    },
+    {
+      "galaxyId": 1,
+      "id": 5,
+      "name": "Asteroid Cryon",
+      "resource": "frozenHydrogen",
+      "findChance": 0.6,
+      "maxResources": 1321,
+      "x": 288.1364531537348,
+      "y": 678.9846968836866
+    },
+    {
+      "galaxyId": 1,
+      "id": 6,
+      "name": "Asteroid Volta",
+      "resource": "energy",
+      "findChance": 0.4,
+      "maxResources": 1368,
+      "x": 379.8314623232647,
+      "y": 371.5614767349275
+    }
+  ],
+  "galaxies": [
+    {
+      "id": 1,
+      "name": "Alpha Centauri",
+      "size": 90,
+      "image": {
+        "uri": "/assets/?unstable_path=.%2Fassets%2Fimages/galaxy.webp",
+        "width": 1024,
+        "height": 1024
+      },
+      "found": true,
+      "planets": [
+        {
+          "galaxyId": 1,
+          "id": 1,
+          "name": "Planet A1",
+          "position": {
+            "x": 150,
+            "y": 152.66666666666666
+          },
+          "image": {
+            "uri": "/assets/?unstable_path=.%2Fassets%2Fimages/planet1.png",
+            "width": 824,
+            "height": 808
+          },
+          "enemies": [
+            {
+              "name": "Missile Corvette",
+              "faction": "Nebula Marauders",
+              "health": 100,
+              "maxHealth": 100,
+              "attack": 13,
+              "defense": 5,
+              "weaponOfChoice": "Missile Launcher",
+              "attackSpeed": 2,
+              "lore": "Swift and aggressive, these corvettes fire devastating volleys of missiles to overwhelm their prey.",
+              "category": "Corvette"
+            },
+            {
+              "name": "Laser Interceptor",
+              "faction": "Nebula Marauders",
+              "health": 125,
+              "maxHealth": 125,
+              "attack": 18,
+              "defense": 7,
+              "weaponOfChoice": "Laser Arrays",
+              "attackSpeed": 2,
+              "lore": "Specialized in hit-and-run tactics, their laser arrays slice through unshielded hulls.",
+              "category": "Cruiser"
+            },
+            {
+              "name": "Nebula Ravager",
+              "faction": "Nebula Marauders",
+              "health": 300,
+              "maxHealth": 300,
+              "attack": 35,
+              "defense": 10,
+              "weaponOfChoice": "Plasma Torpedoes",
+              "attackSpeed": 4,
+              "lore": "A heavily modified cruiser armed with plasma torpedoes for high damage against larger ships.",
+              "category": "Dreadnought"
+            },
+            {
+              "name": "Titan Breaker",
+              "faction": "Nebula Marauders",
+              "health": 650,
+              "maxHealth": 650,
+              "attack": 50,
+              "defense": 25,
+              "weaponOfChoice": "Heavy Plasma Cannon",
+              "attackSpeed": 6,
+              "lore": "A massive battleship designed to take on even the largest enemy vessels.",
+              "category": "Battleship"
+            },
+            {
+              "name": "Nebula Titan",
+              "faction": "Nebula Marauders",
+              "health": 1200,
+              "maxHealth": 1200,
+              "attack": 70,
+              "defense": 35,
+              "weaponOfChoice": "Graviton Beam",
+              "attackSpeed": 12,
+              "lore": "The pride of the Nebula Marauders, this titan-class vessel can tear apart space-time itself.",
+              "category": "Titan"
+            }
+          ],
+          "pirateCount": 0,
+          "locked": false
+        },
+        {
+          "galaxyId": 1,
+          "id": 2,
+          "name": "Planet A2",
+          "position": {
+            "x": 350,
+            "y": 190.83333333333334
+          },
+          "image": {
+            "uri": "/assets/?unstable_path=.%2Fassets%2Fimages/planet2.png",
+            "width": 824,
+            "height": 808
+          },
+          "enemies": [
+            {
+              "name": "Stealth Raider",
+              "faction": "Void Corsairs",
+              "health": 120,
+              "maxHealth": 120,
+              "attack": 20,
+              "defense": 6,
+              "weaponOfChoice": "Cloaking Disruptor",
+              "attackSpeed": 2.5,
+              "lore": "Equipped with cloaking devices, these raiders strike from the shadows and vanish before retaliation.",
+              "category": "Corvette"
+            },
+            {
+              "name": "Ion Saboteur",
+              "faction": "Void Corsairs",
+              "health": 150,
+              "maxHealth": 150,
+              "attack": 25,
+              "defense": 8,
+              "weaponOfChoice": "Ion Cannons",
+              "attackSpeed": 2.5,
+              "lore": "Saboteurs who disable ships with precision ion cannon strikes, leaving them vulnerable.",
+              "category": "Cruiser"
+            },
+            {
+              "name": "Corsair Warlord",
+              "faction": "Void Corsairs",
+              "health": 400,
+              "maxHealth": 400,
+              "attack": 50,
+              "defense": 15,
+              "weaponOfChoice": "Void Lance",
+              "attackSpeed": 3,
+              "lore": "A feared commander, the Warlord's Void Lance unleashes devastating energy beams.",
+              "category": "Dreadnought"
+            },
+            {
+              "name": "Void Destroyer",
+              "faction": "Void Corsairs",
+              "health": 800,
+              "maxHealth": 800,
+              "attack": 70,
+              "defense": 30,
+              "weaponOfChoice": "Quantum Disruptor",
+              "attackSpeed": 4,
+              "lore": "A formidable battleship equipped with advanced quantum disruptors to annihilate enemies.",
+              "category": "Battleship"
+            },
+            {
+              "name": "Corsair Titan",
+              "faction": "Void Corsairs",
+              "health": 1500,
+              "maxHealth": 1500,
+              "attack": 100,
+              "defense": 50,
+              "weaponOfChoice": "Singularity Cannon",
+              "attackSpeed": 5,
+              "lore": "The ultimate weapon of the Void Corsairs, capable of creating singularities to consume entire fleets.",
+              "category": "Titan"
+            }
+          ],
+          "pirateCount": 8,
+          "locked": false
+        },
+        {
+          "galaxyId": 1,
+          "id": 3,
+          "name": "Planet A3",
+          "position": {
+            "x": 80,
+            "y": 315.86206896551727
+          },
+          "image": {
+            "uri": "/assets/?unstable_path=.%2Fassets%2Fimages/planet3.png",
+            "width": 824,
+            "height": 808
+          },
+          "enemies": [
+            {
+              "name": "Salvage Fighter",
+              "faction": "Star Scavengers",
+              "health": 140,
+              "maxHealth": 140,
+              "attack": 18,
+              "defense": 8,
+              "weaponOfChoice": "Scrap Cannons",
+              "attackSpeed": 3.5,
+              "lore": "Light fighters armed with improvised weapons, salvaged from abandoned stations.",
+              "category": "Corvette"
+            },
+            {
+              "name": "Repurposed Frigate",
+              "faction": "Star Scavengers",
+              "health": 200,
+              "maxHealth": 200,
+              "attack": 30,
+              "defense": 12,
+              "weaponOfChoice": "Railgun",
+              "attackSpeed": 2.5,
+              "lore": "A once-derelict frigate outfitted with a powerful railgun salvaged from an orbital station.",
+              "category": "Cruiser"
+            },
+            {
+              "name": "Scavenger Overseer",
+              "faction": "Star Scavengers",
+              "health": 500,
+              "maxHealth": 500,
+              "attack": 60,
+              "defense": 20,
+              "weaponOfChoice": "Overcharged Plasma Array",
+              "attackSpeed": 2,
+              "lore": "Leading the scavenger fleet, the Overseer wields experimental plasma arrays for heavy destruction.",
+              "category": "Dreadnought"
+            },
+            {
+              "name": "Junkyard Marauder",
+              "faction": "Star Scavengers",
+              "health": 700,
+              "maxHealth": 700,
+              "attack": 80,
+              "defense": 25,
+              "weaponOfChoice": "Salvaged Beam Cannon",
+              "attackSpeed": 4.5,
+              "lore": "A powerful battleship cobbled together from the wreckage of countless battles, armed with a devastating beam cannon.",
+              "category": "Battleship"
+            },
+            {
+              "name": "Scavenger Colossus",
+              "faction": "Star Scavengers",
+              "health": 1600,
+              "maxHealth": 1600,
+              "attack": 120,
+              "defense": 60,
+              "weaponOfChoice": "Repurposed Graviton Projector",
+              "attackSpeed": 9.5,
+              "lore": "The ultimate creation of the Star Scavengers, this titan-class ship uses a graviton projector to crush its enemies.",
+              "category": "Titan"
+            }
+          ],
+          "pirateCount": 13,
+          "locked": true
+        },
+        {
+          "galaxyId": 1,
+          "id": 4,
+          "name": "Planet A4",
+          "position": {
+            "x": 300,
+            "y": 458
+          },
+          "image": {
+            "uri": "/assets/?unstable_path=.%2Fassets%2Fimages/planet4.png",
+            "width": 824,
+            "height": 808
+          },
+          "enemies": [
+            {
+              "name": "Titan Enforcer",
+              "faction": "Titan Vanguard",
+              "health": 350,
+              "maxHealth": 350,
+              "attack": 40,
+              "defense": 15,
+              "weaponOfChoice": "Magnetic Pulse Cannon",
+              "attackSpeed": 2.5,
+              "lore": "A massive enforcer vessel that uses magnetic pulses to disrupt enemy systems before obliteration.",
+              "category": "Corvette"
+            },
+            {
+              "name": "Shieldbreaker Cruiser",
+              "faction": "Titan Vanguard",
+              "health": 500,
+              "maxHealth": 500,
+              "attack": 60,
+              "defense": 25,
+              "weaponOfChoice": "EMP Missiles",
+              "attackSpeed": 2,
+              "lore": "This cruiser specializes in disabling shields and systems before delivering the final blow.",
+              "category": "Cruiser"
+            },
+            {
+              "name": "Titan Dreadnought",
+              "faction": "Titan Vanguard",
+              "health": 1500,
+              "maxHealth": 1500,
+              "attack": 90,
+              "defense": 30,
+              "weaponOfChoice": "Dreadnought Cannon",
+              "attackSpeed": 3.5,
+              "lore": "A behemoth of unmatched power, the Titan Dreadnought strikes fear into anyone who dares to challenge it.",
+              "category": "Dreadnought"
+            },
+            {
+              "name": "Vanguard Battleship",
+              "faction": "Titan Vanguard",
+              "health": 2000,
+              "maxHealth": 2000,
+              "attack": 120,
+              "defense": 50,
+              "weaponOfChoice": "Heavy Ion Cannon",
+              "attackSpeed": 6,
+              "lore": "A colossal battleship that dominates the battlefield with its heavy ion cannons.",
+              "category": "Battleship"
+            },
+            {
+              "name": "Titan Colossus",
+              "faction": "Titan Vanguard",
+              "health": 3000,
+              "maxHealth": 3000,
+              "attack": 150,
+              "defense": 70,
+              "weaponOfChoice": "Graviton Annihilator",
+              "attackSpeed": 10,
+              "lore": "The ultimate titan-class ship of the Titan Vanguard, equipped with a graviton annihilator to crush any opposition.",
+              "category": "Titan"
+            }
+          ],
+          "pirateCount": 25,
+          "locked": true
+        }
+      ],
+      "asteroids": [
+        {
+          "galaxyId": 1,
+          "id": 1,
+          "name": "Asteroid Ignis",
+          "resource": "fuel",
+          "findChance": 0.2,
+          "maxResources": 1000
+        },
+        {
+          "galaxyId": 1,
+          "id": 2,
+          "name": "Asteroid Solara",
+          "resource": "solarPlasma",
+          "findChance": 0.1,
+          "maxResources": 1000
+        },
+        {
+          "galaxyId": 1,
+          "id": 3,
+          "name": "Asteroid Umbra",
+          "resource": "darkMatter",
+          "findChance": 0.02,
+          "maxResources": 400
+        },
+        {
+          "galaxyId": 1,
+          "id": 4,
+          "name": "Asteroid Ferra",
+          "resource": "alloys",
+          "findChance": 0.07,
+          "maxResources": 600
+        },
+        {
+          "galaxyId": 1,
+          "id": 5,
+          "name": "Asteroid Cryon",
+          "resource": "frozenHydrogen",
+          "findChance": 0.6,
+          "maxResources": 600
+        },
+        {
+          "galaxyId": 1,
+          "id": 6,
+          "name": "Asteroid Volta",
+          "resource": "energy",
+          "findChance": 0.4,
+          "maxResources": 3500
+        }
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "id": "light_plasma_blaster",
+      "title": "Light Plasma Blaster",
+      "icon": {
+        "uri": "/assets/?unstable_path=.%2Fassets%2Fimages%2Fblasters/light-blaster.webp",
+        "width": 1024,
+        "height": 1024
+      },
+      "costs": [
+        {
+          "resourceType": "energy",
+          "amount": 800
+        },
+        {
+          "resourceType": "solarPlasma",
+          "amount": 400
+        },
+        {
+          "resourceType": "fuel",
+          "amount": 300
+        }
+      ],
+      "weaponDetails": {
+        "name": "Light Plasma Blaster",
+        "power": 10,
+        "accuracy": 95,
+        "cooldown": 1.5,
+        "cost": {
+          "type": "solarPlasma",
+          "amount": 50
+        },
+        "type": "blaster",
+        "category": "Small",
+        "durability": 15,
+        "maxDurability": 15
+      }
+    },
+    {
+      "id": "medium_plasma_blaster",
+      "title": "Medium Plasma Blaster",
+      "icon": {
+        "uri": "/assets/?unstable_path=.%2Fassets%2Fimages%2Fblasters/medium-blaster.webp",
+        "width": 1024,
+        "height": 1024
+      },
+      "costs": [
+        {
+          "resourceType": "energy",
+          "amount": 1200
+        },
+        {
+          "resourceType": "solarPlasma",
+          "amount": 600
+        },
+        {
+          "resourceType": "fuel",
+          "amount": 500
+        }
+      ],
+      "weaponDetails": {
+        "name": "Medium Plasma Blaster",
+        "power": 22,
+        "accuracy": 90,
+        "cooldown": 2.5,
+        "cost": {
+          "type": "solarPlasma",
+          "amount": 90
+        },
+        "type": "blaster",
+        "category": "Medium",
+        "durability": 23,
+        "maxDurability": 23
+      }
+    },
+    {
+      "id": "heavy_plasma_blaster",
+      "title": "Heavy Plasma Blaster",
+      "icon": {
+        "uri": "/assets/?unstable_path=.%2Fassets%2Fimages%2Fblasters/heavy-blaster.webp",
+        "width": 1024,
+        "height": 1024
+      },
+      "costs": [
+        {
+          "resourceType": "energy",
+          "amount": 2000
+        },
+        {
+          "resourceType": "solarPlasma",
+          "amount": 1000
+        },
+        {
+          "resourceType": "fuel",
+          "amount": 900
+        }
+      ],
+      "weaponDetails": {
+        "name": "Heavy Plasma Blaster",
+        "power": 35,
+        "accuracy": 85,
+        "cooldown": 4,
+        "cost": {
+          "type": "solarPlasma",
+          "amount": 150
+        },
+        "type": "blaster",
+        "category": "Large",
+        "durability": 39,
+        "maxDurability": 39
+      }
+    },
+    {
+      "id": "light_pulse_laser",
+      "title": "Light Pulse Laser",
+      "icon": {
+        "uri": "/assets/?unstable_path=.%2Fassets%2Fimages%2Flasers/light-pulse-laser.png",
+        "width": 1024,
+        "height": 1024
+      },
+      "costs": [
+        {
+          "resourceType": "energy",
+          "amount": 1000
+        },
+        {
+          "resourceType": "fuel",
+          "amount": 350
+        }
+      ],
+      "weaponDetails": {
+        "name": "Light Pulse Laser",
+        "power": 12,
+        "accuracy": 98,
+        "cooldown": 1.2,
+        "cost": {
+          "type": "fuel",
+          "amount": 35
+        },
+        "type": "laser",
+        "category": "Small",
+        "durability": 13,
+        "maxDurability": 13
+      }
+    },
+    {
+      "id": "medium_beam_laser",
+      "title": "Medium Beam Laser",
+      "icon": {
+        "uri": "/assets/?unstable_path=.%2Fassets%2Fimages%2Flasers/medium-pulse-laser.png",
+        "width": 1024,
+        "height": 1024
+      },
+      "costs": [
+        {
+          "resourceType": "energy",
+          "amount": 1500
+        },
+        {
+          "resourceType": "fuel",
+          "amount": 650
+        }
+      ],
+      "weaponDetails": {
+        "name": "Medium Beam Laser",
+        "power": 25,
+        "accuracy": 95,
+        "cooldown": 2.2,
+        "cost": {
+          "type": "fuel",
+          "amount": 75
+        },
+        "type": "laser",
+        "category": "Medium",
+        "durability": 21,
+        "maxDurability": 21
+      }
+    },
+    {
+      "id": "heavy_beam_laser",
+      "title": "Heavy Beam Laser",
+      "icon": {
+        "uri": "/assets/?unstable_path=.%2Fassets%2Fimages%2Flasers/heavy-pulse-laser.png",
+        "width": 1024,
+        "height": 1024
+      },
+      "costs": [
+        {
+          "resourceType": "energy",
+          "amount": 2500
+        },
+        {
+          "resourceType": "fuel",
+          "amount": 1200
+        }
+      ],
+      "weaponDetails": {
+        "name": "Heavy Beam Laser",
+        "power": 45,
+        "accuracy": 90,
+        "cooldown": 3.5,
+        "cost": {
+          "type": "fuel",
+          "amount": 120
+        },
+        "type": "laser",
+        "category": "Large",
+        "durability": 37,
+        "maxDurability": 37
+      }
+    },
+    {
+      "id": "light_rocket_launcher",
+      "title": "Light Rocket Launcher",
+      "icon": {
+        "uri": "/assets/?unstable_path=.%2Fassets%2Fimages%2Fmissiles/light-rocket-launcher.png",
+        "width": 1024,
+        "height": 1024
+      },
+      "costs": [
+        {
+          "resourceType": "energy",
+          "amount": 1200
+        },
+        {
+          "resourceType": "frozenHydrogen",
+          "amount": 250
+        }
+      ],
+      "weaponDetails": {
+        "name": "Light Rocket Launcher",
+        "power": 15,
+        "accuracy": 75,
+        "cooldown": 4,
+        "cost": {
+          "type": "frozenHydrogen",
+          "amount": 40
+        },
+        "type": "missile",
+        "category": "Small",
+        "durability": 14,
+        "maxDurability": 14
+      }
+    },
+    {
+      "id": "medium_missile_launcher",
+      "title": "Medium Missile Launcher",
+      "icon": {
+        "uri": "/assets/?unstable_path=.%2Fassets%2Fimages%2Fmissiles/medium-missile-launcher.png",
+        "width": 1024,
+        "height": 1024
+      },
+      "costs": [
+        {
+          "resourceType": "energy",
+          "amount": 2000
+        },
+        {
+          "resourceType": "frozenHydrogen",
+          "amount": 700
+        }
+      ],
+      "weaponDetails": {
+        "name": "Medium Missile Launcher",
+        "power": 35,
+        "accuracy": 65,
+        "cooldown": 8,
+        "cost": {
+          "type": "frozenHydrogen",
+          "amount": 80
+        },
+        "type": "missile",
+        "category": "Medium",
+        "durability": 27,
+        "maxDurability": 27
+      }
+    },
+    {
+      "id": "heavy_torpedo_launcher",
+      "title": "Heavy Torpedo Launcher",
+      "icon": {
+        "uri": "/assets/?unstable_path=.%2Fassets%2Fimages%2Fmissiles/large-missile-launcher.png",
+        "width": 1024,
+        "height": 1024
+      },
+      "costs": [
+        {
+          "resourceType": "energy",
+          "amount": 3000
+        },
+        {
+          "resourceType": "frozenHydrogen",
+          "amount": 1200
+        }
+      ],
+      "weaponDetails": {
+        "name": "Heavy Torpedo Launcher",
+        "power": 60,
+        "accuracy": 50,
+        "cooldown": 12,
+        "cost": {
+          "type": "frozenHydrogen",
+          "amount": 150
+        },
+        "type": "missile",
+        "category": "Large",
+        "durability": 42,
+        "maxDurability": 42
+      }
+    },
+    {
+      "id": "light_railgun",
+      "title": "Light Railgun",
+      "icon": {
+        "uri": "/assets/?unstable_path=.%2Fassets%2Fimages%2Frailguns/light-railgun.png",
+        "width": 1024,
+        "height": 1024
+      },
+      "costs": [
+        {
+          "resourceType": "energy",
+          "amount": 1800
+        },
+        {
+          "resourceType": "alloys",
+          "amount": 400
+        }
+      ],
+      "weaponDetails": {
+        "name": "Light Railgun",
+        "power": 18,
+        "accuracy": 85,
+        "cooldown": 3,
+        "cost": {
+          "type": "alloys",
+          "amount": 60
+        },
+        "type": "railgun",
+        "category": "Small",
+        "durability": 22,
+        "maxDurability": 22
+      }
+    },
+    {
+      "id": "medium_railgun",
+      "title": "Medium Railgun",
+      "icon": {
+        "uri": "/assets/?unstable_path=.%2Fassets%2Fimages%2Frailguns/medium-railgun.png",
+        "width": 1024,
+        "height": 1024
+      },
+      "costs": [
+        {
+          "resourceType": "energy",
+          "amount": 3000
+        },
+        {
+          "resourceType": "alloys",
+          "amount": 900
+        }
+      ],
+      "weaponDetails": {
+        "name": "Medium Railgun",
+        "power": 45,
+        "accuracy": 70,
+        "cooldown": 6,
+        "cost": {
+          "type": "alloys",
+          "amount": 120
+        },
+        "type": "railgun",
+        "category": "Medium",
+        "durability": 39,
+        "maxDurability": 39
+      }
+    },
+    {
+      "id": "heavy_railgun",
+      "title": "Heavy Railgun",
+      "icon": {
+        "uri": "/assets/?unstable_path=.%2Fassets%2Fimages%2Frailguns/large-railgun.png",
+        "width": 1024,
+        "height": 1024
+      },
+      "costs": [
+        {
+          "resourceType": "energy",
+          "amount": 5000
+        },
+        {
+          "resourceType": "alloys",
+          "amount": 2000
+        }
+      ],
+      "weaponDetails": {
+        "name": "Heavy Railgun",
+        "power": 85,
+        "accuracy": 60,
+        "cooldown": 10,
+        "cost": {
+          "type": "alloys",
+          "amount": 250
+        },
+        "type": "railgun",
+        "category": "Large",
+        "durability": 70,
+        "maxDurability": 70
+      }
+    }
+  ]
+}
