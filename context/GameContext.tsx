@@ -214,7 +214,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         enemiesKilled: {},
         totalKills: 0,
     });
-    
+
     // DEV MODE - Only enabled in development
     const [isDevMode, setIsDevMode] = useState(__DEV__);
 
@@ -583,7 +583,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const updateAchievToCompleted = (id: string) => {
         if (id === "build_scanning_drones") {
             unlockGalaxy(1);
-            
+
             // Unlock basic weapon modules when exploration is unlocked
             const basicWeapons = ["light_plasma_blaster", "light_pulse_laser", "light_rocket_launcher", "light_railgun"];
             basicWeapons.forEach(weaponId => {
@@ -592,7 +592,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     updateWeapons(weaponId, 1); // Give 1 of each basic weapon
                 }
             });
-            
+
             showGeneralNotification({
                 title: "Weapon Modules Unlocked! ⚔️",
                 message: "Basic weapon crafting is now available! Check the Dashboard to craft advanced weapons.",
@@ -701,7 +701,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             console.log("Upgrade core operations efficiency - Level:", newLevel);
             setMainShip((prev) => {
                 const efficiencyBonus = 1.20; // 20% multiplicative increase per level
-                
+
                 // Log previous efficiency values
                 console.log("Previous efficiency values:", Object.fromEntries(
                     Object.entries(prev.resources).map(([key, value]) => [key, value.efficiency])
@@ -821,12 +821,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 // Auto-generate energy based on reactor optimization level
                 const reactorOptimizationUpgrade = upgrades.find((u) => u.id === "reactor_optimization");
                 const optimizationLevel = reactorOptimizationUpgrade?.level || 0;
-                
+
                 if (optimizationLevel > 0) {
                     // Base energy generation rate of 1.85 per level (as described in upgrade description)
                     const baseEnergyRate = 1.85;
                     const energyGenerationRate = optimizationLevel * baseEnergyRate;
-                    
+
                     updatedResources.energy = {
                         ...updatedResources.energy,
                         current: Math.round(Math.min(
@@ -846,7 +846,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                         const allocationCount = miningDroneAllocation[asteroid.id.toString()];
                         if (allocationCount && allocationCount > 0 && asteroid.maxResources > 0) {
                             const resourcesToMine = Math.min(allocationCount, asteroid.maxResources);
-                            
+
                             // Update resources for this asteroid type
                             setMainShip((prevMainShip) => ({
                                 ...prevMainShip,
@@ -938,10 +938,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         // Award rewards
         const rewards = mission.rewards;
         const notificationRewards: CompletionReward[] = [];
-        
+
         Object.entries(rewards).forEach(([key, value]) => {
             if (key === 'experience' || key === 'unlocks' || key === 'ships') return;
-            
+
             // Handle weapon rewards
             if (key === 'weapons' && typeof value === 'object') {
                 const weaponRewards = value as Record<string, number>;
@@ -958,7 +958,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     updateResources(key as keyof PlayerResources, {
                         current: Math.min(currentResource.current + value, currentResource.max)
                     });
-                    
+
                     // Add to notification rewards
                     notificationRewards.push({
                         type: key,
@@ -979,9 +979,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         // Update mission status and unlock new missions
         setMissions(prev => prev.map(m => {
             if (m.id === missionId) {
-                const completedMission = { 
-                    ...m, 
-                    active: false, 
+                const completedMission = {
+                    ...m,
+                    active: false,
                     completed: true,
                     // For combat missions, preserve the objective progress
                     objective: m.type === 'combat' && m.objective ? {
@@ -989,7 +989,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                         currentAmount: m.objective.targetAmount // Set to completed amount
                     } : m.objective
                 };
-                
+
                 // Unlock missions that this mission unlocks
                 if (completedMission.unlocks) {
                     setTimeout(() => {
@@ -1001,13 +1001,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                         }));
                     }, 100); // Small delay to ensure proper state updates
                 }
-                
+
                 return completedMission;
             }
             return m;
         }));
         setActiveMissions(prev => prev.filter(m => m.id !== missionId));
-        
+
         // Remove timer
         setMissionTimers(prev => {
             const newTimers = { ...prev };
@@ -1025,11 +1025,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const cancelMission = (missionId: string) => {
-        setMissions(prev => prev.map(m => 
+        setMissions(prev => prev.map(m =>
             m.id === missionId ? { ...m, active: false } : m
         ));
         setActiveMissions(prev => prev.filter(m => m.id !== missionId));
-        
+
         // Remove timer
         setMissionTimers(prev => {
             const newTimers = { ...prev };
@@ -1107,7 +1107,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         const hours = Math.floor(seconds / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);
         const secs = seconds % 60;
-        
+
         if (hours > 0) {
             return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
@@ -1182,11 +1182,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         // Award scaled resources based on enemy difficulty
         const rewardResources = (enemyName: string) => {
             // Define enemy categories and their reward multipliers
-            const enemyRewards: Record<string, { 
-                category: string, 
-                baseReward: number, 
+            const enemyRewards: Record<string, {
+                category: string,
+                baseReward: number,
                 primaryResource: keyof PlayerResources,
-                secondaryResource: keyof PlayerResources 
+                secondaryResource: keyof PlayerResources
             }> = {
                 // Nebula Marauders
                 "Missile Corvette": { category: "Corvette", baseReward: 1, primaryResource: "fuel", secondaryResource: "energy" },
@@ -1194,21 +1194,21 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 "Nebula Ravager": { category: "Dreadnought", baseReward: 3, primaryResource: "solarPlasma", secondaryResource: "fuel" },
                 "Titan Breaker": { category: "Battleship", baseReward: 5, primaryResource: "alloys", secondaryResource: "solarPlasma" },
                 "Nebula Titan": { category: "Titan", baseReward: 8, primaryResource: "quantumCores", secondaryResource: "darkMatter" },
-                
+
                 // Void Corsairs
                 "Stealth Raider": { category: "Corvette", baseReward: 1.2, primaryResource: "darkMatter", secondaryResource: "energy" },
                 "Ion Saboteur": { category: "Cruiser", baseReward: 1.8, primaryResource: "energy", secondaryResource: "frozenHydrogen" },
                 "Corsair Warlord": { category: "Dreadnought", baseReward: 3.5, primaryResource: "darkMatter", secondaryResource: "alloys" },
                 "Void Destroyer": { category: "Battleship", baseReward: 6, primaryResource: "exoticMatter", secondaryResource: "darkMatter" },
                 "Corsair Titan": { category: "Titan", baseReward: 10, primaryResource: "exoticMatter", secondaryResource: "quantumCores" },
-                
+
                 // Star Scavengers
                 "Salvage Fighter": { category: "Corvette", baseReward: 1.3, primaryResource: "alloys", secondaryResource: "fuel" },
                 "Repurposed Frigate": { category: "Cruiser", baseReward: 2, primaryResource: "alloys", secondaryResource: "solarPlasma" },
                 "Scavenger Overseer": { category: "Dreadnought", baseReward: 4, primaryResource: "alloys", secondaryResource: "exoticMatter" },
                 "Junkyard Marauder": { category: "Battleship", baseReward: 6.5, primaryResource: "quantumCores", secondaryResource: "alloys" },
                 "Scavenger Colossus": { category: "Titan", baseReward: 12, primaryResource: "ancientArtifacts", secondaryResource: "quantumCores" },
-                
+
                 // Titan Vanguard
                 "Titan Enforcer": { category: "Corvette", baseReward: 1.5, primaryResource: "tokens", secondaryResource: "energy" },
                 "Shieldbreaker Cruiser": { category: "Cruiser", baseReward: 2.5, primaryResource: "tokens", secondaryResource: "quantumCores" },
@@ -1269,7 +1269,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             updateResources("energy", {
                 current: Math.min(mainShip.resources.energy.current + bonusAmount, mainShip.resources.energy.max)
             });
-            
+
             showGeneralNotification({
                 title: `First ${enemyName} Kill! 🎯`,
                 message: `Bonus: +${bonusAmount} Energy for first-time defeat!`,
@@ -1284,7 +1284,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             updateResources("tokens", {
                 current: Math.min(mainShip.resources.tokens.current + milestoneBonus, mainShip.resources.tokens.max)
             });
-            
+
             showGeneralNotification({
                 title: `Combat Milestone! 🏆`,
                 message: `${totalKills} total kills achieved! Bonus: +${milestoneBonus} tokens`,
@@ -1376,10 +1376,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
     const giveDevResources = () => {
         if (!__DEV__ || !isDevMode) return;
-        
+
         setMainShip(prevMainShip => {
             const updatedResources = { ...prevMainShip.resources };
-            
+
             // Give max resources for all unlocked resources
             Object.keys(updatedResources).forEach(resourceKey => {
                 const resource = updatedResources[resourceKey as keyof PlayerResources];
@@ -1387,13 +1387,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     resource.current = resource.max;
                 }
             });
-            
+
             return {
                 ...prevMainShip,
                 resources: updatedResources
             };
         });
-        
+
         // Also give ships
         setShips(prevShips => ({
             ...prevShips,
@@ -1439,7 +1439,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         if (!node) return;
 
         // Check if player can afford the research
-        const canAfford = node.costs.every(cost => 
+        const canAfford = node.costs.every(cost =>
             mainShip.resources[cost.resourceType].current >= cost.amount
         );
 
@@ -1477,8 +1477,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         });
 
         // Start research
-        setResearchNodes(prev => prev.map(n => 
-            n.id === nodeId 
+        setResearchNodes(prev => prev.map(n =>
+            n.id === nodeId
                 ? { ...n, inProgress: true, progress: 0 }
                 : n
         ));
@@ -1557,8 +1557,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         });
 
         // Mark research as completed
-        setResearchNodes(prev => prev.map(n => 
-            n.id === nodeId 
+        setResearchNodes(prev => prev.map(n =>
+            n.id === nodeId
                 ? { ...n, completed: true, inProgress: false, progress: 100 }
                 : n
         ));
@@ -1574,8 +1574,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const updateResearchProgress = (nodeId: string, progress: number) => {
-        setResearchNodes(prev => prev.map(n => 
-            n.id === nodeId 
+        setResearchNodes(prev => prev.map(n =>
+            n.id === nodeId
                 ? { ...n, progress }
                 : n
         ));
@@ -1631,31 +1631,31 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         let finalX = x;
         let finalY = y;
         const proposedMerchant = { x: finalX, y: finalY, radius: 35 };
-        
+
         // Check if the proposed position would cause overlap
-        const hasCollision = existingObjects.some(existing => 
+        const hasCollision = existingObjects.some(existing =>
             checkCollision(proposedMerchant, existing, 15)
         );
-        
+
         if (hasCollision) {
             // Try to find a nearby non-overlapping position
             const attempts = 20;
             let found = false;
-            
+
             for (let attempt = 0; attempt < attempts && !found; attempt++) {
                 const angle = (Math.PI * 2 * attempt) / attempts;
                 const distance = 50 + (attempt * 10); // Gradually increase distance
                 const testX = x + Math.cos(angle) * distance;
                 const testY = y + Math.sin(angle) * distance;
-                
+
                 // Keep within bounds
                 if (testX >= 80 && testX <= 400 - 80 && testY >= 80 && testY <= 600 - 80) {
                     const testMerchant = { x: testX, y: testY, radius: 35 };
-                    
-                    const testCollision = existingObjects.some(existing => 
+
+                    const testCollision = existingObjects.some(existing =>
                         checkCollision(testMerchant, existing, 15)
                     );
-                    
+
                     if (!testCollision) {
                         finalX = testX;
                         finalY = testY;
@@ -1680,8 +1680,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
         setMerchants(prev => [...prev, newMerchant]);
 
-        const positionText = (finalX !== x || finalY !== y) ? 
-            ` (adjusted to ${Math.round(finalX)}, ${Math.round(finalY)} to avoid overlap)` : 
+        const positionText = (finalX !== x || finalY !== y) ?
+            ` (adjusted to ${Math.round(finalX)}, ${Math.round(finalY)} to avoid overlap)` :
             ` at (${Math.round(finalX)}, ${Math.round(finalY)})`;
 
         showGeneralNotification({
@@ -1695,14 +1695,14 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     // Merchant system functions
     const generateMerchantInventory = (type: "weapons" | "resources" | "general") => {
         const inventory: IMerchant['inventory'] = {};
-        
+
         if (type === "weapons" || type === "general") {
             // Generate 2-4 random weapons for sale
             const availableWeapons = weapons.filter(w => w.amount === 0); // Weapons player doesn't have
             const selectedWeapons = availableWeapons
                 .sort(() => Math.random() - 0.5)
                 .slice(0, Math.floor(Math.random() * 3) + 2);
-            
+
             inventory.weapons = selectedWeapons.map(weapon => ({
                 weaponId: weapon.id,
                 price: {
@@ -1713,7 +1713,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 quantity: Math.floor(Math.random() * 3) + 1
             }));
         }
-        
+
         if (type === "resources" || type === "general") {
             // Generate random resource packages
             const resourceTypes: (keyof PlayerResources)[] = ['fuel', 'solarPlasma', 'darkMatter', 'alloys', 'frozenHydrogen'];
@@ -1721,7 +1721,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 .filter(resource => !mainShip.resources[resource].locked) // Only include unlocked resources
                 .sort(() => Math.random() - 0.5)
                 .slice(0, Math.floor(Math.random() * 3) + 2);
-            
+
             inventory.resources = selectedResources.map(resourceType => ({
                 resourceType,
                 amount: Math.floor(Math.random() * 500) + 200,
@@ -1731,7 +1731,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 }
             }));
         }
-        
+
         return inventory;
     };
 
@@ -1739,28 +1739,28 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         // Only spawn if enough time has passed (30 minutes minimum)
         const now = Date.now();
         if (now - lastMerchantSpawnTime < 30 * 60 * 1000) return;
-        
+
         // Random chance to spawn (30% chance every 30 minutes)
         if (Math.random() > 0.3) return;
-        
+
         const unlockedGalaxies = galaxies.filter(g => g.found);
         if (unlockedGalaxies.length === 0) return;
-        
+
         const randomGalaxy = unlockedGalaxies[Math.floor(Math.random() * unlockedGalaxies.length)];
         const merchantTypes: ("weapons" | "resources" | "general")[] = ["weapons", "resources", "general"];
         const merchantType = merchantTypes[Math.floor(Math.random() * merchantTypes.length)];
-        
+
         // Calculate safe positioning with collision detection
         const topMenuHeight = 80;
-        const bottomMenuHeight = 120;
+        const bottomMenuHeight = 180; // Space for scan button and ship status (increased from 120 to 180)
         const sideMargin = 80;
         const merchantRadius = 35;
-        
+
         const safeX = sideMargin + merchantRadius;
         const safeY = topMenuHeight + merchantRadius;
         const safeWidth = (400 - (sideMargin * 2) - (merchantRadius * 2)); // Use a fixed width
         const safeHeight = (600 - topMenuHeight - bottomMenuHeight - (merchantRadius * 2)); // Use a fixed height
-        
+
         // Get existing objects in this galaxy to avoid collisions
         const existingObjects = [
             // Existing asteroids in this galaxy
@@ -1800,23 +1800,23 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         // Try to find a non-overlapping position
         let merchantX = Math.random() * safeWidth + safeX;
         let merchantY = Math.random() * safeHeight + safeY;
-        
+
         for (let attempt = 0; attempt < 50; attempt++) {
             const proposedMerchant = { x: merchantX, y: merchantY, radius: merchantRadius };
-            
-            const hasCollision = existingObjects.some(existing => 
+
+            const hasCollision = existingObjects.some(existing =>
                 checkCollision(proposedMerchant, existing, 15)
             );
-            
+
             if (!hasCollision) {
                 break; // Found a good position
             }
-            
+
             // Try a new random position
             merchantX = Math.random() * safeWidth + safeX;
             merchantY = Math.random() * safeHeight + safeY;
         }
-        
+
         const newMerchant: IMerchant = {
             id: `merchant_${now}`,
             name: `${merchantType.charAt(0).toUpperCase() + merchantType.slice(1)} Trader`,
@@ -1829,10 +1829,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             inventory: generateMerchantInventory(merchantType),
             image: "🛸" // Using emoji for now, can be replaced with actual image
         };
-        
+
         setMerchants(prev => [...prev, newMerchant]);
         setLastMerchantSpawnTime(now);
-        
+
         showGeneralNotification({
             title: "Merchant Arrived! 🚀",
             message: `A ${merchantType} trader has appeared in ${randomGalaxy.name}! They won't stay long.`,
@@ -1842,10 +1842,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const moveMerchant = (merchantId: string, newGalaxyId: number) => {
-        setMerchants(prev => prev.map(merchant => 
-            merchant.id === merchantId 
-                ? { 
-                    ...merchant, 
+        setMerchants(prev => prev.map(merchant =>
+            merchant.id === merchantId
+                ? {
+                    ...merchant,
                     galaxyId: newGalaxyId,
                     nextMoveTime: Date.now() + (15 * 60 * 1000) // Stay for another 15 minutes
                 }
@@ -1856,17 +1856,17 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const tradeMerchant = (merchantId: string, itemType: "weapon" | "resource" | "special", itemId: string): boolean => {
         const merchant = merchants.find(m => m.id === merchantId);
         if (!merchant) return false;
-        
+
         let item: any = null;
         let canAfford = false;
-        
+
         if (itemType === "weapon" && merchant.inventory.weapons) {
             item = merchant.inventory.weapons.find(w => w.weaponId === itemId);
             if (item) {
-                canAfford = Object.entries(item.price).every(([resource, amount]) => 
+                canAfford = Object.entries(item.price).every(([resource, amount]) =>
                     mainShip.resources[resource as keyof PlayerResources]?.current >= (amount as number)
                 );
-                
+
                 if (canAfford) {
                     // Deduct resources
                     Object.entries(item.price).forEach(([resource, amount]) => {
@@ -1874,16 +1874,16 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                             current: mainShip.resources[resource as keyof PlayerResources].current - (amount as number)
                         });
                     });
-                    
+
                     // Add weapon to inventory
                     const weapon = weapons.find(w => w.id === itemId);
                     if (weapon) {
                         updateWeapons(itemId, weapon.amount + item.quantity);
                     }
-                    
+
                     // Remove item from merchant inventory
-                    setMerchants(prev => prev.map(m => 
-                        m.id === merchantId 
+                    setMerchants(prev => prev.map(m =>
+                        m.id === merchantId
                             ? {
                                 ...m,
                                 inventory: {
@@ -1898,10 +1898,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         } else if (itemType === "resource" && merchant.inventory.resources) {
             item = merchant.inventory.resources.find(r => r.resourceType === itemId);
             if (item) {
-                canAfford = Object.entries(item.price).every(([resource, amount]) => 
+                canAfford = Object.entries(item.price).every(([resource, amount]) =>
                     mainShip.resources[resource as keyof PlayerResources]?.current >= (amount as number)
                 );
-                
+
                 if (canAfford) {
                     // Deduct payment resources
                     Object.entries(item.price).forEach(([resource, amount]) => {
@@ -1909,7 +1909,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                             current: mainShip.resources[resource as keyof PlayerResources].current - (amount as number)
                         });
                     });
-                    
+
                     // Add purchased resource
                     const resourceType = item.resourceType as keyof PlayerResources;
                     updateResources(resourceType, {
@@ -1918,10 +1918,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                             mainShip.resources[resourceType].max
                         )
                     });
-                    
+
                     // Remove item from merchant inventory
-                    setMerchants(prev => prev.map(m => 
-                        m.id === merchantId 
+                    setMerchants(prev => prev.map(m =>
+                        m.id === merchantId
                             ? {
                                 ...m,
                                 inventory: {
@@ -1934,7 +1934,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 }
             }
         }
-        
+
         if (canAfford) {
             // Record transaction
             const transaction: IMerchantTransaction = {
@@ -1946,7 +1946,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 timestamp: Date.now()
             };
             setMerchantTransactions(prev => [...prev, transaction]);
-            
+
             // Check for first merchant encounter achievement
             if (!isAchievementUnlocked("first_merchant_encounter")) {
                 updateAchievToCompleted("first_merchant_encounter");
@@ -1960,14 +1960,14 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     });
                 }
             }
-            
+
             showGeneralNotification({
                 title: "Trade Successful! 💰",
                 message: `You successfully traded with ${merchant.name}!`,
                 type: "success",
                 icon: "✅"
             });
-            
+
             return true;
         } else {
             showGeneralNotification({
@@ -2051,16 +2051,16 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             // Handle automatic resource generation
             setMainShip(prevMainShip => {
                 const updatedResources = { ...prevMainShip.resources };
-                
+
                 // Apply dev mode multiplier if active
                 const devMultiplier = (isDevMode && __DEV__) ? 10 : 1;
-                
+
                 // Energy generation from reactor optimization
                 const reactorLevel = upgrades.find(upgrade => upgrade.id === "reactor_optimization")?.level || 0;
                 if (reactorLevel > 0) {
                     const baseEnergyRate = 1.85;
                     const energyGeneration = reactorLevel * baseEnergyRate * devMultiplier;
-                    
+
                     updatedResources.energy = {
                         ...updatedResources.energy,
                         current: Math.min(
@@ -2075,7 +2075,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 if (researchLabLevel > 0 && !updatedResources.researchPoints.locked) {
                     const baseResearchRate = 0.5; // 0.5 research points per second per level
                     const researchGeneration = researchLabLevel * baseResearchRate * devMultiplier;
-                    
+
                     updatedResources.researchPoints = {
                         ...updatedResources.researchPoints,
                         current: Math.min(
@@ -2089,7 +2089,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 const quantumLevel = upgrades.find(upgrade => upgrade.id === "quantum_computing")?.level || 0;
                 if (quantumLevel > 0) {
                     const quantumBonus = 1 + (quantumLevel * 0.05); // 5% bonus per level
-                    
+
                     // Apply quantum bonus to fuel generation (if player has fuel generation)
                     if (!updatedResources.fuel.locked && updatedResources.fuel.efficiency > 1) {
                         const fuelGeneration = 0.1 * quantumBonus * devMultiplier; // Small passive fuel generation
@@ -2119,7 +2119,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                         };
                     }
                 }
-                
+
                 return {
                     ...prevMainShip,
                     resources: updatedResources
@@ -2206,7 +2206,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             }}
         >
             {children}
-            
+
             {/* Global notification system */}
             {notification && (
                 <CompletionNotification
@@ -2218,7 +2218,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     onClose={hideNotification}
                 />
             )}
-            
+
             {/* Kill tracking notification */}
             {killNotification && (
                 <KillTrackingNotification
@@ -2230,7 +2230,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                     onAnimationComplete={hideKillNotification}
                 />
             )}
-            
+
             {/* General notification */}
             {generalNotification && (
                 <GeneralNotification

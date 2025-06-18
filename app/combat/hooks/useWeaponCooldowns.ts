@@ -16,21 +16,30 @@ export const useWeaponCooldowns = (equippedWeapons: IWeapon[]) => {
       id: weapon.id,
       cooldown: 0,
       maxCooldown: weapon.weaponDetails.cooldown,
-      animation: new Animated.Value(0),
+      animation: new Animated.Value(1), // 1 = empty (ready state)
       weaponDetails: weapon.weaponDetails,
     }))
   );
 
   // Update weapon cooldowns when equipped weapons change
   useEffect(() => {
-    setWeaponCooldowns(
+    setWeaponCooldowns(prevCooldowns =>
       equippedWeapons.map((weapon) => {
-        const existingCooldown = weaponCooldowns.find(wc => wc.id === weapon.id);
-        return existingCooldown || {
+        const existingCooldown = prevCooldowns.find(wc => wc.id === weapon.id);
+        if (existingCooldown) {
+          // Sync animation value with current cooldown progress
+          // For right-to-left animation: 0 = full bar, 1 = empty bar
+          const progress = existingCooldown.cooldown > 0
+            ? (existingCooldown.cooldown / existingCooldown.maxCooldown)
+            : 1; // 1 = empty (ready state)
+          existingCooldown.animation.setValue(progress);
+          return existingCooldown;
+        }
+        return {
           id: weapon.id,
           cooldown: 0,
           maxCooldown: weapon.weaponDetails.cooldown,
-          animation: new Animated.Value(0),
+          animation: new Animated.Value(1), // 1 = empty (ready state)
           weaponDetails: weapon.weaponDetails,
         };
       })
@@ -43,7 +52,14 @@ export const useWeaponCooldowns = (equippedWeapons: IWeapon[]) => {
       setWeaponCooldowns((prev) =>
         prev.map((weapon) => {
           if (weapon.cooldown > 0) {
-            return { ...weapon, cooldown: Math.round((weapon.cooldown - 0.1) * 10) / 10 };
+            const newCooldown = Math.max(0, Math.round((weapon.cooldown - 0.1) * 10) / 10);
+            // Sync animation with cooldown progress
+            // For right-to-left animation: 0 = full bar, 1 = empty bar
+            const progress = newCooldown > 0
+              ? (newCooldown / weapon.maxCooldown)
+              : 1; // 1 = empty (ready state)
+            weapon.animation.setValue(progress);
+            return { ...weapon, cooldown: newCooldown };
           }
           return weapon;
         })
@@ -54,19 +70,16 @@ export const useWeaponCooldowns = (equippedWeapons: IWeapon[]) => {
   }, []);
 
   const startCooldownAnimation = (weaponId: string, duration: number) => {
-    const weaponCooldown = weaponCooldowns.find((w) => w.id === weaponId);
-    if (weaponCooldown) {
-      weaponCooldown.animation.setValue(1);
-      Animated.timing(weaponCooldown.animation, {
-        toValue: 0,
-        duration: duration * 1000,
-        useNativeDriver: false,
-      }).start(() => {
-        setWeaponCooldowns((prev) =>
-          prev.map((w) => (w.id === weaponId ? { ...w, cooldown: 0 } : w))
-        );
-      });
-    }
+    setWeaponCooldowns(prev =>
+      prev.map(w => {
+        if (w.id === weaponId) {
+          // Set initial animation value to 0 (full bar for countdown)
+          w.animation.setValue(0);
+          return { ...w, cooldown: duration, maxCooldown: duration };
+        }
+        return w;
+      })
+    );
   };
 
   const updateWeaponCooldown = (weaponId: string, cooldown: number) => {

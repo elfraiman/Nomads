@@ -9,6 +9,7 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View, Animated } from "react-native";
 import { Circle, Defs, G, Polygon, RadialGradient, Stop, Svg, Image as SvgImage, Text as SvgText, Line, Path } from "react-native-svg";
 import MerchantTradingModal from "@/components/MerchantTradingModal";
+import { playRadarSound } from "@/utils/soundUtils";
 
 
 const { width: fullWidth, height: fullHeight } = Dimensions.get("window");
@@ -216,19 +217,19 @@ const findNonOverlappingPosition = (
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         const x = Math.random() * safeArea.width + safeArea.x;
         const y = Math.random() * safeArea.height + safeArea.y;
-        
+
         const testObject = { ...proposedObject, x, y };
-        
+
         // Check if this position collides with any existing objects
-        const hasCollision = existingObjects.some(existing => 
+        const hasCollision = existingObjects.some(existing =>
             checkCollision(testObject, existing, minDistance)
         );
-        
+
         if (!hasCollision) {
             return { x, y };
         }
     }
-    
+
     // If we couldn't find a non-overlapping position, return null
     return null;
 };
@@ -236,7 +237,6 @@ const findNonOverlappingPosition = (
 const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => {
     const game = useGame();
     const navigator = useNavigation<NavigationProp<RootStackParamList>>();
-
 
     if (!game) return null;
     const { updateResources, resources, setFoundAsteroids, foundAsteroids, ships, updateShips, updateAchievToCompleted, isAchievementUnlocked, showGeneralNotification, showNotification, merchants, spawnMerchant, isDevMode, devSpawnMerchantAt, achievements } = game;
@@ -317,6 +317,9 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
         deductScanCost();
         setIsScanning(true);
 
+        // Play radar sound when scanning starts
+        playRadarSound();
+
         setTimeout(() => {
             const foundAsteroid = galaxy.asteroids.find(
                 (asteroid: IAsteroid) =>
@@ -346,17 +349,17 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                     // Medium asteroids: 500-2000 
                     // Large asteroids: 2000-5000
                     size < 0.6 ? (Math.random() * 400 + 100) :
-                    size < 0.9 ? (Math.random() * 1500 + 500) :
-                    (Math.random() * 3000 + 2000)
+                        size < 0.9 ? (Math.random() * 1500 + 500) :
+                            (Math.random() * 3000 + 2000)
                 );
 
                 // Calculate safe area bounds for asteroid placement
                 const topMenuHeight = 80; // Space for exploration header/menu
-                const bottomMenuHeight = 120; // Space for scan button and ship status
+                const bottomMenuHeight = 180; // Space for scan button and ship status (increased from 120 to 180)
                 const sideMargin = 80; // Space for back button and margins
                 const asteroidRadius = Math.max(8, 8 + (maxResources / 1000) * 8);
                 const textHeight = 50; // Space for asteroid name and resource text
-                
+
                 // Calculate safe positioning area
                 const safeX = sideMargin + asteroidRadius;
                 const safeY = topMenuHeight + asteroidRadius;
@@ -464,7 +467,7 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
     useEffect(() => {
         visibleMerchants.forEach(merchant => {
             const timeUntilLeaving = merchant.nextMoveTime - currentTime;
-            
+
             // Warn when merchant has 2 minutes left and hasn't been warned recently
             if (timeUntilLeaving > 0 && timeUntilLeaving <= (2 * 60 * 1000) && timeUntilLeaving > (119 * 1000)) {
                 showGeneralNotification({
@@ -489,11 +492,11 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
             // For web, use different event properties
             const locationX = event.nativeEvent.locationX || event.nativeEvent.offsetX || event.nativeEvent.clientX;
             const locationY = event.nativeEvent.locationY || event.nativeEvent.offsetY || event.nativeEvent.clientY;
-            
+
             // Check if the click position would overlap with existing objects
             let x = (locationX && !isNaN(locationX)) ? locationX : Math.random() * (width - 100) + 50;
             let y = (locationY && !isNaN(locationY)) ? locationY : Math.random() * (height - 100) + 50;
-            
+
             // Get existing objects to avoid collisions
             const existingObjects: MapObject[] = [
                 // Existing asteroids in this galaxy
@@ -523,28 +526,28 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
             ];
 
             const proposedMerchant = { x, y, radius: 35 };
-            
+
             // Check if click position would cause overlap
-            const hasCollision = existingObjects.some(existing => 
+            const hasCollision = existingObjects.some(existing =>
                 checkCollision(proposedMerchant, existing, 15)
             );
-            
+
             if (hasCollision) {
                 // Find a safe position instead
                 const safeArea = {
                     x: 80,
                     y: 80,
                     width: width - 160,
-                    height: height - 200
+                    height: height - 260 // Increased from 200 to 260 to match bottom UI height
                 };
-                
+
                 const newPosition = findNonOverlappingPosition(proposedMerchant, existingObjects, safeArea, 30, 15);
                 if (newPosition) {
                     x = newPosition.x;
                     y = newPosition.y;
                 }
             }
-            
+
             devSpawnMerchantAt(x, y, galaxy.id);
         }
     };
@@ -692,7 +695,7 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                     {visibleMerchants.map((merchant) => {
                         const timeRemaining = formatTimeRemaining(merchant.nextMoveTime);
                         const isLeavingSoon = (merchant.nextMoveTime - currentTime) < (5 * 60 * 1000); // Less than 5 minutes
-                        
+
                         return (
                             <G key={merchant.id} onPress={() => handleMerchantPress(merchant)}>
                                 {/* Merchant Ship */}
@@ -807,7 +810,7 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                                     : "Scan for Asteroids"}
                         </Text>
                     </TouchableOpacity>
-                                    )}
+                )}
 
                 {/* Dev Mode Indicator */}
                 {isDevMode && (

@@ -21,31 +21,32 @@ const WeaponGroups: React.FC<WeaponGroupsProps> = ({
   isFiring,
   onFireWeaponGroup,
 }) => {
+  const weaponTypes = Object.keys(weaponGroups);
   const [selectedWeaponType, setSelectedWeaponType] = React.useState<string>(
-    Object.keys(weaponGroups)[0] || ''
+    weaponTypes[0] || ''
   );
+  const [firingWeaponType, setFiringWeaponType] = React.useState<string | null>(null);
   const [firingAnimation] = React.useState(new Animated.Value(0));
-  const [weaponSwitchAnimation] = React.useState(new Animated.Value(1));
-  const [chargingWeapons, setChargingWeapons] = React.useState<Set<string>>(new Set());
+  const [tabAnimation] = React.useState(new Animated.Value(1));
 
   // Update selected type if it doesn't exist anymore
   React.useEffect(() => {
-    if (!weaponGroups[selectedWeaponType] && Object.keys(weaponGroups).length > 0) {
-      setSelectedWeaponType(Object.keys(weaponGroups)[0]);
+    if (!weaponGroups[selectedWeaponType] && weaponTypes.length > 0) {
+      setSelectedWeaponType(weaponTypes[0]);
     }
-  }, [weaponGroups, selectedWeaponType]);
+  }, [weaponGroups, selectedWeaponType, weaponTypes]);
 
-  // Weapon switching animation
+  // Tab switching animation
   const switchWeaponType = (newType: string) => {
     if (newType === selectedWeaponType) return;
 
     Animated.sequence([
-      Animated.timing(weaponSwitchAnimation, {
+      Animated.timing(tabAnimation, {
         toValue: 0,
         duration: 150,
         useNativeDriver: true,
       }),
-      Animated.timing(weaponSwitchAnimation, {
+      Animated.timing(tabAnimation, {
         toValue: 1,
         duration: 200,
         useNativeDriver: true,
@@ -56,447 +57,573 @@ const WeaponGroups: React.FC<WeaponGroupsProps> = ({
   };
 
   // Firing animation effect
-  const triggerFiringEffect = () => {
-    // Screen shake effect
+  const triggerFiringEffect = (weaponType: string) => {
+    setFiringWeaponType(weaponType);
+
     Animated.sequence([
       Animated.timing(firingAnimation, {
         toValue: 1,
-        duration: 100,
+        duration: 200,
         useNativeDriver: true,
       }),
       Animated.timing(firingAnimation, {
         toValue: 0,
-        duration: 200,
+        duration: 300,
         useNativeDriver: true,
       }),
-    ]).start();
-
-    // Simulate weapon charging sequence
-    const weapons = selectedWeapons;
-    weapons.forEach((weapon, index) => {
-      setTimeout(() => {
-        setChargingWeapons(prev => new Set([...prev, weapon.id]));
-        setTimeout(() => {
-          setChargingWeapons(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(weapon.id);
-            return newSet;
-          });
-        }, 300);
-      }, index * 100);
+    ]).start(() => {
+      setFiringWeaponType(null);
     });
   };
 
-  const weaponTypes = Object.keys(weaponGroups);
-  const selectedWeapons = weaponGroups[selectedWeaponType] || [];
-
   if (weaponTypes.length === 0) return null;
-
-  const fireableWeapons = selectedWeapons.filter((weapon) => {
-    const { type: resourceType, amount } = weapon.weaponDetails.cost;
-    return (mainShip.resources[resourceType as keyof PlayerResources]?.current || 0) >= amount;
-  });
-
-  const totalCost = fireableWeapons.reduce((acc, weapon) => {
-    const { type: resourceType, amount } = weapon.weaponDetails.cost;
-    acc[resourceType] = (acc[resourceType] || 0) + amount;
-    return acc;
-  }, {} as { [key: string]: number });
 
   // Get weapon type styling
   const getWeaponTypeStyle = (type: string) => {
     const styles = {
-      'Laser': { color: '#FF3366', glow: '#FF5577', background: 'rgba(255, 51, 102, 0.15)' },
-      'Missile': { color: '#00FF88', glow: '#33FFAA', background: 'rgba(0, 255, 136, 0.15)' },
-      'Blaster': { color: '#3366FF', glow: '#5577FF', background: 'rgba(51, 102, 255, 0.15)' },
-      'Cannon': { color: '#FF8800', glow: '#FFAA33', background: 'rgba(255, 136, 0, 0.15)' },
+      'Laser': {
+        color: '#00F5FF', // Bright cyan for lasers
+        accent: '#40E0D0', // Turquoise accent
+        bg: 'linear-gradient(135deg, rgba(0, 245, 255, 0.08) 0%, rgba(0, 100, 150, 0.12) 100%)',
+        bgSolid: 'rgba(0, 50, 80, 0.3)'
+      },
+      'Missile': {
+        color: '#FF6B35', // Bright orange for missiles
+        accent: '#FF8C42', // Lighter orange accent
+        bg: 'linear-gradient(135deg, rgba(255, 107, 53, 0.08) 0%, rgba(150, 50, 0, 0.12) 100%)',
+        bgSolid: 'rgba(80, 30, 0, 0.3)'
+      },
+      'Blaster': {
+        color: '#00FF88', // Bright green for blasters
+        accent: '#33FF99', // Lighter green accent
+        bg: 'linear-gradient(135deg, rgba(0, 255, 136, 0.08) 0%, rgba(0, 150, 80, 0.12) 100%)',
+        bgSolid: 'rgba(0, 50, 30, 0.3)'
+      },
+      'Cannon': {
+        color: '#FFD700', // Gold for cannons
+        accent: '#FFED4E', // Bright yellow accent
+        bg: 'linear-gradient(135deg, rgba(255, 215, 0, 0.08) 0%, rgba(180, 150, 0, 0.12) 100%)',
+        bgSolid: 'rgba(80, 60, 0, 0.3)'
+      },
     };
     return styles[type as keyof typeof styles] || {
       color: colors.primary,
-      glow: colors.glowEffect,
-      background: 'rgba(255, 255, 255, 0.1)'
+      accent: colors.glowEffect,
+      bg: '#1A1A3D',
+      bgSolid: '#1A1A3D'
     };
   };
 
-  const currentTypeStyle = getWeaponTypeStyle(selectedWeaponType);
+  const renderWeaponGroup = (weaponType: string) => {
+    const weapons = weaponGroups[weaponType] || [];
+    const typeStyle = getWeaponTypeStyle(weaponType);
+    const isFiringThis = firingWeaponType === weaponType;
 
-  return (
-    <Animated.View style={[
-      styles.weaponSystemContainer,
-      {
-        transform: [{
-          translateX: firingAnimation.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, -2]
-          })
-        }]
-      }
-    ]}>
-      {/* Weapon Type Tabs */}
-      {weaponTypes.length > 1 && (
-        <View style={styles.weaponTypeTabs}>
-          {weaponTypes.map((type) => {
-            const typeStyle = getWeaponTypeStyle(type);
-            const isActive = selectedWeaponType === type;
-            const totalWeapons = weaponGroups[type].length;
-            const readyWeapons = weaponGroups[type].filter(weapon => {
-              const cooldown = weaponCooldowns.find(w => w.id === weapon.id)?.cooldown || 0;
-              return cooldown === 0;
-            }).length;
+    const fireableWeapons = weapons.filter((weapon) => {
+      const { type: resourceType, amount } = weapon.weaponDetails.cost;
+      return (mainShip.resources[resourceType as keyof PlayerResources]?.current || 0) >= amount;
+    });
 
-            return (
-              <TouchableOpacity
-                key={type}
-                style={[
-                  styles.weaponTypeTab,
-                  isActive && [
-                    styles.activeWeaponTypeTab,
-                    {
-                      borderColor: typeStyle.color,
-                      backgroundColor: typeStyle.background,
-                      shadowColor: typeStyle.color,
-                      shadowOpacity: 0.3,
-                      shadowRadius: 4,
-                      shadowOffset: { width: 0, height: 2 }
-                    }
-                  ]
-                ]}
-                onPress={() => switchWeaponType(type)}
-              >
-                <Text style={[
-                  styles.weaponTypeTabText,
-                  isActive && [styles.activeWeaponTypeTabText, { color: typeStyle.color }]
-                ]}>
-                  {type}
-                </Text>
-                <View style={[
-                  styles.weaponReadyIndicator,
-                  {
-                    backgroundColor: readyWeapons === totalWeapons ? typeStyle.color :
-                      readyWeapons > 0 ? '#FFAA00' : '#666666'
-                  }
-                ]}>
-                  <Text style={[
-                    styles.weaponReadyText,
-                    { color: readyWeapons > 0 ? '#000000' : '#CCCCCC' }
-                  ]}>
-                    {readyWeapons}/{totalWeapons}
-                  </Text>
+    const readyWeapons = weapons.filter(weapon => {
+      const cooldown = weaponCooldowns.find(w => w.id === weapon.id)?.cooldown || 0;
+      return cooldown === 0;
+    }).length;
+
+    const totalCost = fireableWeapons.reduce((acc, weapon) => {
+      const { type: resourceType, amount } = weapon.weaponDetails.cost;
+      acc[resourceType] = (acc[resourceType] || 0) + amount;
+      return acc;
+    }, {} as { [key: string]: number });
+
+    const canFire = fireableWeapons.length > 0 && !isFiring;
+
+    return (
+      <Animated.View
+        style={[
+          styles.weaponGroup,
+          {
+            backgroundColor: typeStyle.bgSolid,
+            borderColor: typeStyle.color,
+            borderWidth: 2,
+            shadowColor: typeStyle.color,
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 8,
+            opacity: tabAnimation,
+            transform: [
+              {
+                scale: tabAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.95, 1]
+                })
+              },
+              {
+                scale: isFiringThis ? firingAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1, 1.02]
+                }) : 1
+              }
+            ]
+          }
+        ]}
+      >
+        {/* Header */}
+        <View style={styles.groupHeader}>
+          <View style={styles.headerLeft}>
+            <Text style={[styles.weaponTypeName, { color: typeStyle.color }]}>
+              {weaponType.toUpperCase()} SYSTEMS
+            </Text>
+            <View style={[styles.statusIndicator, { backgroundColor: typeStyle.color }]}>
+              <Text style={styles.statusText}>{readyWeapons}/{weapons.length}</Text>
+            </View>
+          </View>
+
+          {/* Resource Cost */}
+          {Object.entries(totalCost).length > 0 && (
+            <View style={styles.costDisplay}>
+              {Object.entries(totalCost).map(([resourceType, amount]) => (
+                <View key={resourceType} style={styles.costItem}>
+                  <ResourceIcon type={resourceType as keyof PlayerResources} size={14} />
+                  <Text style={[styles.costText, { color: typeStyle.accent }]}>{amount}</Text>
                 </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      )}
-
-      {/* Selected Weapon Group */}
-      <Animated.View style={[
-        styles.selectedWeaponGroup,
-        {
-          borderColor: currentTypeStyle.color,
-          transform: [{ scale: weaponSwitchAnimation }],
-          opacity: weaponSwitchAnimation
-        }
-      ]}>
-        <View style={styles.weaponGroupHeader}>
-          <Text style={[styles.weaponGroupTitle, { color: currentTypeStyle.color }]}>
-            {selectedWeaponType.toUpperCase()} SYSTEMS ONLINE
-          </Text>
+              ))}
+            </View>
+          )}
         </View>
 
-        {/* Weapon List */}
-        <View style={styles.weaponList}>
-          {selectedWeapons.map((weapon, weaponIndex) => {
+        {/* Weapons List */}
+        <View style={styles.weaponsList}>
+          {weapons.map((weapon, index) => {
             const weaponCooldown = weaponCooldowns.find((w) => w.id === weapon.id);
             const cooldown = weaponCooldown?.cooldown || 0;
             const animation = weaponCooldown?.animation;
-            const isCharging = chargingWeapons.has(weapon.id);
-            const durabilityPercentage =
-              (weapon.weaponDetails.durability / weapon.weaponDetails.maxDurability) * 100;
-            const canFire =
-              (mainShip.resources[weapon.weaponDetails.cost.type as keyof PlayerResources]?.current ||
-                0) >= weapon.weaponDetails.cost.amount;
+            const canFireWeapon = (mainShip.resources[weapon.weaponDetails.cost.type as keyof PlayerResources]?.current || 0) >= weapon.weaponDetails.cost.amount;
+            const durabilityPercentage = (weapon.weaponDetails.durability / weapon.weaponDetails.maxDurability) * 100;
 
             return (
-              <Animated.View
-                key={weaponIndex}
-                style={[
-                  styles.weaponItem,
-                  isCharging && { backgroundColor: currentTypeStyle.background },
-                  {
-                    borderColor: currentTypeStyle.color,
-                    backgroundColor: isCharging ? currentTypeStyle.background : 'rgba(13, 13, 43, 0.7)'
-                  }
-                ]}
-              >
-                <View style={styles.weaponHeader}>
-                  <Text style={[styles.weaponName, { color: currentTypeStyle.color }]}>
+              <View key={index} style={styles.weaponItem}>
+                <View style={styles.weaponInfo}>
+                  <Text style={[styles.weaponName, { color: typeStyle.accent }]}>
                     {weapon.weaponDetails.name}
                   </Text>
-                  <Text
-                    style={[
-                      styles.durabilityText,
-                      durabilityPercentage < 25 ? styles.durabilityLow : null,
-                    ]}
-                  >
-                    {weapon.weaponDetails.durability}/{weapon.weaponDetails.maxDurability}
-                  </Text>
-                </View>
 
-                {/* Enhanced Status Bar */}
-                <View style={styles.statusContainer}>
-                  {cooldown > 0 ? (
-                    <>
-                      <Animated.View
-                        style={[
-                          styles.cooldownBar,
+                  {/* Status Bar */}
+                  <View style={styles.weaponStatusBar}>
+                    {cooldown > 0 ? (
+                      <>
+                        {/* Cooldown background */}
+                        <View style={[styles.cooldownBackground, { backgroundColor: 'rgba(255,0,0,0.2)' }]} />
+                        {/* Cooldown progress - empties from right to left as time passes */}
+                        <Animated.View style={[
+                          styles.cooldownProgress,
                           {
                             width: animation?.interpolate({
                               inputRange: [0, 1],
-                              outputRange: ["0%", "100%"],
+                              outputRange: ["100%", "0%"], // Start full, empty as cooldown progresses
                             }),
-                            backgroundColor: currentTypeStyle.color,
-                          },
-                        ]}
-                      />
-                      <Text style={styles.statusText}>CYCLING {cooldown}s</Text>
-                    </>
-                  ) : canFire ? (
-                    <Text style={[styles.readyText, { color: currentTypeStyle.color }]}>
-                      {isCharging ? 'FIRING' : 'READY'}
-                    </Text>
-                  ) : (
-                    <Text style={styles.noResourceText}>NO AMMO</Text>
-                  )}
+                            backgroundColor: '#FF4757', // Red for cooldown
+                            alignSelf: 'flex-end', // Align to right side
+                          }
+                        ]} />
+                        {/* Cooldown text overlay */}
+                        <View style={styles.cooldownTextOverlay}>
+                          <Text style={styles.cooldownText}>
+                            {cooldown.toFixed(1)}s
+                          </Text>
+                        </View>
+                      </>
+                    ) : (
+                      <>
+                        <View style={[
+                          styles.readyBar,
+                          { backgroundColor: canFireWeapon ? typeStyle.color : '#666' }
+                        ]} />
+                        <View style={styles.cooldownTextOverlay}>
+                          <Text style={[styles.readyText, { color: canFireWeapon ? '#000' : '#999' }]}>
+                            READY
+                          </Text>
+                        </View>
+                      </>
+                    )}
+                  </View>
                 </View>
-              </Animated.View>
+
+                {/* Durability */}
+                <View style={styles.durabilitySection}>
+                  <View style={[
+                    styles.durabilityBar,
+                    { backgroundColor: 'rgba(255,255,255,0.1)' }
+                  ]}>
+                    <View style={[
+                      styles.durabilityFill,
+                      {
+                        width: `${durabilityPercentage}%`,
+                        backgroundColor: durabilityPercentage > 30 ? typeStyle.color : '#FF4757'
+                      }
+                    ]} />
+                  </View>
+                  <Text style={styles.durabilityText}>
+                    {Math.round(durabilityPercentage)}%
+                  </Text>
+                </View>
+              </View>
             );
           })}
         </View>
 
-        {/* Enhanced Fire Button */}
-        <Animated.View style={{
-          transform: [{
-            scale: firingAnimation.interpolate({
-              inputRange: [0, 1],
-              outputRange: [1, 0.95]
-            })
-          }]
-        }}>
-          <TouchableOpacity
-            disabled={fireableWeapons.length === 0 || isFiring}
-            style={[
-              styles.fireButton,
-              {
-                borderColor: currentTypeStyle.color,
-                backgroundColor: fireableWeapons.length > 0 && !isFiring ? currentTypeStyle.color : colors.disabledBackground,
-                shadowColor: currentTypeStyle.color,
-                shadowOpacity: fireableWeapons.length > 0 && !isFiring ? 0.4 : 0,
-                shadowRadius: 6,
-                shadowOffset: { width: 0, height: 3 }
-              },
-              (fireableWeapons.length === 0 || isFiring) && styles.disabledButton,
-            ]}
-            onPress={() => {
-              triggerFiringEffect();
-              onFireWeaponGroup(selectedWeaponType);
-            }}
-          >
-            <View style={styles.fireButtonContent}>
+        {/* Fire Button */}
+        <TouchableOpacity
+          disabled={!canFire}
+          style={[
+            styles.fireButton,
+            {
+              backgroundColor: canFire ? typeStyle.color : '#2A2A2A',
+              borderColor: canFire ? typeStyle.color : '#555',
+              shadowColor: canFire ? typeStyle.color : 'transparent',
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: canFire ? 0.5 : 0,
+              shadowRadius: canFire ? 10 : 0,
+              elevation: canFire ? 8 : 0,
+            },
+            !canFire && styles.disabledFireButton,
+          ]}
+          onPress={() => {
+            triggerFiringEffect(weaponType);
+            onFireWeaponGroup(weaponType);
+          }}
+        >
+          <Text style={[
+            styles.fireButtonText,
+            {
+              color: canFire ? '#000' : '#666',
+              textShadowColor: canFire ? 'rgba(0,0,0,0.5)' : 'transparent',
+              textShadowOffset: { width: 0, height: 1 },
+              textShadowRadius: 2,
+            }
+          ]}>
+            {isFiringThis ? 'FIRING...' : 'ENGAGE'}
+          </Text>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
+
+  return (
+    <View style={styles.weaponSystemContainer}>
+      <View style={styles.hudHeader}>
+        <Text style={styles.hudTitle}>WEAPON SYSTEMS</Text>
+        <View style={styles.systemStatus}>
+          <View style={[styles.statusDot, { backgroundColor: '#2ED573' }]} />
+          <Text style={styles.systemStatusText}>ONLINE</Text>
+        </View>
+      </View>
+
+      {/* Weapon Type Tabs */}
+      <View style={styles.tabContainer}>
+        {weaponTypes.map((weaponType) => {
+          const typeStyle = getWeaponTypeStyle(weaponType);
+          const isActive = selectedWeaponType === weaponType;
+          const weapons = weaponGroups[weaponType] || [];
+          const readyWeapons = weapons.filter(weapon => {
+            const cooldown = weaponCooldowns.find(w => w.id === weapon.id)?.cooldown || 0;
+            return cooldown === 0;
+          }).length;
+
+          return (
+            <TouchableOpacity
+              key={weaponType}
+              style={[
+                styles.tab,
+                {
+                  borderColor: typeStyle.color,
+                  backgroundColor: isActive ? typeStyle.bgSolid : 'rgba(0,0,0,0.2)',
+                  shadowColor: isActive ? typeStyle.color : 'transparent',
+                  shadowOffset: { width: 0, height: 0 },
+                  shadowOpacity: isActive ? 0.4 : 0,
+                  shadowRadius: isActive ? 6 : 0,
+                  elevation: isActive ? 6 : 0,
+                },
+                isActive && styles.activeTab,
+              ]}
+              onPress={() => switchWeaponType(weaponType)}
+            >
               <Text style={[
-                styles.fireButtonText,
-                { color: fireableWeapons.length > 0 && !isFiring ? colors.textPrimary : colors.disabledText }
+                styles.tabText,
+                { color: isActive ? typeStyle.color : colors.textSecondary }
               ]}>
-                {isFiring ? 'FIRING' : `FIRE ${selectedWeaponType.toUpperCase()}S`}
-                {Object.entries(totalCost).map(([resourceType, amount]) => (
-                  <View key={resourceType} style={styles.resourceCostItem}>
-                    <ResourceIcon type={resourceType as keyof PlayerResources} size={16} />
-                    <Text style={styles.resourceAmountText}>{amount}</Text>
-                  </View>
-                ))}
+                {weaponType.toUpperCase()}
               </Text>
 
-            </View>
-          </TouchableOpacity>
-        </Animated.View>
-      </Animated.View>
-    </Animated.View>
+              {/* Ready indicator */}
+              <View style={[
+                styles.tabIndicator,
+                {
+                  backgroundColor: readyWeapons === weapons.length ? typeStyle.color :
+                    readyWeapons > 0 ? '#FFA502' : '#666'
+                }
+              ]}>
+                <Text style={[
+                  styles.tabIndicatorText,
+                  { color: readyWeapons > 0 ? '#000' : '#CCC' }
+                ]}>
+                  {readyWeapons}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Selected Weapon Group */}
+      <View style={styles.weaponGroupContainer}>
+        {renderWeaponGroup(selectedWeaponType)}
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   weaponSystemContainer: {
-    marginTop: 12,
-    paddingHorizontal: 4,
-  },
-  weaponTypeTabs: {
-    flexDirection: 'row',
-    marginBottom: 8,
-    justifyContent: 'center',
-  },
-  weaponTypeTab: {
+    marginTop: 16,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginHorizontal: 4,
-    backgroundColor: 'rgba(26, 26, 61, 0.6)',
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderRadius: 20,
-    position: 'relative',
-  },
-  activeWeaponTypeTab: {
-    backgroundColor: 'rgba(26, 26, 61, 0.9)',
-    borderWidth: 2,
-  },
-  weaponTypeTabText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 2,
-  },
-  activeWeaponTypeTabText: {
-    color: colors.textPrimary,
-    fontWeight: '700',
-  },
-  weaponReadyIndicator: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    backgroundColor: colors.successGradient[0],
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderRadius: 12,
-    minWidth: 24,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.background,
-  },
-  weaponReadyText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: colors.background,
-  },
-  weaponGroupHeader: {
-    alignItems: 'center',
-    marginBottom: 8,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.2)',
-  },
-  weaponGroupTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    textAlign: 'center',
-    letterSpacing: 0.5,
-  },
-  selectedWeaponGroup: {
-    backgroundColor: 'rgba(26, 26, 61, 0.8)',
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderRadius: 8,
-    padding: 8,
-  },
-  weaponList: {
-    marginBottom: 8,
-  },
-  weaponItem: {
-    marginBottom: 6,
-    backgroundColor: 'rgba(13, 13, 43, 0.7)',
-    borderRadius: 6,
-    padding: 6,
+    marginHorizontal: 8,
+    paddingVertical: 16,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  weaponHeader: {
+  hudHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.2)',
   },
-  weaponName: {
-    fontSize: 11,
+  hudTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: colors.textPrimary,
-    flex: 1,
+    letterSpacing: 1,
   },
-  durabilityText: {
-    fontSize: 10,
+  systemStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  systemStatusText: {
+    fontSize: 12,
     color: colors.textSecondary,
+    fontWeight: '600',
   },
-  durabilityLow: {
-    color: colors.error,
-  },
-  statusContainer: {
-    height: 16,
-    backgroundColor: colors.disabledBackground,
-    borderRadius: 8,
-    overflow: "hidden",
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-  },
-  cooldownBar: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: colors.secondary,
-  },
-  statusText: {
-    fontSize: 9,
-    fontWeight: "bold",
-    color: colors.textPrimary,
-  },
-  readyText: {
-    fontSize: 9,
-    color: colors.successGradient[0],
-    fontWeight: 'bold',
-  },
-  noResourceText: {
-    color: colors.error,
-    fontSize: 9,
-  },
-  fireButton: {
+  tabContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    borderRadius: 12,
     padding: 6,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: colors.glowEffect,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginHorizontal: 2,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    position: 'relative',
+  },
+  activeTab: {
+    borderWidth: 1,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
   },
-  disabledButton: {
-    backgroundColor: colors.disabledBackground,
-    borderColor: colors.disabledBorder,
-    shadowOpacity: 0,
-  },
-  fireButtonContent: {
-    alignItems: 'center',
-  },
-  fireButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textPrimary,
+  tabText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    textAlign: 'center',
     marginBottom: 4,
     letterSpacing: 0.5,
   },
-  resourceCosts: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
+  tabIndicator: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#1A1A3D',
   },
-  resourceCostItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginHorizontal: 4,
+  tabIndicatorText: {
+    fontSize: 9,
+    fontWeight: 'bold',
   },
-  resourceAmountText: {
-    marginLeft: 2,
+  weaponGroupContainer: {
+    minHeight: 200,
+  },
+  weaponGroup: {
+    backgroundColor: 'rgba(26, 26, 61, 0.8)',
+    borderWidth: 2,
+    borderRadius: 12,
+    padding: 16,
+  },
+  groupHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  weaponTypeName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginRight: 8,
+    letterSpacing: 0.5,
+  },
+  statusIndicator: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  statusText: {
     fontSize: 10,
-    color: colors.textPrimary,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  costDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  costItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  costText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  weaponsList: {
+    marginBottom: 12,
+  },
+  weaponItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  weaponInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  weaponName: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  weaponStatusBar: {
+    height: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 2,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  cooldownBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 2,
+  },
+  cooldownProgress: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  readyBar: {
+    height: '100%',
+    width: '100%',
+    borderRadius: 2,
+  },
+  cooldownTextOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cooldownText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#FFF',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  readyText: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  durabilitySection: {
+    alignItems: 'flex-end',
+    minWidth: 60,
+  },
+  durabilityBar: {
+    width: 50,
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 2,
+  },
+  durabilityFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  durabilityText: {
+    fontSize: 9,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  fireButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    borderWidth: 2,
+    alignItems: 'center',
+  },
+  disabledFireButton: {
+    backgroundColor: '#333',
+    borderColor: '#555',
+  },
+  fireButtonText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
 });
 

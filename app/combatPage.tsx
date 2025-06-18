@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { ImageBackground, ScrollView, StyleSheet, Text, View, Animated, TouchableOpacity } from "react-native";
 import ShipStatus from "@/components/ShipStatus";
 import { useGame } from "@/context/GameContext";
 import { IWeapon } from "@/data/weapons";
 import colors from "@/utils/colors";
-import { IMainShip, PlayerResources, resourceColors } from "@/utils/defaults";
+import { PlayerResources, resourceColors } from "@/utils/defaults";
+import React, { useEffect, useState } from "react";
+import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import CombatLog from "./combat/components/CombatLog";
 import FloatingDamageNumbers from "./combat/components/FloatingDamageNumbers";
 import HealthBars from "./combat/components/HealthBars";
@@ -13,7 +13,7 @@ import { useCombatLogic } from "./combat/hooks/useCombatLogic";
 import { useEscapeLogic } from "./combat/hooks/useEscapeLogic";
 import { useFloatingDamage } from "./combat/hooks/useFloatingDamage";
 import { useWeaponCooldowns } from "./combat/hooks/useWeaponCooldowns";
-import { calculateHitChance, calculateDamage } from "./combat/utils/combatCalculations";
+import { calculateDamage, calculateHitChance } from "./combat/utils/combatCalculations";
 
 
 
@@ -267,82 +267,77 @@ const CombatPage = ({ route, navigation }: { route: any; navigation: any }) => {
           transform: [{ translateX: screenShake }]
         }
       ]}>
-        <ImageBackground
-          source={require("@/assets/images/space-bg.png")}
-          style={styles.backgroundImage}
-        >
-          <HealthBars mainShip={mainShip} pirate={pirate} />
 
-          <ScrollView style={[styles.container, { backgroundColor: "transparent" }]}>
-            {/* Combat Header */}
-            {hasEscaped ? (
-              <Text style={styles.combatStatus}>ESCAPED!</Text>
-            ) : pirate ? (
-              <>
-                <Text style={styles.header}>
-                  {planet.name.toUpperCase()} COMBAT ZONE
-                </Text>
-                <Text style={[styles.header, { fontSize: 16, color: colors.warning, marginBottom: 16 }]}>
-                  [{enemies.length} HOSTILES REMAINING]
-                </Text>
-                <View style={styles.pirateContainer}>
-                  <Text style={styles.pirateTitle}>ENEMY CONTACT</Text>
-                  <Text style={styles.pirateName}>
-                    {pirate.name.toUpperCase()}
-                  </Text>
-                  <Text style={[styles.pirateName, { fontSize: 16, color: colors.warning, marginTop: 4 }]}>
-                    [{pirate.category}] • {pirate.health}/{pirate.maxHealth} HP
-                  </Text>
-                </View>
-              </>
-            ) : (
-              <Text style={styles.combatStatus}>VICTORY ACHIEVED!</Text>
-            )}
+        <HealthBars mainShip={mainShip} pirate={pirate} />
 
-            <CombatLog combatLog={combatLog} />
-
-            <WeaponGroups
-              weaponGroups={weaponGroups}
-              weaponCooldowns={weaponCooldowns}
-              mainShip={mainShip}
-              isFiring={isFiring}
-              onFireWeaponGroup={handleAttackByType}
-            />
-          </ScrollView>
-
-          <FloatingDamageNumbers floatingDamage={floatingDamage} />
-
-          {/* Fixed Escape Button */}
-          {!hasEscaped && pirate ? (
-            <TouchableOpacity
-              style={[
-                styles.fixedEscapeButton,
-                {
-                  backgroundColor: canEscape ? colors.redButton : colors.disabledBackground,
-                  borderColor: canEscape ? colors.error : colors.disabledBorder,
-                }
-              ]}
-              onPress={handleEscape}
-              disabled={!canEscape}
-            >
-              <Text style={[
-                styles.escapeButtonText,
-                { color: canEscape ? colors.textPrimary : colors.disabledText }
-              ]}>
-                {canEscape ? "ESC" : `${getEscapeCooldownRemaining()}s`}
+        <ScrollView style={[styles.container, { backgroundColor: "transparent" }]}>
+          {/* Combat Header */}
+          {hasEscaped ? (
+            <Text style={styles.combatStatus}>ESCAPED!</Text>
+          ) : pirate ? (
+            <>
+              <Text style={styles.header}>
+                {planet.name.toUpperCase()} COMBAT ZONE
               </Text>
-            </TouchableOpacity>
-          ) : hasEscaped || !pirate ? (
-            <TouchableOpacity
-              style={styles.fixedBackButton}
-              onPress={handleBack}
-            >
-              <Text style={styles.backButtonText}>BACK</Text>
-            </TouchableOpacity>
-          ) : null}
-        </ImageBackground>
-      </Animated.View>
+              <Text style={[styles.header, { fontSize: 16, color: colors.warning, marginBottom: 16 }]}>
+                [{enemies.length} HOSTILES REMAINING]
+              </Text>
+              <View style={styles.pirateContainer}>
+                <Text style={styles.pirateTitle}>ENEMY CONTACT</Text>
+                <Text style={styles.pirateName}>
+                  {pirate.name.toUpperCase()}
+                </Text>
+                <Text style={[styles.pirateName, { fontSize: 16, color: colors.warning, marginTop: 4 }]}>
+                  [{pirate.category}] • {pirate.health}/{pirate.maxHealth} HP
+                </Text>
+              </View>
+            </>
+          ) : (
+            <Text style={styles.combatStatus}>VICTORY ACHIEVED!</Text>
+          )}
 
+          <CombatLog combatLog={combatLog} />
+
+          <WeaponGroups
+            weaponGroups={weaponGroups}
+            weaponCooldowns={weaponCooldowns}
+            mainShip={mainShip}
+            isFiring={isFiring}
+            onFireWeaponGroup={handleAttackByType}
+          />
+        </ScrollView>
+
+        <FloatingDamageNumbers floatingDamage={floatingDamage} />
+
+        {/* Fixed Escape Button */}
+        {!hasEscaped && pirate ? (
+          <TouchableOpacity
+            style={[
+              styles.fixedEscapeButton,
+              {
+                backgroundColor: canEscape ? colors.redButton : colors.disabledBackground,
+                borderColor: canEscape ? colors.error : colors.disabledBorder,
+              }
+            ]}
+            onPress={handleEscape}
+            disabled={!canEscape}
+          >
+            <Text style={[
+              styles.escapeButtonText,
+              { color: canEscape ? colors.textPrimary : colors.disabledText }
+            ]}>
+              {canEscape ? "ESC" : `${getEscapeCooldownRemaining()}s`}
+            </Text>
+          </TouchableOpacity>
+        ) : hasEscaped || !pirate ? (
+          <TouchableOpacity
+            style={styles.fixedBackButton}
+            onPress={handleBack}
+          >
+            <Text style={styles.backButtonText}>BACK</Text>
+          </TouchableOpacity>
+        ) : null}
+      </Animated.View>
       <ShipStatus />
     </>
   );

@@ -46,11 +46,11 @@ const initialUpgradeList: Upgrade[] = [
         description: (level: number) =>
             `Upgrade core operations storage to safely store an additional +200 units. Enhanced containment systems and improved diagnostics ensure stability under increased loads.`,
         costs: [
-            { resourceType: "energy", amount: 200 },
+            { resourceType: "energy", amount: 150 },
             { resourceType: "fuel", amount: 100 },
-            { resourceType: "solarPlasma", amount: 50 }
+            { resourceType: "solarPlasma", amount: 40 }
         ],
-        baseCostMultiplier: 1.25,
+        baseCostMultiplier: 1.15,
         level: 0,
     },
     {
@@ -66,7 +66,7 @@ const initialUpgradeList: Upgrade[] = [
         level: 0,
     },
     // Add more upgrades here
-    
+
     // RESEARCH LABORATORY UPGRADES
     {
         id: "research_lab",
@@ -108,7 +108,7 @@ const initialUpgradeList: Upgrade[] = [
         baseCostMultiplier: 2.2,
         level: 0,
     },
-    
+
     // FLEET AUTOMATION UPGRADES
     {
         id: "automated_mining",
@@ -136,7 +136,7 @@ const initialUpgradeList: Upgrade[] = [
         baseCostMultiplier: 1.9,
         level: 0,
     },
-    
+
     // DIPLOMATIC & TRADING UPGRADES
     {
         id: "trading_post",
@@ -163,7 +163,7 @@ const initialUpgradeList: Upgrade[] = [
         baseCostMultiplier: 1.3,
         level: 0,
     },
-    
+
     // BASE BUILDING UPGRADES
     {
         id: "station_modules",
@@ -191,7 +191,7 @@ const initialUpgradeList: Upgrade[] = [
         baseCostMultiplier: 1.7,
         level: 0,
     },
-    
+
     // MEGA-STRUCTURE UPGRADES
     {
         id: "stellar_manipulation",

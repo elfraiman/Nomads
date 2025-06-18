@@ -54,7 +54,7 @@ const CombatControls: React.FC<CombatControlsProps> = ({
 const styles = StyleSheet.create({
   controlButton: {
     width: '100%',
-    padding: 12,
+    padding: 6,
     alignItems: 'center',
     borderRadius: 8,
     borderWidth: 1,

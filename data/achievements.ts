@@ -145,9 +145,9 @@ const achievements: IAchievement[] = [
     {
         id: "build_scanning_drones",
         title: "Exploration is Key to Survival",
-        description: "Build 5 Scanning Drones to start exploring the galaxies.",
+        description: "Build 1 Scanning Drone to start exploring the galaxies.",
         shipGoals: {
-            scanningDrones: 5,
+            scanningDrones: 1,
         },
         progress: {
             ships: {
@@ -243,9 +243,9 @@ const achievements: IAchievement[] = [
     {
         id: "drone_fleet_commander",
         title: "Fleet Commander",
-        description: "Build 50 drones of any type combined.",
+        description: "Build 5 drones of any type combined.",
         shipGoals: {
-            totalDrones: 50,
+            totalDrones: 5,
         },
         progress: {
             ships: {
@@ -315,7 +315,7 @@ const achievements: IAchievement[] = [
     },
     {
         id: "stellar_engineer",
-        title: "Stellar Engineer", 
+        title: "Stellar Engineer",
         description: "Construct a Dyson Sphere component around a star.",
         story: `You've begun harnessing the power of an entire star. This megastructure represents the pinnacle of technological achievement.
         
