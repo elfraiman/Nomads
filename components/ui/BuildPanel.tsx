@@ -17,6 +17,7 @@ const BuildPanel = ({
   cooldown,
   canAfford,
   name,
+  ships,
 }: {
   cost: { [key: string]: number };
   description: string;
@@ -24,6 +25,7 @@ const BuildPanel = ({
   cooldown: number; // Cooldown in seconds
   canAfford: boolean;
   name: string;
+  ships: any; // Add ships prop to access current drone counts
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOnCooldown, setIsOnCooldown] = useState(false);
@@ -53,79 +55,97 @@ const BuildPanel = ({
     }, 1000);
   };
 
-  useEffect(() => {
-    const checkCooldown = async () => {
-      const storedCooldown = await AsyncStorage.getItem("buildCooldown");
-      if (storedCooldown) {
-        const cooldownEndTime = parseInt(storedCooldown, 10);
-        const remainingTime = Math.max(0, Math.floor((cooldownEndTime - Date.now()) / 1000));
+  const checkCooldown = async () => {
+    const cooldownEndTime = await AsyncStorage.getItem("buildCooldown");
+    if (cooldownEndTime) {
+      const now = Date.now();
+      const endTime = parseInt(cooldownEndTime);
+      if (now < endTime) {
+        const timeLeft = Math.ceil((endTime - now) / 1000);
+        setIsOnCooldown(true);
+        setCooldownTimeLeft(timeLeft);
 
-        if (remainingTime > 0) {
-          setIsOnCooldown(true);
-          setCooldownTimeLeft(remainingTime);
-
-          const interval = setInterval(() => {
-            setCooldownTimeLeft((prev) => {
-              if (prev <= 1) {
-                clearInterval(interval);
-                setIsOnCooldown(false);
-                AsyncStorage.removeItem("buildCooldown");
-                return 0;
-              }
-              return prev - 1;
-            });
-          }, 1000);
-        }
+        const interval = setInterval(() => {
+          setCooldownTimeLeft((prev) => {
+            if (prev <= 1) {
+              clearInterval(interval);
+              setIsOnCooldown(false);
+              AsyncStorage.removeItem("buildCooldown");
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        await AsyncStorage.removeItem("buildCooldown");
       }
-    };
+    }
+  };
 
+  useEffect(() => {
     checkCooldown();
   }, []);
 
+  const isDisabled = isOnCooldown || !canAfford;
+  const droneType = name.includes("Mining") ? "miningDrones" : "scanningDrones";
+  const currentDroneCount = ships[droneType] || 0;
 
   return (
-    <View>
-      <View style={styles.row}>
-        <TouchableOpacity
-          style={[
-            styles.button,
-            (isOnCooldown || !canAfford) && styles.buttonDisabled,
-          ]}
-          disabled={isOnCooldown || !canAfford}
-          onPress={handleBuild}
-        >
-          <View>
-            <Text style={styles.buttonText}>
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={[styles.button, isDisabled && styles.buttonDisabled]}
+        disabled={isDisabled}
+        onPress={handleBuild}
+      >
+        <View style={styles.buttonContent}>
+          <View style={styles.leftContent}>
+            <Text style={[styles.buttonText, isDisabled && styles.buttonTextDisabled]}>
               {isOnCooldown
-                ? `Cooling Down... (${cooldownTimeLeft}s)`
+                ? `Cooling Down...`
                 : name}
-              <View style={styles.iconContainer}>
-                <ResourceIcon type="miningDrones" size={20} />
-              </View>
             </Text>
+            {isOnCooldown ? (
+              <Text style={styles.cooldownText}>
+                {cooldownTimeLeft}s remaining
+              </Text>
+            ) : (
+              <Text style={[styles.droneCountText, isDisabled && styles.droneCountTextDisabled]}>
+                Current: {currentDroneCount}
+              </Text>
+            )}
           </View>
-
-
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.chevronButton}
-          onPress={() => setIsExpanded(!isExpanded)}
-        >
-          <Ionicons
-            name={isExpanded ? "chevron-down" : "chevron-forward"}
-            size={20}
-            color="#FFF"
-          />
-        </TouchableOpacity>
-      </View>
+          <View style={styles.rightContent}>
+            <ResourceIcon type={droneType as any} size={24} />
+            <TouchableOpacity
+              style={styles.expandButton}
+              onPress={() => setIsExpanded(!isExpanded)}
+            >
+              <Ionicons
+                name={isExpanded ? "chevron-up" : "chevron-down"}
+                size={16}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
 
       {isExpanded && (
         <View style={styles.expandedContainer}>
-          <Text style={styles.description}>
-            Cost: {cost.fuel} <ResourceIcon type="fuel" size={14} />,{" "}
-            {cost.solarPlasma} <ResourceIcon type="solarPlasma" size={14} />,{" "}
-            {cost.energy} <ResourceIcon type="energy" size={14} />.
-          </Text>
+          <View style={styles.costSection}>
+            <Text style={styles.costTitle}>Cost:</Text>
+            <View style={styles.costContainer}>
+              {Object.entries(cost).map(([resource, amount], index) => (
+                <View key={resource} style={styles.costItem}>
+                  <ResourceIcon type={resource as any} size={14} />
+                  <Text style={styles.costText}>{amount}</Text>
+                  {index < Object.entries(cost).length - 1 && (
+                    <Text style={styles.costSeparator}>{" • "}</Text>
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
           <Text style={styles.description}>{description}</Text>
         </View>
       )}
@@ -226,6 +246,7 @@ const BuildOperations = ({
         description={`Manufacture a Scanning Drone to explore the galaxy.`}
         onBuild={buildScanningDrone}
         cooldown={1} // 1-minute cooldown
+        ships={ships}
       />
 
       {game.isAchievementUnlocked("find_an_asteroid") && (
@@ -236,6 +257,7 @@ const BuildOperations = ({
           description={`Refine Alloy and Solar Plasma and build a Mining Drone.`}
           onBuild={buildMiningDrone}
           cooldown={60} // 1-minute cooldown
+          ships={ships}
         />
       )}
 
@@ -245,46 +267,93 @@ const BuildOperations = ({
 
 
 const styles = StyleSheet.create({
-  row: {
+  container: {
+    marginTop: 6,
+    padding: 10,
+    backgroundColor: colors.panelBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  buttonContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 6,
   },
-  chevronButton: {
-    marginLeft: 10,
-    padding: 4,
+  leftContent: {
+    flexDirection: "column",
+  },
+  rightContent: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   buttonDisabled: {
-    backgroundColor: colors.disabledBackground, // Muted gray for disabled state
-    borderColor: colors.disabledBorder, // Subtle border for disabled buttons
+    backgroundColor: colors.disabledBackground,
+    borderColor: colors.disabledBorder,
   },
-  expandedContainer: {
-    marginTop: 6,
-    padding: 10,
-    backgroundColor: colors.panelBackground, // Mid-tone from the gradient theme
-    borderWidth: 1,
-    borderColor: colors.border, // Orange highlight border
+  buttonTextDisabled: {
+    color: colors.disabledText,
   },
   buttonText: {
     color: colors.textPrimary,
     fontSize: 16,
     fontWeight: "bold",
   },
-  description: {
-    color: colors.textPrimary, // Bright yellow for descriptive text
+  cooldownText: {
+    color: colors.textSecondary,
     fontSize: 12,
   },
-  iconContainer: {
+  droneCountText: {
+    color: colors.textPrimary,
+    fontSize: 12,
+  },
+  droneCountTextDisabled: {
+    color: colors.disabledText,
+  },
+  costSection: {
+    marginBottom: 10,
+  },
+  costTitle: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  costContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginLeft: 10,
+  },
+  costItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  costText: {
+    color: colors.textPrimary,
+    fontSize: 12,
+  },
+  costSeparator: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginHorizontal: 4,
+  },
+  expandButton: {
+    padding: 4,
+  },
+  expandedContainer: {
+    marginTop: 6,
+    padding: 10,
+    backgroundColor: colors.panelBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  description: {
+    color: colors.textPrimary,
+    fontSize: 12,
   },
   cardContent: {
     padding: 6,
   },
   gained: {
-    color: colors.secondary, // Orange for emphasis
+    color: colors.secondary,
     textDecorationLine: "underline",
   },
   button: {

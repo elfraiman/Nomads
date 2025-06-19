@@ -21,10 +21,10 @@ export interface IWeapon {
   amount: number;
 }
 
-// Utility function to calculate durability based on total cost
+// Utility function to calculate durability based on total cost using square root scaling
 const calculateDurability = (costs: { resourceType: string; amount: number }[]): number => {
-  const totalCost = costs.reduce((sum, cost) => sum + (cost.amount + 25), 0) * 2.2;
-  return Math.floor(totalCost / 100); // Example: 1 durability per 100 total cost
+  const totalCost = costs.reduce((sum, cost) => sum + cost.amount, 0);
+  return Math.floor(Math.sqrt(totalCost * 2)); // Square root scaling for durability
 };
 
 // Utility function to add durability to weapons
@@ -37,25 +37,30 @@ const withDurability = (weapon: Omit<IWeapon, "weaponDetails"> & { weaponDetails
   },
 });
 
+// Rebalanced progression formulas:
+// Small Weapons: 200-400 total cost (early game accessible)
+// Medium Weapons: 500-800 total cost (mid game)  
+// Large Weapons: 1000-1500 total cost (late game)
+// Costs follow geometric progression for balanced scaling
 
 const blasters: IWeapon[] = [
   {
     id: "light_plasma_blaster",
     title: "Light Plasma Blaster",
-    icon: require("@/assets/images/blasters/light-blaster.webp"), // Icon reference
+    icon: require("@/assets/images/blasters/light-blaster.webp"),
     description: (level: number) =>
       `A compact and efficient plasma weapon, the Light Plasma Blaster delivers rapid bursts of energized plasma at close range. Ideal for agile skirmish vessels, it balances speed and power.`,
     costs: [
-      { resourceType: "energy", amount: 800 },
-      { resourceType: "solarPlasma", amount: 400 },
-      { resourceType: "fuel", amount: 300 },
+      { resourceType: "energy", amount: 200 },
+      { resourceType: "solarPlasma", amount: 100 },
+      { resourceType: "fuel", amount: 75 },
     ],
     weaponDetails: {
       name: "Light Plasma Blaster",
-      power: 10,
+      power: 18, // Small weapon base power
       accuracy: 95,
       cooldown: 3,
-      cost: { type: "solarPlasma", amount: 50 },
+      cost: { type: "solarPlasma", amount: 25 },
       type: "blaster" as "blaster",
       category: "Small" as "Small",
     },
@@ -68,16 +73,16 @@ const blasters: IWeapon[] = [
     description: (level: number) =>
       `The Medium Plasma Blaster is a mid-sized weapon optimized for frigates and cruisers. It delivers concentrated plasma bursts, providing a balance between range and damage output.`,
     costs: [
-      { resourceType: "energy", amount: 1200 },
-      { resourceType: "solarPlasma", amount: 600 },
-      { resourceType: "fuel", amount: 500 },
+      { resourceType: "energy", amount: 400 },
+      { resourceType: "solarPlasma", amount: 200 },
+      { resourceType: "fuel", amount: 150 },
     ],
     weaponDetails: {
       name: "Medium Plasma Blaster",
-      power: 22,
+      power: 28, // Medium weapon base power
       accuracy: 90,
       cooldown: 5,
-      cost: { type: "solarPlasma", amount: 90 },
+      cost: { type: "solarPlasma", amount: 45 },
       type: "blaster" as "blaster",
       category: "Medium" as "Medium",
     },
@@ -90,16 +95,16 @@ const blasters: IWeapon[] = [
     description: (level: number) =>
       `A destructive plasma weapon designed for capital-class ships. The Heavy Plasma Blaster discharges massive plasma bursts capable of melting through reinforced hulls.`,
     costs: [
-      { resourceType: "energy", amount: 2000 },
-      { resourceType: "solarPlasma", amount: 1000 },
-      { resourceType: "fuel", amount: 900 },
+      { resourceType: "energy", amount: 800 },
+      { resourceType: "solarPlasma", amount: 400 },
+      { resourceType: "fuel", amount: 300 },
     ],
     weaponDetails: {
       name: "Heavy Plasma Blaster",
-      power: 35,
+      power: 42, // Large weapon base power
       accuracy: 85,
       cooldown: 8,
-      cost: { type: "solarPlasma", amount: 150 },
+      cost: { type: "solarPlasma", amount: 75 },
       type: "blaster" as "blaster",
       category: "Large" as "Large",
     },
@@ -115,14 +120,14 @@ const lasers: IWeapon[] = [
     description: (level: number) =>
       `Designed for precision strikes, the Light Pulse Laser emits rapid pulses of focused light energy, perfect for surgical hits on smaller targets.`,
     costs: [
-      { resourceType: "energy", amount: 1000 },
-      { resourceType: "fuel", amount: 350 }],
+      { resourceType: "energy", amount: 250 },
+      { resourceType: "fuel", amount: 100 }],
     weaponDetails: {
       name: "Light Pulse Laser",
-      power: 12,
+      power: 20, // Small weapon base power (slightly higher for precision)
       accuracy: 98,
       cooldown: 2.4,
-      cost: { type: "fuel", amount: 35 },
+      cost: { type: "fuel", amount: 15 },
       type: "laser" as "laser",
       category: "Small" as "Small"
     },
@@ -135,14 +140,14 @@ const lasers: IWeapon[] = [
     description: (level: number) =>
       `The Medium Beam Laser combines range with firepower, delivering sustained beams capable of cutting through advanced shielding systems.`,
     costs: [
-      { resourceType: "energy", amount: 1500 },
-      { resourceType: "fuel", amount: 650 }],
+      { resourceType: "energy", amount: 500 },
+      { resourceType: "fuel", amount: 200 }],
     weaponDetails: {
       name: "Medium Beam Laser",
-      power: 25,
+      power: 32, // Medium weapon base power
       accuracy: 95,
       cooldown: 4.4,
-      cost: { type: "fuel", amount: 75 },
+      cost: { type: "fuel", amount: 35 },
       type: "laser" as "laser",
       category: "Medium" as "Medium",
     },
@@ -155,14 +160,14 @@ const lasers: IWeapon[] = [
     description: (level: number) =>
       `Unleashing unparalleled energy, the Heavy Beam Laser provides devastating beams capable of annihilating reinforced capital ships.`,
     costs: [
-      { resourceType: "energy", amount: 2500 },
-      { resourceType: "fuel", amount: 1200 }],
+      { resourceType: "energy", amount: 1000 },
+      { resourceType: "fuel", amount: 400 }],
     weaponDetails: {
       name: "Heavy Beam Laser",
-      power: 45,
+      power: 48, // Large weapon base power
       accuracy: 90,
       cooldown: 7,
-      cost: { type: "fuel", amount: 120 },
+      cost: { type: "fuel", amount: 65 },
       type: "laser" as "laser",
       category: "Large" as "Large",
     },
@@ -178,14 +183,14 @@ const missiles: IWeapon[] = [
     description: (level: number) =>
       `A versatile rocket launcher for high-speed crafts, the Light Rocket Launcher excels in delivering quick and accurate explosive payloads.`,
     costs: [
-      { resourceType: "energy", amount: 1200 },
-      { resourceType: "frozenHydrogen", amount: 250 }],
+      { resourceType: "energy", amount: 300 },
+      { resourceType: "frozenHydrogen", amount: 100 }],
     weaponDetails: {
       name: "Light Rocket Launcher",
-      power: 15,
+      power: 22, // Small weapon with explosive bonus
       accuracy: 75,
       cooldown: 8,
-      cost: { type: "frozenHydrogen", amount: 40 },
+      cost: { type: "frozenHydrogen", amount: 20 },
       type: "missile" as "missile",
       category: "Small" as "Small",
     },
@@ -198,34 +203,34 @@ const missiles: IWeapon[] = [
     description: (level: number) =>
       `Designed for cruisers, the Medium Missile Launcher delivers precision-guided warheads with enhanced damage and speed.`,
     costs: [
-      { resourceType: "energy", amount: 2000 },
-      { resourceType: "frozenHydrogen", amount: 700 }],
+      { resourceType: "energy", amount: 600 },
+      { resourceType: "frozenHydrogen", amount: 200 }],
     weaponDetails: {
       name: "Medium Missile Launcher",
-      power: 35,
-      accuracy: 65,
-      cooldown: 16,
-      cost: { type: "frozenHydrogen", amount: 80 },
+      power: 35, // Medium weapon with explosive bonus
+      accuracy: 80,
+      cooldown: 12,
+      cost: { type: "frozenHydrogen", amount: 45 },
       type: "missile" as "missile",
       category: "Medium" as "Medium",
     },
     amount: 0,
   },
   {
-    id: "heavy_torpedo_launcher",
-    title: "Heavy Torpedo Launcher",
-    icon: require("@/assets/images/missiles/large-missile-launcher.png"),
+    id: "heavy_missile_launcher",
+    title: "Heavy Missile Launcher",
+    icon: require("@/assets/images/missiles/heavy-missile-launcher.png"),
     description: (level: number) =>
-      `The Heavy Torpedo Launcher is engineered to deliver massive explosive force, ideal for devastating capital-class ships.`,
+      `The ultimate in missile technology, the Heavy Missile Launcher fires devastating warheads capable of obliterating entire formations.`,
     costs: [
-      { resourceType: "energy", amount: 3000 },
-      { resourceType: "frozenHydrogen", amount: 1200 }],
+      { resourceType: "energy", amount: 1200 },
+      { resourceType: "frozenHydrogen", amount: 400 }],
     weaponDetails: {
-      name: "Heavy Torpedo Launcher",
-      power: 60,
-      accuracy: 50,
-      cooldown: 24,
-      cost: { type: "frozenHydrogen", amount: 150 },
+      name: "Heavy Missile Launcher",
+      power: 52, // Large weapon with explosive bonus
+      accuracy: 75,
+      cooldown: 16,
+      cost: { type: "frozenHydrogen", amount: 80 },
       type: "missile" as "missile",
       category: "Large" as "Large",
     },
@@ -239,16 +244,16 @@ const railguns: IWeapon[] = [
     title: "Light Railgun",
     icon: require("@/assets/images/railguns/light-railgun.png"),
     description: (level: number) =>
-      `Employing electromagnetic force, the Light Railgun launches projectiles with pinpoint accuracy over long distances.`,
+      `Using electromagnetic fields to accelerate projectiles, the Light Railgun delivers kinetic strikes with incredible velocity and precision.`,
     costs: [
-      { resourceType: "energy", amount: 1800 },
-      { resourceType: "alloys", amount: 400 }],
+      { resourceType: "energy", amount: 400 },
+      { resourceType: "alloys", amount: 75 }],
     weaponDetails: {
       name: "Light Railgun",
-      power: 18,
-      accuracy: 85,
+      power: 25, // Small weapon with armor penetration bonus
+      accuracy: 92,
       cooldown: 6,
-      cost: { type: "alloys", amount: 60 },
+      cost: { type: "alloys", amount: 10 },
       type: "railgun" as "railgun",
       category: "Small" as "Small",
     },
@@ -259,16 +264,16 @@ const railguns: IWeapon[] = [
     title: "Medium Railgun",
     icon: require("@/assets/images/railguns/medium-railgun.png"),
     description: (level: number) =>
-      `The Medium Railgun combines precision with destructive power, perfect for anti-frigate and anti-cruiser operations.`,
+      `The Medium Railgun combines devastating kinetic energy with tactical versatility, perfect for engaging armored targets at range.`,
     costs: [
-      { resourceType: "energy", amount: 3000 },
-      { resourceType: "alloys", amount: 900 }],
+      { resourceType: "energy", amount: 800 },
+      { resourceType: "alloys", amount: 150 }],
     weaponDetails: {
       name: "Medium Railgun",
-      power: 45,
-      accuracy: 70,
-      cooldown: 12,
-      cost: { type: "alloys", amount: 120 },
+      power: 38, // Medium weapon with armor penetration bonus
+      accuracy: 88,
+      cooldown: 10,
+      cost: { type: "alloys", amount: 25 },
       type: "railgun" as "railgun",
       category: "Medium" as "Medium",
     },
@@ -277,18 +282,18 @@ const railguns: IWeapon[] = [
   {
     id: "heavy_railgun",
     title: "Heavy Railgun",
-    icon: require("@/assets/images/railguns/large-railgun.png"),
+    icon: require("@/assets/images/railguns/heavy-railgun.png"),
     description: (level: number) =>
-      `A pinnacle of kinetic weaponry, the Heavy Railgun is engineered to destroy even the most heavily armored targets.`,
+      `The pinnacle of kinetic warfare, the Heavy Railgun launches projectiles at near-light speed, capable of piercing any known armor.`,
     costs: [
-      { resourceType: "energy", amount: 5000 },
-      { resourceType: "alloys", amount: 2000 }],
+      { resourceType: "energy", amount: 1600 },
+      { resourceType: "alloys", amount: 300 }],
     weaponDetails: {
       name: "Heavy Railgun",
-      power: 85,
-      accuracy: 60,
-      cooldown: 20,
-      cost: { type: "alloys", amount: 250 },
+      power: 55, // Large weapon with armor penetration bonus
+      accuracy: 85,
+      cooldown: 14,
+      cost: { type: "alloys", amount: 45 },
       type: "railgun" as "railgun",
       category: "Large" as "Large",
     },
@@ -296,6 +301,11 @@ const railguns: IWeapon[] = [
   },
 ].map(withDurability);
 
-const initialWeapons: IWeapon[] = [...blasters, ...lasers, ...missiles, ...railguns];
+export const allWeapons: IWeapon[] = [
+  ...blasters,
+  ...lasers,
+  ...missiles,
+  ...railguns,
+];
 
-export default initialWeapons;
+export { blasters, lasers, missiles, railguns };

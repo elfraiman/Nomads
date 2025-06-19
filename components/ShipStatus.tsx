@@ -1,525 +1,397 @@
 import React, { useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+
 import { useGame } from "@/context/GameContext";
 import { Upgrade } from "@/data/upgrades";
-import { LinearGradient } from "expo-linear-gradient";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import ActiveGoal from "./ui/ActiveGoal";
 import ResourceIcon from "./ui/ResourceIcon";
+import GoalIndicator from "./ui/GoalIndicator";
 import colors from "@/utils/colors";
-import { Ionicons } from "@expo/vector-icons";
 import { formatResourceDisplaySmart, formatLargeNumber } from "@/utils/numberFormatter";
 
 const ShipStatus = () => {
     const game = useGame();
     const [isDronesExpanded, setIsDronesExpanded] = useState(false);
-    const [isAdvancedResourcesExpanded, setIsAdvancedResourcesExpanded] = useState(false);
-    const [isPremiumResourcesExpanded, setIsPremiumResourcesExpanded] = useState(false);
-    const [isResourcePanelExpanded, setIsResourcePanelExpanded] = useState(false);
-    const [isCompactMode, setIsCompactMode] = useState(false);
 
     if (!game) return null;
 
     const { resources, upgrades, ships } = game;
 
+    // Calculate energy percentage
     const energyPercentage = resources?.energy
         ? (resources.energy.current / resources.energy.max) * 100
         : 0;
 
+    // Get energy generation rate
     const getGenerationRate = () => {
-        let level = upgrades.find((upgrade: Upgrade) => upgrade.id === "reactor_optimization")?.level;
-        if (level && level > 0) {
-            // Match the energy generation calculation from GameContext
+        const reactorUpgrade = upgrades.find((upgrade: Upgrade) => upgrade.id === "reactor_optimization");
+        if (reactorUpgrade?.level && reactorUpgrade.level > 0) {
             const baseEnergyRate = 1.85;
-            return Math.round((level * baseEnergyRate) * 10) / 10; // Round to 1 decimal place
+            return Math.round((reactorUpgrade.level * baseEnergyRate) * 10) / 10;
         }
         return 0;
     };
 
-    const shipCount = Object.keys(ships).length;
-    const expandedHeight = shipCount * 40 + 60;
+    // Get all unlocked and relevant resources
+    const getDisplayableResources = () => {
+        const resourceKeys = [
+            'fuel', 'solarPlasma', 'alloys', 'frozenHydrogen', 'darkMatter',
+            'researchPoints', 'exoticMatter', 'quantumCores', 'tokens',
+            'diplomaticInfluence', 'ancientArtifacts'
+        ];
+
+        return resourceKeys
+            .map(key => ({ key, resource: resources[key as keyof typeof resources] }))
+            .filter(({ resource }) =>
+                resource &&
+                !resource.locked &&
+                (resource.current > 0 || resource.max > 100)
+            );
+    };
+
+    // Get friendly resource names
+    const getResourceDisplayName = (key: string) => {
+        const nameMap: { [key: string]: string } = {
+            solarPlasma: 'Plasma',
+            frozenHydrogen: 'Hydrogen',
+            researchPoints: 'Research',
+            exoticMatter: 'Exotic',
+            quantumCores: 'Quantum',
+            diplomaticInfluence: 'Diplo',
+            ancientArtifacts: 'Artifacts'
+        };
+        return nameMap[key] || key.charAt(0).toUpperCase() + key.slice(1);
+    };
+
+    const displayableResources = getDisplayableResources();
+    const generationRate = getGenerationRate();
 
     return (
-        <View style={[styles.container, isCompactMode && styles.compactContainer]}>
-            {/* Resources Container */}
-            <View style={[styles.resourcesContainer, isCompactMode && styles.compactResourcesContainer]}>
-                {/* Energy Bar - Always Visible */}
-                <View style={[styles.energyBarContainer, isCompactMode && styles.compactEnergyBarContainer]}>
-                    {/* Compact Mode Toggle - Left Side */}
-                    <TouchableOpacity
-                        style={[styles.compactToggle, isCompactMode && styles.compactToggleMinimized]}
-                        onPress={() => setIsCompactMode(!isCompactMode)}
-                    >
-                        <Ionicons
-                            name={isCompactMode ? "chevron-up" : "chevron-down"}
-                            size={14}
-                            color={colors.textSecondary}
-                        />
-                    </TouchableOpacity>
-
-                    <LinearGradient
-                        colors={["#FFA93D", "#FF7726", "#ff3860",]}
-                        start={[0, 0]}
-                        end={[1, 0]}
-                        style={[styles.energyBarFill, { width: `${energyPercentage}%` }]}
-                    />
-                    <View style={styles.energyBarTextContainer}>
-                        <ResourceIcon type="energy" size={isCompactMode ? 16 : 20} />
-                        <Text style={[styles.energyBarText, isCompactMode && styles.compactEnergyBarText]}>
-                            {isCompactMode
-                                ? `${formatLargeNumber(resources?.energy.current)}`
-                                : `${formatResourceDisplaySmart(resources?.energy.current, resources?.energy.max)} (${getGenerationRate()}/sec)`
-                            }
-                        </Text>
+        <View style={styles.container}>
+            {/* Main Resources Container */}
+            <View style={styles.resourcesContainer}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <Text style={styles.headerTitle}>Resources</Text>
+                    <View style={styles.headerActions}>
+                        <GoalIndicator />
+                        <TouchableOpacity
+                            style={styles.dronesToggle}
+                            onPress={() => setIsDronesExpanded(!isDronesExpanded)}
+                        >
+                            <Ionicons name="construct-outline" size={12} color={colors.textSecondary} />
+                            <Text style={styles.toggleText}>Drones</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
 
-                {/* Only show other resources when NOT in compact mode */}
-                {!isCompactMode && (
-                    <>
-                        {/* Compact Resource Summary - Always Visible */}
-                        <View style={styles.compactResourceBar}>
-                            {['fuel', 'solarPlasma', 'alloys', 'frozenHydrogen', 'darkMatter'].map(key => {
-                                const resource = resources[key as keyof typeof resources];
-                                if (!resource || resource.locked || (resource.current === 0 && resource.max <= 100)) return null;
-
-                                return (
-                                    <View style={styles.compactResource} key={key}>
-                                        <ResourceIcon type={key as keyof typeof resources} size={12} />
-                                        <Text style={styles.compactResourceText}>
-                                            {formatLargeNumber(resource.current)}
-                                        </Text>
-                                    </View>
-                                );
-                            })}
-
-                            <TouchableOpacity
-                                style={styles.expandToggle}
-                                onPress={() => setIsResourcePanelExpanded(!isResourcePanelExpanded)}
-                            >
-                                <Ionicons
-                                    name={isResourcePanelExpanded ? "chevron-up" : "chevron-down"}
-                                    size={16}
-                                    color={colors.textSecondary}
-                                />
-                                <Text style={styles.expandToggleText}>
-                                    {isResourcePanelExpanded ? "Less" : "More"}
-                                </Text>
-                            </TouchableOpacity>
+                {/* Energy Section */}
+                <View style={styles.energySection}>
+                    <View style={styles.energyHeader}>
+                        <View style={styles.energyInfo}>
+                            <ResourceIcon type="energy" size={12} />
+                            <Text style={styles.energyTitle}>
+                                {formatResourceDisplaySmart(resources?.energy.current, resources?.energy.max)}
+                            </Text>
                         </View>
-
-                        {/* Expanded Resource Panel */}
-                        {isResourcePanelExpanded && (
-                            <View style={styles.expandedResourcePanel}>
-
-                                {/* Advanced Resources - Collapsible */}
-                                {(() => {
-                                    const advancedKeys = ['darkMatter', 'researchPoints', 'diplomaticInfluence'];
-                                    const hasAdvancedResources = advancedKeys.some(key => {
-                                        const resource = resources[key as keyof typeof resources];
-                                        return resource && !resource.locked && (resource.current > 0 || resource.max > 100);
-                                    });
-
-                                    if (!hasAdvancedResources) return null;
-
-                                    return (
-                                        <View style={styles.categoryContainer}>
-                                            <TouchableOpacity
-                                                style={styles.categoryHeader}
-                                                onPress={() => setIsAdvancedResourcesExpanded(!isAdvancedResourcesExpanded)}
-                                            >
-                                                <Text style={styles.categoryTitle}>🔬 Advanced</Text>
-                                                <Ionicons
-                                                    name={isAdvancedResourcesExpanded ? "chevron-up" : "chevron-down"}
-                                                    size={14}
-                                                    color={colors.textSecondary}
-                                                />
-                                            </TouchableOpacity>
-                                            {isAdvancedResourcesExpanded && (
-                                                <View style={styles.categoryResources}>
-                                                    {advancedKeys.map(key => {
-                                                        const resource = resources[key as keyof typeof resources];
-                                                        if (!resource) return null;
-
-                                                        if (resource.locked) {
-                                                            return (
-                                                                <View key={key} style={styles.secondaryResource}>
-                                                                    <Ionicons name="lock-closed" size={10} color={colors.disabledIcon} />
-                                                                    <Text style={styles.lockedText}>Locked</Text>
-                                                                </View>
-                                                            );
-                                                        }
-
-                                                        if (resource.current > 0 || resource.max > 100) {
-                                                            return (
-                                                                <View style={styles.secondaryResource} key={key}>
-                                                                    <ResourceIcon type={key as keyof typeof resources} size={10} />
-                                                                    <Text style={styles.secondaryResourceText}>
-                                                                        {formatResourceDisplaySmart(resource.current, resource.max)}
-                                                                    </Text>
-                                                                </View>
-                                                            );
-                                                        }
-                                                        return null;
-                                                    })}
-                                                </View>
-                                            )}
-                                        </View>
-                                    );
-                                })()}
-
-                                {/* Premium Resources - Collapsible */}
-                                {(() => {
-                                    const premiumKeys = ['exoticMatter', 'quantumCores', 'ancientArtifacts'];
-                                    const hasPremiumResources = premiumKeys.some(key => {
-                                        const resource = resources[key as keyof typeof resources];
-                                        return resource && !resource.locked && (resource.current > 0 || resource.max > 100);
-                                    });
-
-                                    if (!hasPremiumResources) return null;
-
-                                    return (
-                                        <View style={styles.categoryContainer}>
-                                            <TouchableOpacity
-                                                style={styles.categoryHeader}
-                                                onPress={() => setIsPremiumResourcesExpanded(!isPremiumResourcesExpanded)}
-                                            >
-                                                <Text style={styles.categoryTitle}>💎 Premium</Text>
-                                                <Ionicons
-                                                    name={isPremiumResourcesExpanded ? "chevron-up" : "chevron-down"}
-                                                    size={14}
-                                                    color={colors.textSecondary}
-                                                />
-                                            </TouchableOpacity>
-                                            {isPremiumResourcesExpanded && (
-                                                <View style={styles.categoryResources}>
-                                                    {premiumKeys.map(key => {
-                                                        const resource = resources[key as keyof typeof resources];
-                                                        if (!resource) return null;
-
-                                                        if (resource.locked) {
-                                                            return (
-                                                                <View key={key} style={styles.secondaryResource}>
-                                                                    <Ionicons name="lock-closed" size={10} color={colors.disabledIcon} />
-                                                                    <Text style={styles.lockedText}>Locked</Text>
-                                                                </View>
-                                                            );
-                                                        }
-
-                                                        if (resource.current > 0 || resource.max > 100) {
-                                                            return (
-                                                                <View style={styles.secondaryResource} key={key}>
-                                                                    <ResourceIcon type={key as keyof typeof resources} size={10} />
-                                                                    <Text style={styles.secondaryResourceText}>
-                                                                        {formatResourceDisplaySmart(resource.current, resource.max)}
-                                                                    </Text>
-                                                                </View>
-                                                            );
-                                                        }
-                                                        return null;
-                                                    })}
-                                                </View>
-                                            )}
-                                        </View>
-                                    );
-                                })()}
-                            </View>
+                        {generationRate > 0 && (
+                            <Text style={styles.generationRate}>
+                                +{generationRate}/sec
+                            </Text>
                         )}
+                    </View>
 
-                        <ActiveGoal />
-                    </>
-                )}
+                    <View style={styles.energyBarContainer}>
+                        <LinearGradient
+                            colors={["#FFA93D", "#FF7726", "#ff3860"]}
+                            start={[0, 0]}
+                            end={[1, 0]}
+                            style={[styles.energyBarFill, { width: `${Math.min(energyPercentage, 100)}%` }]}
+                        />
+                        <View style={styles.energyBarOverlay}>
+                            <Text style={styles.energyPercentage}>
+                                {Math.round(energyPercentage)}%
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Resources Scroll */}
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.resourcesScroll}
+                    contentContainerStyle={styles.resourcesScrollContent}
+                >
+                    {displayableResources.map(({ key, resource }) => (
+                        <View key={key} style={styles.resourceTag}>
+                            <ResourceIcon type={key as keyof typeof resources} size={10} />
+                            <View style={styles.resourceTagContent}>
+                                <Text style={styles.resourceTagName}>
+                                    {getResourceDisplayName(key)}
+                                </Text>
+                                <Text style={styles.resourceTagAmount}>
+                                    {formatLargeNumber(resource.current)}/{formatLargeNumber(resource.max)}
+                                </Text>
+                                <View style={styles.resourceTagBar}>
+                                    <View
+                                        style={[
+                                            styles.resourceTagBarFill,
+                                            { width: `${Math.min((resource.current / resource.max) * 100, 100)}%` }
+                                        ]}
+                                    />
+                                </View>
+                            </View>
+                        </View>
+                    ))}
+                </ScrollView>
             </View>
 
-            {/* Drones Container */}
-            {ships.scanningDrones > 0 && (
-                <View style={[
-                    styles.shipsContainer,
-                    isDronesExpanded
-                        ? { height: expandedHeight, top: -expandedHeight }
-                        : styles.collapsed,
-                ]}
-                >
-                    <View style={styles.dronesContent}>
-                        {isDronesExpanded && (
-                            <View>
-                                <Text style={styles.shipsHeader}>Drones</Text>
-                                {Object.entries(ships).map(([shipType, count]) => {
-                                    let allocatedDrones = 0;
+            {/* Drones Panel */}
+            {isDronesExpanded && (
+                <View style={styles.dronesPanel}>
+                    <Text style={styles.dronesPanelTitle}>Drone Fleet</Text>
+                    <View style={styles.dronesGrid}>
+                        {Object.entries(ships).map(([shipType, count]) => {
+                            let allocatedDrones = 0;
+                            if (shipType === "miningDrones") {
+                                allocatedDrones = Object.values(game.miningDroneAllocation).reduce((a, b) => a + b, 0);
+                            }
+                            const availableDrones = count - allocatedDrones;
 
-                                    // Determine allocated drones based on the ship type
-                                    if (shipType === "miningDrones") {
-                                        allocatedDrones = Object.values(game.miningDroneAllocation).reduce((a, b) => a + b, 0);
-                                    } else if (shipType === "scanningDrones") {
-                                        allocatedDrones = 0; // Scanning drones are not allocated in the same way
-                                    }
-
-                                    const availableDrones = count - allocatedDrones;
-
-                                    return (
-                                        <View key={shipType} style={styles.shipItem}>
-                                            <ResourceIcon
-                                                type={shipType as keyof typeof ships}
-                                                size={18}
-                                            />
-                                            <Text style={styles.shipText}>
-                                                {availableDrones}
-                                            </Text>
-                                        </View>
-                                    );
-                                })}
-                            </View>
-                        )}
+                            return (
+                                <View key={shipType} style={styles.droneCard}>
+                                    <View style={styles.droneCardHeader}>
+                                        <ResourceIcon
+                                            type={shipType as keyof typeof ships}
+                                            size={16}
+                                        />
+                                        <Text style={styles.droneCardTitle}>
+                                            {shipType === "miningDrones" ? "Mining" : "Scanning"}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.droneCardStats}>
+                                        <Text style={styles.droneStatText}>Total: {count}</Text>
+                                        <Text style={styles.droneStatText}>Available: {availableDrones}</Text>
+                                    </View>
+                                </View>
+                            );
+                        })}
                     </View>
-
-                    <TouchableOpacity
-                        onPress={() => setIsDronesExpanded(!isDronesExpanded)}
-                        style={styles.toggleButton}
-                    >
-                        <Text style={styles.toggleButtonText}>
-                            {isDronesExpanded ? "Hide" : "Show"} Drones
-                        </Text>
-                    </TouchableOpacity>
-
                 </View>
             )}
-
-        </View >
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        position: "relative",
         width: "100%",
-        borderTopWidth: 2,
-        borderTopColor: colors.glowEffect,
-        shadowColor: colors.glowEffect,
-        shadowOpacity: 0.8,
-        shadowRadius: 10,
-        elevation: 6,
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+        overflow: "visible",
     },
     resourcesContainer: {
-        width: "100%",
         backgroundColor: colors.background,
-        padding: 16,
+        padding: 8,
+    },
+
+    // Header
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 8,
+    },
+    headerTitle: {
+        color: colors.textPrimary,
+        fontSize: 16,
+        fontWeight: "bold",
+    },
+    headerActions: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    dronesToggle: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.panelBackground,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    toggleText: {
+        color: colors.textSecondary,
+        fontSize: 11,
+        marginLeft: 3,
+        fontWeight: "500",
+    },
+
+    // Energy Section
+    energySection: {
+        backgroundColor: colors.panelBackground,
+        borderRadius: 8,
+        padding: 4,
+        marginBottom: 6,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    energyHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 4,
+    },
+    energyInfo: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    energyTitle: {
+        color: colors.textPrimary,
+        fontSize: 12,
+        fontWeight: "bold",
+        marginLeft: 6,
+    },
+    generationRate: {
+        color: colors.successGradient[0],
+        fontSize: 12,
+        fontWeight: "600",
+        backgroundColor: colors.background,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+        borderRadius: 4,
     },
     energyBarContainer: {
         position: "relative",
         width: "100%",
-        height: 20,
+        height: 10,
         backgroundColor: colors.disabledBackground,
+        borderRadius: 4,
         overflow: "hidden",
-        marginBottom: 12,
     },
     energyBarFill: {
         position: "absolute",
         left: 0,
         top: 0,
         bottom: 0,
+        borderRadius: 4,
     },
-    energyBarTextContainer: {
-        flexDirection: "row",
-        alignItems: "center",
+    energyBarOverlay: {
+        position: "absolute",
+        left: 0,
+        top: 0,
+        bottom: 0,
+        right: 0,
         justifyContent: "center",
-        height: "100%",
+        alignItems: "center",
     },
-    energyBarText: {
+    energyPercentage: {
         color: colors.textPrimary,
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: "bold",
-        marginLeft: 5,
+        textShadowColor: 'rgba(0, 0, 0, 0.8)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 1,
     },
-    primaryResources: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        justifyContent: "flex-start",
+
+    // Resources Scroll
+    resourcesScroll: {
         marginBottom: 8,
     },
-    primaryResource: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: colors.panelBackground,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        marginRight: 8,
-        marginBottom: 4,
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: colors.border,
-        minWidth: 80,
-    },
-    primaryResourceText: {
-        color: colors.textPrimary,
-        fontSize: 13,
-        marginLeft: 6,
-        fontWeight: '600',
-    },
-    categoryContainer: {
-        marginBottom: 6,
-    },
-    categoryHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        backgroundColor: colors.background,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 6,
-        marginBottom: 4,
-    },
-    categoryTitle: {
-        color: colors.textSecondary,
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    categoryResources: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        paddingHorizontal: 8,
-    },
-    secondaryResource: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: colors.background,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        marginRight: 6,
-        marginBottom: 3,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: colors.border,
-        minWidth: 65,
-    },
-    secondaryResourceText: {
-        color: colors.textPrimary,
-        fontSize: 11,
-        marginLeft: 4,
-        fontWeight: '500',
-    },
-    compactResourceBar: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingVertical: 8,
+    resourcesScrollContent: {
         paddingHorizontal: 4,
     },
-    compactResource: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: colors.background,
-        paddingHorizontal: 6,
-        paddingVertical: 3,
-        borderRadius: 8,
-        marginRight: 4,
-    },
-    compactResourceText: {
-        color: colors.textPrimary,
-        fontSize: 12,
-        marginLeft: 3,
-        fontWeight: '600',
-    },
-    expandToggle: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: colors.background,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 8,
-    },
-    expandToggleText: {
-        color: colors.textSecondary,
-        fontSize: 10,
-        marginLeft: 4,
-        fontWeight: '500',
-    },
-    expandedResourcePanel: {
-        paddingTop: 4,
-    },
-    lockedText: {
-        color: colors.textSecondary,
-        fontSize: 10,
-        marginLeft: 4,
-    },
-    shipsContainer: {
-        position: "absolute",
-        top: -40,
-        right: 0,
-        backgroundColor: colors.transparentBackground,
-        width: 120,
+    resourceTag: {
+        backgroundColor: colors.panelBackground,
+        borderRadius: 6,
+        padding: 6,
+        marginRight: 6,
         borderWidth: 1,
         borderColor: colors.border,
-        overflow: "hidden",
-    },
-    collapsed: {
-        height: 38,
-    },
-    dronesContent: {
-        flex: 1,
+        minWidth: 70,
         alignItems: "center",
-        justifyContent: "flex-start",
     },
-    toggleButton: {
-        padding: 10,
+    resourceTagContent: {
         alignItems: "center",
-        position: "absolute",
-        bottom: 0,
-        width: "100%",
     },
-    toggleButtonText: {
+    resourceTagName: {
         color: colors.textPrimary,
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: "bold",
+        textAlign: "center",
+        marginTop: 2,
     },
-    shipsHeader: {
+    resourceTagAmount: {
+        color: colors.textSecondary,
+        fontSize: 12,
+        fontWeight: "600",
+        textAlign: "center",
+        marginTop: 1,
+    },
+    resourceTagBar: {
+        width: 40,
+        height: 4,
+        backgroundColor: colors.disabledBackground,
+        borderRadius: 1,
+        overflow: "hidden",
+        marginTop: 2,
+    },
+    resourceTagBarFill: {
+        height: "100%",
+        backgroundColor: colors.glowEffect,
+        borderRadius: 1,
+    },
+
+    // Drones Panel
+    dronesPanel: {
+        backgroundColor: colors.panelBackground,
+        borderRadius: 8,
+        padding: 6,
+        marginBottom: 8,
+        marginHorizontal: 8,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    dronesPanelTitle: {
         color: colors.textPrimary,
         fontSize: 16,
+        fontWeight: "bold",
         marginBottom: 10,
-        textAlign: "center",
     },
-    shipItem: {
+    dronesGrid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+    },
+    droneCard: {
+        backgroundColor: colors.panelBackground,
+        borderRadius: 8,
+        padding: 6,
+        margin: 5,
+        width: "45%",
+        alignItems: "center",
+    },
+    droneCardHeader: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: 5,
+        marginBottom: 10,
     },
-    shipText: {
+    droneCardTitle: {
         color: colors.textPrimary,
         fontSize: 14,
         fontWeight: "bold",
+        marginLeft: 6,
     },
-    compactContainer: {
-        borderTopWidth: 1,
-        borderTopColor: colors.border,
+    droneCardStats: {
+        alignItems: "center",
     },
-    compactResourcesContainer: {
-        padding: 8,
-    },
-    compactEnergyBarContainer: {
-        height: 24,
-        marginBottom: 0,
-    },
-    compactEnergyBarText: {
+    droneStatText: {
+        color: colors.textSecondary,
         fontSize: 12,
-    },
-    compactToggle: {
-        position: 'absolute',
-        left: 4,
-        top: 2,
-        bottom: 2,
-        width: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(26, 26, 61, 0.8)',
-        borderRadius: 3,
-        borderWidth: 1,
-        borderColor: colors.border,
-        zIndex: 10,
-    },
-    compactToggleMinimized: {
-        top: 4,
-        bottom: 4,
+        fontWeight: "600",
     },
 });
-
 
 export default ShipStatus;

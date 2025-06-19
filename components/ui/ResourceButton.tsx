@@ -1,6 +1,7 @@
 import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
 import ResourceIcon, { ResourceType } from "./ResourceIcon";
 import colors from "@/utils/colors";
+import { formatResourceDisplaySmart } from "@/utils/numberFormatter";
 
 const ResourceButton = ({
     title,
@@ -28,7 +29,12 @@ const ResourceButton = ({
             disabled={isDisabled}
         >
             <View style={styles.buttonContent}>
-                <Text style={styles.buttonText}>{title}</Text>
+                <View style={styles.leftContent}>
+                    <Text style={styles.buttonText}>{title}</Text>
+                    <Text style={[styles.resourceAmountText, isDisabled && styles.resourceAmountTextDisabled]}>
+                        {formatResourceDisplaySmart(currentAmount, maxAmount)}
+                    </Text>
+                </View>
                 <View style={styles.iconContainer}>
                     <ResourceIcon type={resourceType} size={20} />
                 </View>
@@ -52,6 +58,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
+        width: "100%",
     },
     buttonText: {
         color: colors.textPrimary,
@@ -71,6 +78,20 @@ const styles = StyleSheet.create({
     },
     costTextDisabled: {
         color: "#777777", // Muted gray for disabled text
+    },
+    leftContent: {
+        flexDirection: "column",
+        alignItems: "flex-start",
+        flex: 1,
+    },
+    resourceAmountText: {
+        color: colors.textSecondary,
+        fontSize: 12,
+        fontWeight: "500",
+        marginTop: 2,
+    },
+    resourceAmountTextDisabled: {
+        color: "#777777",
     },
 });
 

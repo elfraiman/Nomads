@@ -1,7 +1,7 @@
 import initialAchievements, { IAchievement } from "@/data/achievements";
 import { loadGameState, saveGameState } from "@/data/asyncStorage";
 import initialUpgradeList, { Upgrade, UpgradeCost } from "@/data/upgrades";
-import initialWeapons, { IWeapon } from "@/data/weapons";
+import { allWeapons as initialWeapons, IWeapon } from "@/data/weapons";
 import initialMissions from "@/data/missions";
 import researchData, { IResearchNode } from "@/data/research";
 import { IResource, PlayerResources, Ships, initialShips, IAsteroid, IGalaxy, initialGalaxies, IMainShip, initialMainShip, IMission, IMerchant, IMerchantTransaction } from "@/utils/defaults";
@@ -156,6 +156,9 @@ export interface GameContextType {
         icon?: string;
     }) => void;
     hideGeneralNotification: () => void;
+
+    // Helper functions
+    getUnlockRewards: (unlocks: string[]) => CompletionReward[];
 }
 
 
@@ -428,6 +431,68 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
+    // Helper function to convert unlocks to rewards
+    const getUnlockRewards = (unlocks: string[]): CompletionReward[] => {
+        const unlockLabels: Record<string, string> = {
+            'reactor_storage': 'Reactor Storage Upgrade',
+            'reactor_optimization': 'Reactor Optimization Upgrade',
+            'core_operations_efficiency': 'Core Operations Efficiency',
+            'core_operations_storage': 'Core Operations Storage',
+            'drones_crafting': 'Drone Crafting',
+            'asteroid_scanning': 'Asteroid Scanning',
+            'mining_drones': 'Mining Drones',
+            'light_plasma_blaster': 'Light Plasma Blaster',
+            'research_lab': 'Research Laboratory',
+            'basic_research': 'Basic Research',
+            'advanced_materials': 'Advanced Materials Research',
+            'quantum_computing': 'Quantum Computing Research',
+            'exotic_physics': 'Exotic Physics Research',
+            'automated_mining': 'Automated Mining',
+            'fleet_ai': 'Fleet AI Systems',
+            'drone_specialization': 'Drone Specialization',
+            'asteroid_processing': 'Asteroid Processing Facility',
+            'deep_space_scanning': 'Deep Space Scanning',
+            'resource_monopoly': 'Resource Monopoly',
+            'trading_post': 'Trading Post',
+            'faction_missions': 'Faction Missions',
+            'diplomatic_immunity': 'Diplomatic Immunity',
+            'exclusive_contracts': 'Exclusive Trade Contracts',
+            'trade_routes': 'Trade Routes',
+            'merchant_protection': 'Merchant Protection',
+            'station_modules': 'Station Modules',
+            'defensive_platforms': 'Defensive Platforms',
+            'advanced_manufacturing': 'Advanced Manufacturing',
+            'stellar_manipulation': 'Stellar Manipulation',
+            'galaxy_control': 'Galaxy Control',
+            'cosmic_architect': 'Cosmic Architect',
+            'prestige_reset': 'Prestige Reset System',
+            'cosmic_transcendence': 'Cosmic Transcendence',
+            'bounty_hunting': 'Bounty Hunting',
+            'pirate_faction_missions': 'Pirate Faction Missions',
+            'combat_mastery': 'Combat Mastery',
+            'merchant_beacon': 'Merchant Beacon',
+            'phenomenon_research': 'Phenomenon Research',
+            'artifact_analysis': 'Artifact Analysis',
+            'cosmic_mysteries': 'Cosmic Mysteries',
+            'advanced_storage': 'Advanced Storage',
+            'resource_optimization': 'Resource Optimization',
+            'combat_tactics': 'Combat Tactics',
+            'weapon_modifications': 'Weapon Modifications',
+            'tactical_analysis': 'Tactical Analysis',
+            'breakthrough_research': 'Breakthrough Research',
+            'exotic_technologies': 'Exotic Technologies',
+            'advanced_automation': 'Advanced Automation',
+        };
+
+        return unlocks
+            .filter(unlock => unlock && unlock !== '') // Filter out empty strings
+            .map(unlock => ({
+                type: 'unlock',
+                amount: 1,
+                label: unlockLabels[unlock] || unlock.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+            }));
+    };
+
     // Achievements
     //
     const updateAchievProgressFromResources = (updatedResources: Record<string, { current: number }>) => {
@@ -455,10 +520,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
                 // If all goals are met, mark as completed and trigger `onComplete`
                 if (isComplete) {
+                    const unlockRewards = getUnlockRewards(achievement.unlocks);
                     showNotification({
                         title: achievement.title,
                         description: achievement.story,
-                        rewards: [],
+                        rewards: unlockRewards,
                         type: 'achievement'
                     });
                     achievement.onComplete?.();
@@ -518,10 +584,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                         }));
                     }
 
+                    const unlockRewards = getUnlockRewards(achievement.unlocks);
                     showNotification({
                         title: achievement.title,
                         description: achievement.story,
-                        rewards: [],
+                        rewards: unlockRewards,
                         type: 'achievement'
                     });
                     return { ...achievement, completed: true, progress: { upgrades: updatedProgress } };
@@ -561,10 +628,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                         });
                     }
 
+                    const unlockRewards = getUnlockRewards(achievement.unlocks);
                     showNotification({
                         title: achievement.title,
                         description: achievement.story,
-                        rewards: [],
+                        rewards: unlockRewards,
                         type: 'achievement'
                     });
                     return { ...achievement, completed: true, progress: { ships: updatedProgress } };
@@ -1952,10 +2020,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 updateAchievToCompleted("first_merchant_encounter");
                 const achievement = achievements.find(ach => ach.id === "first_merchant_encounter");
                 if (achievement) {
+                    const unlockRewards = getUnlockRewards(achievement.unlocks);
                     showNotification({
                         title: achievement.title,
                         description: achievement.story,
-                        rewards: [],
+                        rewards: unlockRewards,
                         type: 'achievement',
                     });
                 }
@@ -2203,6 +2272,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 devResetWithCompletedAchievements,
                 logFoundAsteroids,
                 devSpawnMerchantAt,
+                getUnlockRewards,
             }}
         >
             {children}

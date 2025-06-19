@@ -69,7 +69,7 @@ const ResearchNodeComponent: React.FC<ResearchNodeProps> = ({
     <TouchableOpacity
       style={[
         styles.researchNode,
-        { 
+        {
           borderColor: getStatusColor(),
           backgroundColor: status === 'completed' ? `${getStatusColor()}20` : colors.panelBackground,
           opacity: status === 'locked' ? 0.5 : 1,
@@ -80,17 +80,17 @@ const ResearchNodeComponent: React.FC<ResearchNodeProps> = ({
     >
       <View style={styles.nodeHeader}>
         <Text style={styles.nodeIcon}>{category.icon}</Text>
-        <Ionicons 
-          name={getStatusIcon() as any} 
-          size={16} 
-          color={getStatusColor()} 
+        <Ionicons
+          name={getStatusIcon() as any}
+          size={16}
+          color={getStatusColor()}
           style={styles.statusIcon}
         />
       </View>
-      
+
       <Text style={styles.nodeTitle}>{node.title}</Text>
       <Text style={styles.nodeTier}>Tier {node.tier}</Text>
-      
+
       {node.inProgress && (
         <View style={styles.progressContainer}>
           <View style={[styles.progressBar, { width: `${node.progress}%` }]} />
@@ -127,7 +127,7 @@ const ResearchTreeComponent: React.FC<ResearchTreeProps> = ({
           <Text style={styles.treeDescription}>{tree.description}</Text>
         </View>
       </View>
-      
+
       <View style={styles.treeNodes}>
         {tree.nodes.map((node) => {
           const localNode = localNodes.find(n => n.id === node.id) || node;
@@ -140,7 +140,7 @@ const ResearchTreeComponent: React.FC<ResearchTreeProps> = ({
                 canAfford={canAffordResearch(localNode)}
                 canResearch={canStartResearch(localNode)}
               />
-              
+
               {/* Connection line to prerequisites */}
               {localNode.prerequisites.length > 0 && (
                 <View style={styles.connectionLine} />
@@ -218,10 +218,10 @@ const ResearchModal: React.FC<ResearchModalProps> = ({
                 <Text style={styles.sectionTitle}>Research Effects</Text>
                 {node.effects.map((effect, index) => (
                   <View key={index} style={styles.effectItem}>
-                    <Ionicons 
-                      name="star" 
-                      size={16} 
-                      color={colors.primary} 
+                    <Ionicons
+                      name="star"
+                      size={16}
+                      color={colors.primary}
                       style={styles.effectIcon}
                     />
                     <Text style={styles.effectText}>{effect.description}</Text>
@@ -236,13 +236,13 @@ const ResearchModal: React.FC<ResearchModalProps> = ({
                   {node.costs.map((cost, index) => (
                     <View key={index} style={styles.costItem}>
                       <ResourceIcon type={cost.resourceType} size={20} />
-                      <Text 
+                      <Text
                         style={[
                           styles.costAmount,
-                          { 
-                            color: resources[cost.resourceType].current >= cost.amount 
-                              ? colors.textPrimary 
-                              : colors.error 
+                          {
+                            color: resources[cost.resourceType].current >= cost.amount
+                              ? colors.textPrimary
+                              : colors.error
                           }
                         ]}
                       >
@@ -271,14 +271,14 @@ const ResearchModal: React.FC<ResearchModalProps> = ({
                       .flatMap(cat => cat.trees)
                       .flatMap(tree => tree.nodes)
                       .find(n => n.id === prereqId);
-                    
+
                     return prereqNode ? (
                       <View key={index} style={styles.prerequisiteItem}>
-                                              <Ionicons 
-                        name={prereqNode.completed ? "checkmark-circle" : "time"} 
-                        size={16} 
-                        color={prereqNode.completed ? '#4CAF50' : '#FF9800'} 
-                      />
+                        <Ionicons
+                          name={prereqNode.completed ? "checkmark-circle" : "time"}
+                          size={16}
+                          color={prereqNode.completed ? '#4CAF50' : '#FF9800'}
+                        />
                         <Text style={styles.prerequisiteText}>{prereqNode.title}</Text>
                       </View>
                     ) : null;
@@ -303,7 +303,7 @@ const ResearchModal: React.FC<ResearchModalProps> = ({
                 <TouchableOpacity
                   style={[
                     styles.startButton,
-                    { 
+                    {
                       backgroundColor: canAfford && canResearch ? colors.primary : colors.disabled,
                       opacity: canAfford && canResearch ? 1 : 0.5
                     }
@@ -324,7 +324,7 @@ const ResearchModal: React.FC<ResearchModalProps> = ({
 };
 
 const Research: React.FC = () => {
-  const { resources, isAchievementUnlocked, showGeneralNotification, updateResources, setMainShip, updateAchievToCompleted, showNotification, achievements } = useGame();
+  const { resources, isAchievementUnlocked, showGeneralNotification, updateResources, setMainShip, updateAchievToCompleted, showNotification, achievements, getUnlockRewards } = useGame();
   const [selectedCategory, setSelectedCategory] = useState<string>('materials');
   const [selectedNode, setSelectedNode] = useState<IResearchNode | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -345,26 +345,26 @@ const Research: React.FC = () => {
       const interval = setInterval(() => {
         setResearchTimer(prev => {
           const newTimer = prev - 1;
-          
+
           // Update progress
           const node = localResearchNodes.find(n => n.id === activeResearch);
           if (node) {
             const progress = ((node.duration - newTimer) / node.duration) * 100;
-            setLocalResearchNodes(prevNodes => 
-              prevNodes.map(n => 
-                n.id === activeResearch 
+            setLocalResearchNodes(prevNodes =>
+              prevNodes.map(n =>
+                n.id === activeResearch
                   ? { ...n, progress: Math.min(100, progress) }
                   : n
               )
             );
           }
-          
+
           // Complete research when timer reaches 0
           if (newTimer <= 0) {
             completeResearch(activeResearch);
             return 0;
           }
-          
+
           return newTimer;
         });
       }, 1000);
@@ -413,7 +413,7 @@ const Research: React.FC = () => {
             }
           }
           break;
-          
+
         case 'increase_capacity':
           if (effect.target && effect.value) {
             if (effect.target === 'all_resources') {
@@ -447,7 +447,7 @@ const Research: React.FC = () => {
             }
           }
           break;
-          
+
         case 'unlock_slot':
           if (effect.target === 'weapon_slots' && effect.value) {
             setMainShip(prev => ({
@@ -456,7 +456,7 @@ const Research: React.FC = () => {
             }));
           }
           break;
-          
+
         case 'automation':
           if (effect.target === 'basic_mining' && effect.value) {
             // Basic automation gives passive resource income
@@ -466,7 +466,7 @@ const Research: React.FC = () => {
               type: "info",
               icon: "🤖"
             });
-            
+
             // Start passive resource generation
             const passiveIncome = setInterval(() => {
               updateResources('energy', {
@@ -476,12 +476,12 @@ const Research: React.FC = () => {
                 current: Math.min(resources.alloys.current + 2, resources.alloys.max)
               });
             }, 30000); // Every 30 seconds
-            
+
             // Store interval reference for cleanup (in a real app, you'd want to manage this better)
             (window as any).automationInterval = passiveIncome;
           }
           break;
-          
+
         case 'weapon_damage':
         case 'weapon_speed':
         case 'weapon_energy':
@@ -494,7 +494,7 @@ const Research: React.FC = () => {
             icon: "🔧"
           });
           break;
-          
+
         case 'unlock_weapon':
         case 'unlock_feature':
           // Show notification about unlocked content
@@ -509,8 +509,8 @@ const Research: React.FC = () => {
     });
 
     // Mark research as completed
-    setLocalResearchNodes(prev => prev.map(n => 
-      n.id === nodeId 
+    setLocalResearchNodes(prev => prev.map(n =>
+      n.id === nodeId
         ? { ...n, completed: true, inProgress: false, progress: 100 }
         : n
     ));
@@ -519,16 +519,17 @@ const Research: React.FC = () => {
 
     // Check if this is the first research completed
     const firstResearchCompleted = !isAchievementUnlocked("complete_first_research");
-    
+
     if (firstResearchCompleted) {
       // Complete the "complete_first_research" achievement
       updateAchievToCompleted("complete_first_research");
       const achievement = achievements.find((ach) => ach.id === "complete_first_research");
       if (achievement) {
+        const unlockRewards = getUnlockRewards(achievement.unlocks);
         showNotification({
           title: achievement.title,
           description: achievement.story,
-          rewards: [],
+          rewards: unlockRewards,
           type: 'achievement',
         });
       }
@@ -543,14 +544,14 @@ const Research: React.FC = () => {
   };
 
   const canAffordResearch = (node: IResearchNode): boolean => {
-    return node.costs.every(cost => 
+    return node.costs.every(cost =>
       resources[cost.resourceType].current >= cost.amount
     );
   };
 
   const canStartResearch = (node: IResearchNode): boolean => {
     if (node.completed || node.inProgress) return false;
-    
+
     // Check prerequisites using local research nodes
     if (node.prerequisites && node.prerequisites.length > 0) {
       return node.prerequisites.every(prereqId => {
@@ -558,7 +559,7 @@ const Research: React.FC = () => {
         return prereqNode?.completed || false;
       });
     }
-    
+
     return true;
   };
 
@@ -577,12 +578,12 @@ const Research: React.FC = () => {
       });
 
       // Start research
-      setLocalResearchNodes(prev => prev.map(n => 
-        n.id === selectedNode.id 
+      setLocalResearchNodes(prev => prev.map(n =>
+        n.id === selectedNode.id
           ? { ...n, inProgress: true, progress: 0 }
           : n
       ));
-      
+
       setActiveResearch(selectedNode.id);
       setResearchTimer(selectedNode.duration);
 
@@ -592,7 +593,7 @@ const Research: React.FC = () => {
         type: "info",
         icon: "⚗️"
       });
-      
+
       setModalVisible(false);
     }
   };
@@ -639,7 +640,7 @@ const Research: React.FC = () => {
                 onPress={() => setSelectedCategory(category.id)}
               >
                 <Text style={styles.categoryIcon}>{category.icon}</Text>
-                <Text 
+                <Text
                   style={[
                     styles.categoryName,
                     selectedCategory === category.id && styles.selectedCategoryName
@@ -660,8 +661,8 @@ const Research: React.FC = () => {
               <Text style={styles.categoryDescription}>{selectedCategoryData.description}</Text>
             </View>
 
-            <ScrollView 
-              horizontal 
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.treesContainer}
               contentContainerStyle={styles.treesContent}

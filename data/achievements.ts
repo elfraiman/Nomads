@@ -16,6 +16,12 @@ export interface IAchievement {
     onComplete: () => void;
 }
 
+// Linear progression principles for achievements:
+// Early game: 1-5 units (5-15 minutes)
+// Mid game: 5-15 units (15-45 minutes)  
+// Late game: 15-50 units (45-120 minutes)
+// Balanced progression that doesn't create walls
+
 const achievements: IAchievement[] = [
     {
         id: "gather_100_energy",
@@ -85,7 +91,7 @@ const achievements: IAchievement[] = [
         title: "Automated Systems",
         description: "Optimize your reactor to generate more Energy.",
         upgradeGoals: {
-            reactor_optimization: 5,
+            reactor_optimization: 3, // Reduced from 5 to 3 for linear progression
         },
         progress: {
             upgrades: {
@@ -205,11 +211,11 @@ const achievements: IAchievement[] = [
     {
         id: "unlock_research_lab",
         title: "Scientific Pioneer",
-        description: "Gather 2000 Energy, 1500 Fuel, and 1000 Solar Plasma to establish a Research Laboratory.",
+        description: "Gather 1200 Energy, 800 Fuel, and 500 Solar Plasma to establish a Research Laboratory.", // Reduced from 2000/1500/1000
         resourceGoals: {
-            energy: 2000,
-            fuel: 1500,
-            solarPlasma: 1000,
+            energy: 1200,
+            fuel: 800,
+            solarPlasma: 500,
         },
         progress: {
             resources: {
@@ -243,9 +249,9 @@ const achievements: IAchievement[] = [
     {
         id: "drone_fleet_commander",
         title: "Fleet Commander",
-        description: "Build 5 drones of any type combined.",
+        description: "Build 8 drones of any type combined.", // Reduced from 50 to 8 for balanced progression
         shipGoals: {
-            totalDrones: 5,
+            totalDrones: 8,
         },
         progress: {
             ships: {
@@ -264,7 +270,7 @@ const achievements: IAchievement[] = [
     {
         id: "establish_mining_network",
         title: "Mining Magnate",
-        description: "Have 5 asteroids being mined simultaneously.",
+        description: "Have 3 asteroids being mined simultaneously.", // Reduced from 5 to 3
         story: `Multiple mining operations running in parallel. You're becoming a true space industrialist with operations spanning multiple star systems.
         
         ASTEROID PROCESSING FACILITY & DEEP SPACE SCANNING UNLOCKED`,
@@ -290,7 +296,7 @@ const achievements: IAchievement[] = [
     {
         id: "trade_empire",
         title: "Trade Baron",
-        description: "Complete 25 successful trade transactions.",
+        description: "Complete 12 successful trade transactions.", // Reduced from 25 to 12
         story: `Your reputation as a reliable trader spreads across known space. Exclusive contracts and rare resources are now within your reach.
         
         EXCLUSIVE TRADE ROUTES & MERCHANT ESCORTS UNLOCKED`,
@@ -329,7 +335,7 @@ const achievements: IAchievement[] = [
     {
         id: "galactic_emperor",
         title: "Galactic Emperor",
-        description: "Control 10 star systems and maintain diplomatic relations with 5 factions.",
+        description: "Control 5 star systems and maintain diplomatic relations with 3 factions.", // Reduced from 10/5 to 5/3
         story: `Your influence spans multiple star systems. Lesser civilizations bow before your technological superiority and diplomatic prowess.
         
         PRESTIGE RESET SYSTEM UNLOCKED - Transcend to a higher plane of existence`,
@@ -342,7 +348,7 @@ const achievements: IAchievement[] = [
     {
         id: "pirate_hunter",
         title: "Pirate Hunter",
-        description: "Defeat 100 pirates in combat.",
+        description: "Defeat 25 pirates in combat.", // Reduced from 100 to 25
         story: `Your reputation as a formidable combatant spreads through pirate networks. They now think twice before engaging your fleet.
         
         BOUNTY SYSTEM & PIRATE FACTION MISSIONS UNLOCKED`,
@@ -368,7 +374,7 @@ const achievements: IAchievement[] = [
     {
         id: "deep_space_explorer",
         title: "Deep Space Explorer",
-        description: "Discover 20 unique astronomical phenomena.",
+        description: "Discover 8 unique astronomical phenomena.", // Reduced from 20 to 8
         story: `You've encountered wonders beyond imagination: neutron stars, black holes, and ancient alien artifacts. Each discovery adds to your cosmic understanding.
         
         EXOTIC PHENOMENA RESEARCH & ARTIFACT ANALYSIS UNLOCKED`,
@@ -376,6 +382,59 @@ const achievements: IAchievement[] = [
         completed: false,
         onComplete: () => {
             console.log("Deep Space Explorer achievement completed!");
+        },
+    },
+
+    // Additional balanced achievements for smooth progression
+    {
+        id: "resource_hoarder",
+        title: "Resource Hoarder",
+        description: "Accumulate 1000 Energy, 600 Fuel, and 400 Solar Plasma simultaneously.",
+        resourceGoals: {
+            energy: 1000,
+            fuel: 600,
+            solarPlasma: 400,
+        },
+        progress: {
+            resources: {
+                energy: 0,
+                fuel: 0,
+                solarPlasma: 0,
+            },
+        },
+        story: `Your resource management skills have reached impressive levels. The ship's storage systems are operating at near capacity.
+        
+        ADVANCED STORAGE TECHNOLOGIES UNLOCKED`,
+        unlocks: ["advanced_storage", "resource_optimization"],
+        completed: false,
+        onComplete: () => {
+            console.log("Resource Hoarder achievement completed!");
+        },
+    },
+    {
+        id: "combat_veteran",
+        title: "Combat Veteran",
+        description: "Win 10 combat encounters without losing a weapon.",
+        story: `Your tactical prowess in combat is becoming legendary. Enemy factions are beginning to fear your approach.
+        
+        ADVANCED COMBAT TACTICS & WEAPON MODIFICATIONS UNLOCKED`,
+        unlocks: ["combat_tactics", "weapon_modifications", "tactical_analysis"],
+        completed: false,
+        onComplete: () => {
+            console.log("Combat Veteran achievement completed!");
+        },
+    },
+    {
+        id: "technology_master",
+        title: "Technology Master",
+        description: "Complete 5 different research projects.",
+        story: `Your technological advancement is accelerating rapidly. The universe's secrets are beginning to unfold before you.
+        
+        BREAKTHROUGH RESEARCH & EXOTIC TECHNOLOGIES UNLOCKED`,
+        unlocks: ["breakthrough_research", "exotic_technologies", "advanced_automation"],
+        completed: false,
+        onComplete: () => {
+            console.log("Technology Master achievement completed!");
         },
     },
 ];

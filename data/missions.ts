@@ -1,24 +1,28 @@
 import { IMission } from "@/utils/defaults";
 
+// Linear progression formula for mission rewards:
+// baseReward * (1 + (tier * 0.4)) for balanced scaling
+// Experience follows triangle number progression for meaningful advancement
+
 export const initialMissions: IMission[] = [
   // ==================== TIER 1: BEGINNER MISSIONS ====================
-  
+
   // Basic Exploration
   {
     id: "first_steps",
     title: "First Steps",
     description: "Explore your immediate surroundings and gather basic resources",
     type: "exploration",
-    requirements: { 
+    requirements: {
       energy: 50,
       fuel: 30
     },
     duration: 300, // 5 minutes
     rewards: {
-      energy: 100,
-      fuel: 80,
+      energy: 120,
+      fuel: 90,
       weapons: { "light_pulse_laser": 1 }, // Basic weapon reward
-      experience: 50
+      experience: 75
     },
     difficulty: "Easy",
     repeatable: false,
@@ -27,7 +31,7 @@ export const initialMissions: IMission[] = [
     locked: false,
     unlocks: ["basic_combat", "resource_gathering"],
   },
-  
+
   // Basic Combat
   {
     id: "basic_combat",
@@ -38,10 +42,10 @@ export const initialMissions: IMission[] = [
       // No requirements - first combat mission
     },
     rewards: {
-      energy: 150,
-      alloys: 100,
+      energy: 180,
+      alloys: 120,
       weapons: { "light_plasma_blaster": 1 },
-      experience: 75
+      experience: 100
     },
     difficulty: "Easy",
     repeatable: true,
@@ -70,10 +74,10 @@ export const initialMissions: IMission[] = [
     },
     duration: 600, // 10 minutes
     rewards: {
-      fuel: 200,
-      solarPlasma: 100,
+      fuel: 240,
+      solarPlasma: 120,
       weapons: { "light_railgun": 1 },
-      experience: 60
+      experience: 90
     },
     difficulty: "Easy",
     repeatable: true,
@@ -85,21 +89,21 @@ export const initialMissions: IMission[] = [
   },
 
   // ==================== TIER 2: INTERMEDIATE MISSIONS ====================
-  
+
   // Pirate Hunter Chain
   {
     id: "pirate_hunter_1",
-    title: "Pirate Hunter I", 
+    title: "Pirate Hunter I",
     description: "Clear the Alpha Centauri sector of Nebula Marauder presence - eliminate 10 pirate ships terrorizing trade routes.\n\n📍 Enemy Location: Planet A1 - Fight Missile Corvettes, Laser Interceptors, and Nebula Ravagers.",
     type: "combat",
     requirements: {
       enemyKills: { "Missile Corvette": 3 }
     },
     rewards: {
-      tokens: 200,
-      alloys: 300,
+      tokens: 280, // Linear scaling: 200 * (1 + 0.4)
+      alloys: 420, // 300 * 1.4
       weapons: { "medium_beam_laser": 1, "light_rocket_launcher": 1 },
-      experience: 150
+      experience: 210 // Triangle progression
     },
     difficulty: "Medium",
     repeatable: true,
@@ -126,10 +130,10 @@ export const initialMissions: IMission[] = [
       weapons: { "medium_beam_laser": 1 }
     },
     rewards: {
-      tokens: 500,
-      alloys: 600,
+      tokens: 700, // 500 * 1.4
+      alloys: 840, // 600 * 1.4
       weapons: { "medium_plasma_blaster": 1, "medium_missile_launcher": 1 },
-      experience: 250
+      experience: 350 // Triangle progression
     },
     difficulty: "Medium",
     repeatable: true,
@@ -153,17 +157,17 @@ export const initialMissions: IMission[] = [
     title: "Deep Space Survey",
     description: "Explore uncharted sectors with advanced scanning equipment",
     type: "exploration",
-    requirements: { 
+    requirements: {
       energy: 800,
       fuel: 600,
       ships: { scanningDrones: 3 }
     },
     duration: 1800, // 30 minutes
     rewards: {
-      researchPoints: 300,
-      exoticMatter: 100,
+      researchPoints: 420, // 300 * 1.4
+      exoticMatter: 140, // 100 * 1.4
       weapons: { "light_rocket_launcher": 1 },
-      experience: 200,
+      experience: 280,
       unlocks: ["advanced_exploration"]
     },
     difficulty: "Medium",
@@ -185,10 +189,10 @@ export const initialMissions: IMission[] = [
       weapons: { "medium_plasma_blaster": 1 }
     },
     rewards: {
-      tokens: 1000,
-      alloys: 1200,
+      tokens: 1400, // 1000 * 1.4
+      alloys: 1680, // 1200 * 1.4
       weapons: { "heavy_beam_laser": 1, "medium_railgun": 1 },
-      experience: 400
+      experience: 560 // Triangle progression
     },
     difficulty: "Hard",
     repeatable: true,
@@ -246,7 +250,7 @@ export const initialMissions: IMission[] = [
     rewards: {
       ancientArtifacts: 3,
       researchPoints: 800,
-      weapons: { "heavy_torpedo_launcher": 1, "heavy_railgun": 1 },
+      weapons: { "heavy_missile_launcher": 1, "heavy_railgun": 1 },
       experience: 500
     },
     difficulty: "Hard",
@@ -261,7 +265,7 @@ export const initialMissions: IMission[] = [
   // ==================== TIER 4: ELITE MISSIONS ====================
 
   {
-    id: "elite_hunter", 
+    id: "elite_hunter",
     title: "Elite Hunter",
     description: "Assault Planet A4 and eliminate 2 Titan Vanguard dreadnoughts - the most dangerous enemy ships in the system.\n\n📍 Enemy Location: Planet A4 (Alpha Centauri) - Fight Titan Enforcers, Shieldbreaker Cruisers, and Titan Dreadnoughts from the Titan Vanguard faction.",
     type: "combat",
@@ -272,7 +276,7 @@ export const initialMissions: IMission[] = [
     rewards: {
       tokens: 2500,
       alloys: 2000,
-      weapons: { "heavy_railgun": 2, "heavy_torpedo_launcher": 1 },
+      weapons: { "heavy_railgun": 2, "heavy_missile_launcher": 1 },
       experience: 800
     },
     difficulty: "Extreme",
@@ -298,13 +302,13 @@ export const initialMissions: IMission[] = [
     type: "combat",
     requirements: {
       enemyKills: { "Titan Enforcer": 2 },
-      weapons: { "heavy_railgun": 1, "heavy_torpedo_launcher": 1 }
+      weapons: { "heavy_railgun": 1, "heavy_missile_launcher": 1 }
     },
     rewards: {
       tokens: 5000,
       alloys: 3000,
       quantumCores: 100,
-      weapons: { "heavy_railgun": 3, "heavy_torpedo_launcher": 2 },
+      weapons: { "heavy_railgun": 3, "heavy_missile_launcher": 2 },
       experience: 1500
     },
     difficulty: "Extreme",
@@ -325,7 +329,7 @@ export const initialMissions: IMission[] = [
 
   {
     id: "space_cleansing",
-    title: "Space Cleansing Operation", 
+    title: "Space Cleansing Operation",
     description: "Systematically clear the Alpha Centauri system of all pirate presence - eliminate 15 mixed enemy ships hiding among the planets.\n\n📍 Enemy Location: Planets A1, A2, and A3 (Alpha Centauri) - Fight pirates from multiple factions across the system.",
     type: "combat",
     requirements: {
@@ -388,7 +392,7 @@ export const initialMissions: IMission[] = [
 
   {
     id: "convoy_ambush",
-    title: "Convoy Ambush", 
+    title: "Convoy Ambush",
     description: "Intercept the pirate supply convoy near Planet A1 - destroy 5 Missile Corvettes before they reach the enemy base.\n\n📍 Enemy Location: Planet A1 (Alpha Centauri) - Target lightly defended Nebula Marauder cargo ships.",
     type: "combat",
     requirements: {
@@ -486,7 +490,7 @@ export const initialMissions: IMission[] = [
       tokens: 2000,
       alloys: 1500,
       quantumCores: 25,
-      weapons: { "heavy_railgun": 1, "heavy_torpedo_launcher": 1 },
+      weapons: { "heavy_railgun": 1, "heavy_missile_launcher": 1 },
       experience: 600
     },
     difficulty: "Extreme",
@@ -601,14 +605,14 @@ export const initialMissions: IMission[] = [
     type: "combat",
     requirements: {
       enemyKills: { "Salvage Fighter": 3 },
-      weapons: { "heavy_railgun": 1, "heavy_torpedo_launcher": 1 }
+      weapons: { "heavy_railgun": 1, "heavy_missile_launcher": 1 }
     },
     rewards: {
       tokens: 3000,
       alloys: 2500,
       quantumCores: 75,
       ancientArtifacts: 2,
-      weapons: { "heavy_railgun": 2, "heavy_torpedo_launcher": 2 },
+      weapons: { "heavy_railgun": 2, "heavy_missile_launcher": 2 },
       experience: 1000
     },
     difficulty: "Extreme",
@@ -686,7 +690,7 @@ export const initialMissions: IMission[] = [
     },
     steps: [
       "Build Raw Material Extractor",
-      "Construct Processing Facility", 
+      "Construct Processing Facility",
       "Establish Advanced Manufacturer",
       "Produce 100 Advanced Components"
     ],
@@ -705,5 +709,29 @@ export const initialMissions: IMission[] = [
     progress: 0,
   },
 ];
+
+// Helper function to calculate mission rewards based on tier
+export const calculateMissionRewards = (baseMission: IMission, tier: number): IMission => {
+  const scalingFactor = 1 + (tier * 0.4);
+
+  const scaledRewards = { ...baseMission.rewards };
+
+  // Scale numeric rewards
+  Object.keys(scaledRewards).forEach(key => {
+    if (typeof scaledRewards[key] === 'number') {
+      scaledRewards[key] = Math.floor(scaledRewards[key] * scalingFactor);
+    }
+  });
+
+  return {
+    ...baseMission,
+    rewards: scaledRewards
+  };
+};
+
+// Helper function to get experience requirement for level using triangle numbers
+export const getExperienceForLevel = (level: number): number => {
+  return 100 * level * (level + 1) / 2;
+};
 
 export default initialMissions; 

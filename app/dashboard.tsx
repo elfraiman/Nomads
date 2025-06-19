@@ -9,8 +9,8 @@ import colors from "@/utils/colors";
 import { PlayerResources } from "@/utils/defaults";
 import { isGatherEnergyAchievementComplete } from "@/utils/gameUtils";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useMemo } from "react";
-import { Button, Dimensions, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useMemo, useRef, useState } from "react";
+import { Button, Dimensions, ImageBackground, StyleSheet, Text, TouchableOpacity, View, PanResponder, Animated } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 
 const { width, height } = Dimensions.get("window");
@@ -129,7 +129,7 @@ const DevPanel = () => {
                         Dev Mode: {isDevMode ? 'ON' : 'OFF'}
                     </Text>
                 </TouchableOpacity>
-                
+
                 {isDevMode && (
                     <TouchableOpacity
                         onPress={giveDevResources}
@@ -139,7 +139,7 @@ const DevPanel = () => {
                     </TouchableOpacity>
                 )}
             </View>
-            
+
             {isDevMode && (
                 <Text style={styles.devStatusText}>
                     🚀 Resource generation is 10x faster!
@@ -151,6 +151,9 @@ const DevPanel = () => {
 
 const Dashboard = () => {
     const game = useGame();
+    const [isGenerating, setIsGenerating] = useState(false);
+    const generationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const borderAnimationRef = useRef(new Animated.Value(0)).current;
 
     if (!game) return null;
 
@@ -172,11 +175,92 @@ const Dashboard = () => {
         combatStats
     } = game;
 
-    const handleGenerateEnergy = () => {
-        const newEnergy = Math.round(resources.energy.current + 1.18);
-        updateResources("energy", { current: newEnergy });
-    };
+    const handleGenerateEnergy = React.useCallback(() => {
+        // Use setMainShip to get fresh values
+        setMainShip((prev) => {
+            const newCurrent = Math.min(prev.resources.energy.max, prev.resources.energy.current + 1);
+            console.log(`Generating energy: ${prev.resources.energy.current} -> ${newCurrent}`);
+            return {
+                ...prev,
+                resources: {
+                    ...prev.resources,
+                    energy: {
+                        ...prev.resources.energy,
+                        current: newCurrent
+                    }
+                }
+            };
+        });
+    }, [setMainShip]);
 
+    const startEnergyGeneration = React.useCallback(() => {
+        console.log("startEnergyGeneration called, isGenerating:", isGenerating);
+        if (isGenerating) return;
+
+        console.log("Starting energy generation");
+        setIsGenerating(true);
+
+        // Start border animation
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(borderAnimationRef, {
+                    toValue: 1,
+                    duration: 600,
+                    useNativeDriver: false,
+                }),
+                Animated.timing(borderAnimationRef, {
+                    toValue: 0,
+                    duration: 600,
+                    useNativeDriver: false,
+                }),
+            ])
+        ).start();
+
+        // Generate immediately on press
+        handleGenerateEnergy();
+
+        // Then continue generating every 0.5 seconds
+        generationIntervalRef.current = setInterval(() => {
+            // Use setMainShip to get fresh values from the state
+            setMainShip((prev) => {
+                const newCurrent = Math.min(prev.resources.energy.max, prev.resources.energy.current + 1);
+                return {
+                    ...prev,
+                    resources: {
+                        ...prev.resources,
+                        energy: {
+                            ...prev.resources.energy,
+                            current: newCurrent
+                        }
+                    }
+                };
+            });
+        }, 200);
+    }, [isGenerating, handleGenerateEnergy, setMainShip, borderAnimationRef]);
+
+    const stopEnergyGeneration = React.useCallback(() => {
+        console.log("stopEnergyGeneration called");
+        setIsGenerating(false);
+
+        // Stop border animation
+        borderAnimationRef.stopAnimation();
+        borderAnimationRef.setValue(0);
+
+        if (generationIntervalRef.current) {
+            console.log("Clearing energy generation interval");
+            clearInterval(generationIntervalRef.current);
+            generationIntervalRef.current = null;
+        }
+    }, [borderAnimationRef]);
+
+    // Cleanup interval on unmount
+    React.useEffect(() => {
+        return () => {
+            if (generationIntervalRef.current) {
+                clearInterval(generationIntervalRef.current);
+            }
+        };
+    }, []);
 
     const weaponCategories = weapons.reduce<Record<string, IWeapon[]>>((categories, weapon) => {
         const type = weapon.weaponDetails.type;
@@ -237,7 +321,7 @@ const Dashboard = () => {
     // Progressive weapon unlocking system
     const getUnlockedWeapons = useMemo(() => {
         const unlockedWeapons = new Set<string>();
-        
+
         // Always unlock light/small weapons when exploration is unlocked
         if (isAchievementUnlocked("build_scanning_drones")) {
             unlockedWeapons.add("light_plasma_blaster");
@@ -245,7 +329,7 @@ const Dashboard = () => {
             unlockedWeapons.add("light_rocket_launcher");
             unlockedWeapons.add("light_railgun");
         }
-        
+
         // Unlock medium weapons based on combat experience
         const totalKills = combatStats.totalKills || 0;
         if (totalKills >= 10) {
@@ -254,25 +338,25 @@ const Dashboard = () => {
             unlockedWeapons.add("medium_missile_launcher");
             unlockedWeapons.add("medium_railgun");
         }
-        
+
         // Unlock heavy weapons for experienced players
         if (totalKills >= 50) {
             unlockedWeapons.add("heavy_plasma_blaster");
             unlockedWeapons.add("heavy_beam_laser");
-            unlockedWeapons.add("heavy_torpedo_launcher");
+            unlockedWeapons.add("heavy_missile_launcher");
             unlockedWeapons.add("heavy_railgun");
         }
-        
+
         return unlockedWeapons;
     }, [isAchievementUnlocked, combatStats]);
 
     // Default resource generation values for Core Operations
     const defaultResourceGenerationValue = {
-        fuel: 15,
-        solarPlasma: 9,
-        darkMatter: 4,
-        frozenHydrogen: 3,
-        alloys: 2,
+        fuel: 25,
+        solarPlasma: 15,
+        darkMatter: 8,
+        frozenHydrogen: 6,
+        alloys: 4,
     };
 
     const purchaseWeaponSlot = () => {
@@ -321,11 +405,62 @@ const Dashboard = () => {
             >
                 <ScrollView contentContainerStyle={styles.scrollViewContent}>
                     <DevPanel />
-                    
+
                     {/* Actions Section */}
                     <View style={styles.panel}>
                         <Text style={styles.panelTitle}>Actions</Text>
-                        <Button title="Generate Energy" color={colors.primary} onPress={handleGenerateEnergy} />
+                        <Animated.View
+                            style={[
+                                styles.energyButton,
+                                isGenerating && styles.energyButtonActive,
+                                resources.energy.current >= resources.energy.max && styles.energyButtonDisabled,
+                                styles.energyButtonTouch,
+                                isGenerating && {
+                                    borderWidth: 3,
+                                    borderColor: borderAnimationRef.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: ['rgba(0, 150, 255, 0.3)', 'rgba(0, 150, 255, 1)']
+                                    }),
+                                    shadowColor: borderAnimationRef.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: ['rgba(0, 150, 255, 0)', 'rgba(0, 150, 255, 0.8)']
+                                    }),
+                                    shadowOffset: { width: 0, height: 0 },
+                                    shadowRadius: borderAnimationRef.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [0, 15]
+                                    }),
+                                    elevation: borderAnimationRef.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [0, 10]
+                                    }),
+                                }
+                            ]}
+                        >
+                            <TouchableOpacity
+                                onPressIn={() => {
+                                    console.log("TouchableOpacity: onPressIn");
+                                    startEnergyGeneration();
+                                }}
+                                onPressOut={() => {
+                                    console.log("TouchableOpacity: onPressOut");
+                                    stopEnergyGeneration();
+                                }}
+                                disabled={resources.energy.current >= resources.energy.max}
+                                style={styles.energyButtonInner}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={[
+                                    styles.energyButtonText,
+                                    resources.energy.current >= resources.energy.max && styles.energyButtonTextDisabled
+                                ]}>
+                                    {isGenerating ? "Generating Energy..." : "Hold to Generate Energy"}
+                                </Text>
+                                <Text style={styles.energyButtonSubtext}>
+                                    +1 Energy per 0.3s
+                                </Text>
+                            </TouchableOpacity>
+                        </Animated.View>
                     </View>
 
                     {/* Core Operations Section */}
@@ -337,11 +472,11 @@ const Dashboard = () => {
                             <View style={styles.cardContent}>
                                 <CoreOperations
                                     defaultResourceGenerationValue={{
-                                        fuel: 3,
-                                        solarPlasma: 2,
-                                        researchPoints: 1,
-                                        exoticMatter: 1,
-                                        quantumCores: 1,
+                                        fuel: 8,           // Increased from 3 to 8
+                                        solarPlasma: 5,    // Increased from 2 to 5
+                                        researchPoints: 2, // Increased from 1 to 2
+                                        exoticMatter: 2,   // Increased from 1 to 2
+                                        quantumCores: 1,   // Kept at 1 (end-game resource)
                                     }}
                                     generateResource={generateResource}
                                 />
@@ -369,7 +504,7 @@ const Dashboard = () => {
                                         resources={resources}
                                     />
                                 ))}
-                            
+
                             {/* Show hint about locked upgrades */}
                             {upgrades.some(upgrade => !isUpgradeUnlocked(upgrade.id)) && (
                                 <View style={styles.moreContentHint}>
@@ -419,63 +554,63 @@ const Dashboard = () => {
                             <Text style={styles.panelTitle}>Weapon Modules</Text>
                             <View style={styles.cardContent}>
                                 {Object.entries(weaponCategories)
-                                    .filter(([type, weapons]) => 
-                                        weapons.some(weapon => 
+                                    .filter(([type, weapons]) =>
+                                        weapons.some(weapon =>
                                             getUnlockedWeapons.has(weapon.id) || weapon.amount > 0
                                         )
                                     ) // Only show categories with unlocked or available weapons
                                     .map(([type, weapons]) => (
-                                    <Collapsible key={type} title={`${type.charAt(0).toUpperCase() + type.slice(1)}s`}>
-                                        {weapons
-                                            .filter(weapon => getUnlockedWeapons.has(weapon.id) || weapon.amount > 0)
-                                            .map((weapon) => {
-                                            // Check if the player can afford the weapon
-                                            const canAfford = weapon.costs.every(
-                                                (cost) =>
-                                                    resources[cost.resourceType as keyof PlayerResources]?.current >= cost.amount
-                                            );
-                                            return (
-                                                <View key={weapon.id} style={styles.weaponItem}>
-                                                    <ImageBackground
-                                                        source={weapon.icon} // Weapon icon as background
-                                                        style={styles.weaponItemBackground} // Background styles
-                                                        imageStyle={styles.weaponItemImageStyle} // Ensure image fits the card
-                                                    >
-                                                        <View style={styles.weaponItemContent}>
-                                                            <Text style={styles.weaponName}>{weapon.title}</Text>
-                                                            <Text style={styles.description}>
-                                                                {weapon.description(weapon.amount || 0)}
-                                                            </Text>
-                                                            <View style={styles.costContainer}>
-                                                                {weapon.costs.map((cost, index) => (
-                                                                    <View key={index} style={styles.resourceContainer}>
-                                                                        <ResourceIcon
-                                                                            type={cost.resourceType as keyof PlayerResources}
-                                                                            size={20}
-                                                                        />
-                                                                        <Text style={styles.costText}>{cost.amount}</Text>
+                                        <Collapsible key={type} title={`${type.charAt(0).toUpperCase() + type.slice(1)}s`}>
+                                            {weapons
+                                                .filter(weapon => getUnlockedWeapons.has(weapon.id) || weapon.amount > 0)
+                                                .map((weapon) => {
+                                                    // Check if the player can afford the weapon
+                                                    const canAfford = weapon.costs.every(
+                                                        (cost) =>
+                                                            resources[cost.resourceType as keyof PlayerResources]?.current >= cost.amount
+                                                    );
+                                                    return (
+                                                        <View key={weapon.id} style={styles.weaponItem}>
+                                                            <ImageBackground
+                                                                source={weapon.icon} // Weapon icon as background
+                                                                style={styles.weaponItemBackground} // Background styles
+                                                                imageStyle={styles.weaponItemImageStyle} // Ensure image fits the card
+                                                            >
+                                                                <View style={styles.weaponItemContent}>
+                                                                    <Text style={styles.weaponName}>{weapon.title}</Text>
+                                                                    <Text style={styles.description}>
+                                                                        {weapon.description(weapon.amount || 0)}
+                                                                    </Text>
+                                                                    <View style={styles.costContainer}>
+                                                                        {weapon.costs.map((cost, index) => (
+                                                                            <View key={index} style={styles.resourceContainer}>
+                                                                                <ResourceIcon
+                                                                                    type={cost.resourceType as keyof PlayerResources}
+                                                                                    size={20}
+                                                                                />
+                                                                                <Text style={styles.costText}>{cost.amount}</Text>
+                                                                            </View>
+                                                                        ))}
                                                                     </View>
-                                                                ))}
-                                                            </View>
-                                                            <View style={styles.buttonsContainer}>
-                                                                <TouchableOpacity
-                                                                    onPress={() => craftWeaponModule(weapon.id)}
-                                                                    style={[
-                                                                        styles.upgradeButton,
-                                                                        !canAfford && styles.disabledButton,
-                                                                    ]}
-                                                                    disabled={!canAfford}
-                                                                >
-                                                                    <Text style={styles.craftButtonText}>Manufacture</Text>
-                                                                </TouchableOpacity>
-                                                            </View>
+                                                                    <View style={styles.buttonsContainer}>
+                                                                        <TouchableOpacity
+                                                                            onPress={() => craftWeaponModule(weapon.id)}
+                                                                            style={[
+                                                                                styles.upgradeButton,
+                                                                                !canAfford && styles.disabledButton,
+                                                                            ]}
+                                                                            disabled={!canAfford}
+                                                                        >
+                                                                            <Text style={styles.craftButtonText}>Manufacture</Text>
+                                                                        </TouchableOpacity>
+                                                                    </View>
+                                                                </View>
+                                                            </ImageBackground>
                                                         </View>
-                                                    </ImageBackground>
-                                                </View>
-                                            );
-                                        })}
-                                    </Collapsible>
-                                ))}
+                                                    );
+                                                })}
+                                        </Collapsible>
+                                    ))}
 
                                 {/* Weapon Progression Info */}
                                 <View style={styles.progressionInfo}>
@@ -501,19 +636,19 @@ const Dashboard = () => {
                                 </View>
 
                                 {/* Show hint about more weapon categories */}
-                                {Object.entries(weaponCategories).some(([type, weapons]) => 
+                                {Object.entries(weaponCategories).some(([type, weapons]) =>
                                     weapons.some(weapon => !getUnlockedWeapons.has(weapon.id) && weapon.amount === 0)
                                 ) && (
-                                    <View style={styles.moreContentHint}>
-                                        <Text style={styles.moreContentIcon}>⚔️</Text>
-                                        <Text style={styles.moreContentText}>
-                                            More weapon tiers await unlocking...
-                                        </Text>
-                                        <Text style={styles.moreContentSubtext}>
-                                            Gain combat experience to unlock advanced weapons!
-                                        </Text>
-                                    </View>
-                                )}
+                                        <View style={styles.moreContentHint}>
+                                            <Text style={styles.moreContentIcon}>⚔️</Text>
+                                            <Text style={styles.moreContentText}>
+                                                More weapon tiers await unlocking...
+                                            </Text>
+                                            <Text style={styles.moreContentSubtext}>
+                                                Gain combat experience to unlock advanced weapons!
+                                            </Text>
+                                        </View>
+                                    )}
                             </View>
                         </View>
                     )}
@@ -840,6 +975,50 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: colors.successGradient[0],
         fontWeight: 'bold',
+    },
+    // Energy Button Styles
+    energyButton: {
+        backgroundColor: colors.primary,
+        borderWidth: 2,
+        borderColor: colors.border,
+        marginTop: 8,
+        overflow: 'hidden',
+    },
+    energyButtonActive: {
+        backgroundColor: colors.secondary,
+        borderColor: colors.glowEffect,
+        shadowColor: colors.glowEffect,
+        shadowOpacity: 0.8,
+        shadowRadius: 10,
+        elevation: 6,
+    },
+    energyButtonDisabled: {
+        backgroundColor: colors.disabledBackground,
+        borderColor: colors.disabledBorder,
+    },
+    energyButtonTouch: {
+        // Removed padding and alignItems as they're now in energyButtonInner
+    },
+    energyButtonText: {
+        color: colors.textPrimary,
+        fontSize: 16,
+        fontWeight: 'bold',
+        textAlign: 'center',
+    },
+    energyButtonTextDisabled: {
+        color: colors.disabledText,
+    },
+    energyButtonSubtext: {
+        color: colors.textSecondary,
+        fontSize: 12,
+        textAlign: 'center',
+        marginTop: 4,
+        fontStyle: 'italic',
+    },
+    energyButtonInner: {
+        width: '100%',
+        alignItems: 'center',
+        padding: 16,
     },
 });
 

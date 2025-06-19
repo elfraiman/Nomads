@@ -239,7 +239,7 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
     const navigator = useNavigation<NavigationProp<RootStackParamList>>();
 
     if (!game) return null;
-    const { updateResources, resources, setFoundAsteroids, foundAsteroids, ships, updateShips, updateAchievToCompleted, isAchievementUnlocked, showGeneralNotification, showNotification, merchants, spawnMerchant, isDevMode, devSpawnMerchantAt, achievements } = game;
+    const { updateResources, resources, setFoundAsteroids, foundAsteroids, ships, updateShips, updateAchievToCompleted, isAchievementUnlocked, showGeneralNotification, showNotification, merchants, spawnMerchant, isDevMode, devSpawnMerchantAt, achievements, getUnlockRewards } = game;
     const [isScanning, setIsScanning] = useState(false);
     const [scanCooldown, setScanCooldown] = useState(0);
     const [selectedMerchant, setSelectedMerchant] = useState<IMerchant | null>(null);
@@ -332,10 +332,11 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                     updateAchievToCompleted("find_an_asteroid");
                     const achievement = achievements.find((ach) => ach.id === "find_an_asteroid");
                     if (achievement) {
+                        const unlockRewards = getUnlockRewards(achievement.unlocks);
                         showNotification({
                             title: achievement.title,
                             description: achievement.story,
-                            rewards: [],
+                            rewards: unlockRewards,
                             type: 'achievement',
                         });
                     }
@@ -652,10 +653,11 @@ const GalaxyView = ({ galaxy, onBack }: { galaxy: any; onBack: () => void }) => 
                                         updateAchievToCompleted("enter_a_planet");
                                         const achievement = achievements.find((ach) => ach.id === "enter_a_planet");
                                         if (achievement) {
+                                            const unlockRewards = getUnlockRewards(achievement.unlocks);
                                             showNotification({
                                                 title: achievement.title,
                                                 description: achievement.story,
-                                                rewards: [],
+                                                rewards: unlockRewards,
                                                 type: 'achievement',
                                             });
                                         }

@@ -31,7 +31,7 @@ const ActiveGoal = () => {
         style={styles.header}
       >
         <Text style={styles.headerText}>
-          {isExpanded ? "Hide Active Goal" : "Show Active Goal"}
+          {isExpanded ? "▲ Goal" : "▼ Goal"}
         </Text>
       </TouchableOpacity>
 
@@ -50,19 +50,17 @@ const ActiveGoal = () => {
             const progress = calculateProgress(current, goal);
             return (
               <View style={styles.goalItem} key={resource}>
-                <View style={styles.progressContainer}>
-                  <Text style={styles.goalText}>
-                    <ResourceIcon type={resource as keyof typeof resources} size={20} />{" "}
-                    {`${current}/${goal}`}
-                  </Text>
-                  <View style={styles.progressBar}>
-                    <LinearGradient
-                      colors={[colors.successGradient[0], colors.successGradient[1]]}
-                      start={[0, 0]}
-                      end={[1, 0]}
-                      style={[styles.progressFill, { width: `${progress}%` }]}
-                    />
-                  </View>
+                <View style={styles.goalHeader}>
+                  <ResourceIcon type={resource as keyof typeof resources} size={16} />
+                  <Text style={styles.goalText}>{`${formatLargeNumber(current)}/${formatLargeNumber(goal)}`}</Text>
+                </View>
+                <View style={styles.progressBar}>
+                  <LinearGradient
+                    colors={[colors.successGradient[0], colors.successGradient[1]]}
+                    start={[0, 0]}
+                    end={[1, 0]}
+                    style={[styles.progressFill, { width: `${progress}%` }]}
+                  />
                 </View>
               </View>
             );
@@ -75,19 +73,20 @@ const ActiveGoal = () => {
 
             return (
               <View style={styles.goalItem} key={upgrade}>
-                <Text style={styles.goalText}>
-                  {upgrade.replace(/_/g, " ").toUpperCase()}
-                </Text>
-                <View style={styles.progressContainer}>
+                <View style={styles.goalHeader}>
+                  <Text style={styles.upgradeIcon}>⚙️</Text>
+                  <Text style={styles.upgradeText}>
+                    {upgrade.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                  </Text>
                   <Text style={styles.goalText}>{`${formatLargeNumber(current)}/${formatLargeNumber(goal)}`}</Text>
-                  <View style={styles.progressBar}>
-                    <LinearGradient
-                      colors={[colors.successGradient[0], colors.successGradient[1]]}
-                      start={[0, 0]}
-                      end={[1, 0]}
-                      style={[styles.progressFill, { width: `${progress}%` }]}
-                    />
-                  </View>
+                </View>
+                <View style={styles.progressBar}>
+                  <LinearGradient
+                    colors={[colors.successGradient[0], colors.successGradient[1]]}
+                    start={[0, 0]}
+                    end={[1, 0]}
+                    style={[styles.progressFill, { width: `${progress}%` }]}
+                  />
                 </View>
               </View>
             );
@@ -100,19 +99,17 @@ const ActiveGoal = () => {
 
             return (
               <View style={styles.goalItem} key={ship}>
-                <View style={styles.progressContainer}>
-                  <Text style={styles.goalText}>
-                    <ResourceIcon type={ship as keyof typeof ships} size={20} />{" "}
-                    {`${formatLargeNumber(current)}/${formatLargeNumber(goal)}`}
-                  </Text>
-                  <View style={styles.progressBar}>
-                    <LinearGradient
-                      colors={[colors.successGradient[0], colors.successGradient[1]]}
-                      start={[0, 0]}
-                      end={[1, 0]}
-                      style={[styles.progressFill, { width: `${progress}%` }]}
-                    />
-                  </View>
+                <View style={styles.goalHeader}>
+                  <ResourceIcon type={ship as keyof typeof ships} size={16} />
+                  <Text style={styles.goalText}>{`${formatLargeNumber(current)}/${formatLargeNumber(goal)}`}</Text>
+                </View>
+                <View style={styles.progressBar}>
+                  <LinearGradient
+                    colors={[colors.successGradient[0], colors.successGradient[1]]}
+                    start={[0, 0]}
+                    end={[1, 0]}
+                    style={[styles.progressFill, { width: `${progress}%` }]}
+                  />
                 </View>
               </View>
             );
@@ -126,63 +123,72 @@ const ActiveGoal = () => {
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    marginVertical: 10,
+    marginVertical: 6,
     borderRadius: 0,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: colors.border,
   },
   header: {
-    padding: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     alignItems: "center",
     backgroundColor: colors.panelBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   headerText: {
     color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "bold",
+    fontSize: 12,
+    fontWeight: "600",
   },
   content: {
-    padding: 10,
-    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 10,
   },
   description: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    marginBottom: 10,
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginBottom: 8,
     textAlign: "center",
+    lineHeight: 16,
   },
   goalItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 5,
+    marginBottom: 6,
     width: "100%",
   },
-  progressContainer: {
-    flex: 1,
-    marginLeft: 10,
+  goalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 3,
   },
   goalText: {
     color: colors.textPrimary,
+    fontSize: 11,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  upgradeIcon: {
     fontSize: 14,
-    textAlign: "center",
+    marginRight: 4,
+  },
+  upgradeText: {
+    color: colors.textPrimary,
+    fontSize: 10,
+    flex: 1,
+    marginLeft: 4,
+    fontWeight: "500",
   },
   progressBar: {
-    height: 8,
+    height: 6,
     backgroundColor: colors.disabled,
-    borderRadius: 4,
-    marginTop: 4,
+    borderRadius: 3,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    borderRadius: 4,
-  },
-  noProgressText: {
-    color: colors.secondary,
-    fontSize: 16,
-    textAlign: "center",
-    marginTop: 10,
+    borderRadius: 3,
   },
 });
 

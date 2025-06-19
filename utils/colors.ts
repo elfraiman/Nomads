@@ -25,6 +25,10 @@ const colors = {
   disabledBackground: "#282828", // Muted gray for disabled backgrounds
   lockedBackground: "#1a1a1a1b", // Dark gray for locked content
   disabledIcon: "#7e7c7c95",
+  // Unlock reward colors
+  unlockReward: "rgba(255, 215, 0, 0.15)", // Golden background for unlocks
+  unlockRewardBorder: "#FFD700", // Golden border for unlocks
+  unlockRewardText: "#FFD700", // Golden text for unlocks
 };
 
 export default colors;

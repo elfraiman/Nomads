@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { IMainShip, IPirate } from '@/utils/defaults';
 import { CombatLogEntry } from '../components/CombatLog';
 import { generateEnemies, getDifficultyMessage, Planet, CombatStats } from '../utils/enemyGeneration';
@@ -37,15 +37,15 @@ export const useCombatLogic = ({
     setCombatLog([difficultyMessage]);
   }, []);
 
-  const addLogEntry = (entry: CombatLogEntry) => {
+  const addLogEntry = useCallback((entry: CombatLogEntry) => {
     const entryWithTimestamp = {
       ...entry,
       timestamp: new Date()
     };
     setCombatLog(prev => [...prev, entryWithTimestamp]);
-  };
+  }, []);
 
-  const spawnNextPirate = () => {
+  const spawnNextPirate = useCallback(() => {
     if (currentEnemyIndex < enemies.length - 1) {
       const nextIndex = currentEnemyIndex + 1;
       setCurrentEnemyIndex(nextIndex);
@@ -62,9 +62,9 @@ export const useCombatLogic = ({
       });
       unlockNextPlanet();
     }
-  };
+  }, [currentEnemyIndex, enemies, addLogEntry, unlockNextPlanet]);
 
-  const damagePirate = (damage: number) => {
+  const damagePirate = useCallback((damage: number) => {
     if (!pirate) return;
 
     setPirate(prev => {
@@ -74,59 +74,71 @@ export const useCombatLogic = ({
         health: Math.max(prev.health - damage, 0),
       };
     });
-  };
+  }, [pirate]);
 
-  // Pirate attack logic
+  // Handle pirate defeat - separated from the attack logic to avoid setState during render
   useEffect(() => {
+    if (pirate && pirate.health <= 0) {
+      addLogEntry({
+        text: `${pirate.name} has been defeated!`,
+        color: colors.successGradient[0],
+      });
+
+      recordEnemyKill(pirate.name);
+
+      // Remove the defeated enemy from the list
+      setEnemies(prev => prev.filter((_, index) => index !== currentEnemyIndex));
+
+      // Use setTimeout to ensure state updates happen after render
+      setTimeout(() => {
+        spawnNextPirate();
+      }, 100);
+    }
+  }, [pirate?.health, pirate?.name, currentEnemyIndex, recordEnemyKill, addLogEntry, spawnNextPirate]);
+
+  // Pirate attack logic - separated from defeat handling
+  useEffect(() => {
+    if (!pirate || hasEscaped || pirate.health <= 0) {
+      return;
+    }
+
     const interval = setInterval(() => {
-      if (!pirate || hasEscaped) {
+      if (!pirate || hasEscaped || pirate.health <= 0) {
         clearInterval(interval);
         return;
       }
 
-      if (pirate.health > 0) {
-        const pirateAccuracy = Math.min(pirate.attackSpeed * 10, 100);
-        const isHit = calculatePirateHitChance(pirateAccuracy, pirate.category);
+      const pirateAccuracy = Math.min(pirate.attackSpeed * 10, 100);
+      const isHit = calculatePirateHitChance(pirateAccuracy, pirate.category);
 
-        if (isHit) {
-          const pirateAttack = pirate.attack ?? 0;
-          const playerDefense = mainShip.baseStats.defense ?? 0;
-          const { damage } = calculateDamage(pirateAttack, playerDefense, { min: 0.8, max: 1.2 });
+      if (isHit) {
+        const pirateAttack = pirate.attack ?? 0;
+        const playerDefense = mainShip.baseStats.defense ?? 0;
+        const { damage } = calculateDamage(pirateAttack, playerDefense, { min: 0.8, max: 1.2 });
 
-          setMainShip((prev: IMainShip) => ({
-            ...prev,
-            baseStats: {
-              ...prev.baseStats,
-              health: Math.max(prev.baseStats.health - damage, 0)
-            },
-          }));
+        setMainShip((prev: IMainShip) => ({
+          ...prev,
+          baseStats: {
+            ...prev.baseStats,
+            health: Math.max(prev.baseStats.health - damage, 0)
+          },
+        }));
 
-          createFloatingDamage(damage, false, 'incoming');
-          addLogEntry({
-            text: `${pirate.name} hit for ${damage} damage!`,
-            color: colors.error,
-          });
-        } else {
-          addLogEntry({
-            text: `${pirate.name}'s attack missed!`,
-            color: colors.textSecondary,
-          });
-        }
+        createFloatingDamage(damage, false, 'incoming');
+        addLogEntry({
+          text: `${pirate.name} hit for ${damage} damage!`,
+          color: colors.error,
+        });
       } else {
         addLogEntry({
-          text: `${pirate.name} has been defeated!`,
-          color: colors.successGradient[0],
+          text: `${pirate.name}'s attack missed!`,
+          color: colors.textSecondary,
         });
-
-        recordEnemyKill(pirate.name);
-        setEnemies(prev => prev.filter((_, index) => index !== currentEnemyIndex));
-        spawnNextPirate();
-        clearInterval(interval);
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [pirate, mainShip.baseStats.defense, hasEscaped, currentEnemyIndex, enemies.length]);
+  }, [pirate, mainShip.baseStats.defense, hasEscaped, setMainShip, createFloatingDamage, addLogEntry]);
 
   return {
     enemies,

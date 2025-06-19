@@ -417,8 +417,8 @@ export const initialGalaxies: IGalaxy[] = [
     }, */
 ];
 
-export const miningDroneCost = { fuel: 500, solarPlasma: 800, energy: 850 };
-export const scanningDroneCost = { fuel: 100, solarPlasma: 100, energy: 200 };
+export const miningDroneCost = { fuel: 250, solarPlasma: 400, energy: 450 };
+export const scanningDroneCost = { fuel: 50, solarPlasma: 75, energy: 125 };
 
 export interface IMainShip {
   id: string;
@@ -485,14 +485,14 @@ export interface IMission {
   title: string;
   description: string;
   type: "exploration" | "combat" | "trading" | "research" | "timed" | "resource_chain";
-  requirements: { [key: string]: any } & { 
-    ships?: Partial<Ships>; 
+  requirements: { [key: string]: any } & {
+    ships?: Partial<Ships>;
     weapons?: Record<string, number>;
     enemyKills?: Record<string, number>;
   };
   duration?: number; // in seconds for timed missions
   timeLimit?: number; // for challenges
-  rewards: { [key: string]: any } & { 
+  rewards: { [key: string]: any } & {
     ships?: Partial<Ships>;
     unlocks?: string[];
     experience?: number;

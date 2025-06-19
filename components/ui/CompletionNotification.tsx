@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { 
-    Animated, 
-    Dimensions, 
-    Modal, 
-    StyleSheet, 
-    Text, 
-    View, 
-    Easing 
+import {
+    Animated,
+    Dimensions,
+    Modal,
+    StyleSheet,
+    Text,
+    View,
+    Easing
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import ResourceIcon from './ResourceIcon';
@@ -49,7 +49,7 @@ const CompletionNotification: React.FC<CompletionNotificationProps> = ({
             if (rewardAnims.length !== rewards.length) {
                 rewardAnims.splice(0, rewardAnims.length, ...rewards.map(() => new Animated.Value(0)));
             }
-            
+
             // Reset all animations
             slideAnim.setValue(height);
             scaleAnim.setValue(0);
@@ -209,41 +209,55 @@ const CompletionNotification: React.FC<CompletionNotificationProps> = ({
                             {/* Description */}
                             <Text style={styles.description}>{description}</Text>
 
-                            {/* Rewards */}
-                            <View style={styles.rewardsContainer}>
-                                <Text style={styles.rewardsTitle}>Rewards Received:</Text>
-                                <View style={styles.rewardsList}>
-                                    {rewards.map((reward, index) => (
-                                        <Animated.View
-                                            key={`${reward.type}-${index}`}
-                                            style={[
-                                                styles.rewardItem,
-                                                {
-                                                    transform: [
-                                                        {
-                                                            scale: rewardAnims[index] || new Animated.Value(1)
-                                                        }
-                                                    ],
-                                                    opacity: rewardAnims[index] || new Animated.Value(1),
-                                                },
-                                            ]}
-                                        >
-                                            <ResourceIcon 
-                                                type={reward.type as any} 
-                                                size={24} 
-                                            />
-                                            <Text style={styles.rewardAmount}>
-                                                +{formatLargeNumber(reward.amount)}
-                                            </Text>
-                                            {reward.label && (
-                                                <Text style={styles.rewardLabel}>
-                                                    {reward.label}
-                                                </Text>
-                                            )}
-                                        </Animated.View>
-                                    ))}
+                            {/* Rewards - Only show if there are rewards */}
+                            {rewards.length > 0 && (
+                                <View style={styles.rewardsContainer}>
+                                    <Text style={styles.rewardsTitle}>Rewards:</Text>
+                                    <View style={styles.rewardsList}>
+                                        {rewards.map((reward, index) => (
+                                            <Animated.View
+                                                key={`${reward.type}-${index}`}
+                                                style={[
+                                                    styles.rewardItem,
+                                                    reward.type === 'unlock' && styles.unlockRewardItem,
+                                                    {
+                                                        transform: [
+                                                            {
+                                                                scale: rewardAnims[index] || new Animated.Value(1)
+                                                            }
+                                                        ],
+                                                        opacity: rewardAnims[index] || new Animated.Value(1),
+                                                    },
+                                                ]}
+                                            >
+                                                {reward.type === 'unlock' ? (
+                                                    <>
+                                                        <Text style={styles.unlockIcon}>🔓</Text>
+                                                        <Text style={styles.unlockText}>
+                                                            {reward.label || 'New Feature'}
+                                                        </Text>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <ResourceIcon
+                                                            type={reward.type as any}
+                                                            size={24}
+                                                        />
+                                                        <Text style={styles.rewardAmount}>
+                                                            +{formatLargeNumber(reward.amount)}
+                                                        </Text>
+                                                        {reward.label && (
+                                                            <Text style={styles.rewardLabel}>
+                                                                {reward.label}
+                                                            </Text>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </Animated.View>
+                                        ))}
+                                    </View>
                                 </View>
-                            </View>
+                            )}
                         </View>
                     </LinearGradient>
                 </Animated.View>
@@ -360,6 +374,19 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: colors.textSecondary,
         marginLeft: 3,
+    },
+    unlockRewardItem: {
+        backgroundColor: colors.unlockReward,
+        borderColor: colors.unlockRewardBorder,
+    },
+    unlockIcon: {
+        fontSize: 18,
+        color: colors.unlockRewardText,
+        marginRight: 4,
+    },
+    unlockText: {
+        fontSize: 12,
+        color: colors.unlockRewardText,
     },
 });
 
